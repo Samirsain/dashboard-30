@@ -1,0 +1,21 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Netlify
+.netlify/
+
+# Node (only if tooling is added later — no build step in v1)
+node_modules/
+npm-debug.log*
+
+# Local Apps Script credentials (if using clasp)
+.clasprc.json
+.clasp.json
+
+# Local env / secret overrides
+config.local.js
+.env

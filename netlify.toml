@@ -1,0 +1,29 @@
+# Netlify configuration — static deploy of the ThirtyMilestones MIS Dashboard.
+# No build step: the site is plain HTML/CSS/ES-module JS served as-is.
+
+[build]
+  publish = "."
+  command = ""
+
+# Long-cache the static assets; never cache the HTML so config/header changes
+# go live immediately.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+    X-Robots-Tag = "noindex, nofollow"   # link-based access in v1 (PRD §10)
+
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
