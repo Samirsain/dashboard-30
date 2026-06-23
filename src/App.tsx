@@ -35,7 +35,7 @@ function Notice({ kind, children }: { kind: "warn" | "info"; children: React.Rea
     <div
       className={cn(
         "mb-4 rounded-lg border px-3 py-2 text-sm",
-        kind === "warn" ? "border-warn/30 bg-warn/10 text-warn" : "border-sky-400/30 bg-sky-400/10 text-sky-300"
+        kind === "warn" ? "border-warn/30 bg-warn/10 text-warn" : "border-sky-300 bg-sky-50 text-sky-700"
       )}
     >
       {children}
@@ -144,7 +144,7 @@ export default function App() {
         </Tabs>
       </main>
 
-      <footer className="border-t border-white/10 py-5 text-center text-xs text-muted-foreground">
+      <footer className="border-t border-slate-200 py-5 text-center text-xs text-muted-foreground">
         ThirtyMilestones MIS Dashboard · read-only weekly MIS
       </footer>
     </div>

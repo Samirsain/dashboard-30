@@ -60,7 +60,7 @@ export function SummaryTab({ data }: { data: any }) {
           </TableHeader>
           <TableBody>
             {rows.map((r) => (
-              <TableRow key={r.doer} className={cn(r.pct !== null && r.pct < SCORE_THRESHOLDS.WARN && "bg-bad/[0.05]")}>
+              <TableRow key={r.doer} className={cn(r.pct !== null && r.pct < SCORE_THRESHOLDS.WARN && "bg-bad/10")}>
                 <TableCell>
                   <Stack>
                     <span className="font-medium">{r.doer}</span>

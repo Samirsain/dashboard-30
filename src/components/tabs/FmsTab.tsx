@@ -69,7 +69,7 @@ export function FmsTab({ data }: { data: any }) {
               <EmptyRow span={7} />
             ) : (
               rows.map((r, i) => (
-                <TableRow key={i} className={cn(isFmsOverdue(r) && "bg-bad/[0.05]")}>
+                <TableRow key={i} className={cn(isFmsOverdue(r) && "bg-bad/10")}>
                   <TableCell className="font-medium">{r[H.FMS.fmsName]}</TableCell>
                   <TableCell>
                     <Stack>

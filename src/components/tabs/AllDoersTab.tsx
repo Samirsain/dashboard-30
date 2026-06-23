@@ -68,7 +68,7 @@ function DoerCard({ summary, items, pinned }: { summary: any; items: any[]; pinn
   const v = scoreVariant(summary.pct);
   return (
     <Card className="overflow-hidden">
-      <div className="flex items-center justify-between gap-4 border-b border-white/10 bg-white/[0.03] px-5 py-3">
+      <div className="flex items-center justify-between gap-4 border-b border-slate-200/80 bg-slate-50/70 px-5 py-3">
         <Stack>
           <span className="text-base font-semibold">{summary.doer}</span>
           <Sub>{summary.department || "—"}</Sub>
@@ -96,7 +96,7 @@ function DoerCard({ summary, items, pinned }: { summary: any; items: any[]; pinn
             <EmptyRow span={6} />
           ) : (
             items.map((it, i) => (
-              <TableRow key={i} className={cn(it.atRisk && "bg-bad/[0.06]")}>
+              <TableRow key={i} className={cn(it.atRisk && "bg-bad/10")}>
                 <TableCell>
                   <Badge variant="default" className="text-[0.65rem] font-semibold uppercase tracking-wide">
                     {it.type}

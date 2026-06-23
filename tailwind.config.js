@@ -35,8 +35,8 @@ export default {
         display: ["Cormorant Garamond", "Georgia", "serif"],
       },
       boxShadow: {
-        glass: "0 8px 32px rgba(0, 0, 0, 0.37)",
-        glow: "0 0 24px -6px rgba(224, 194, 90, 0.45)",
+        glass: "0 10px 30px -12px rgba(30, 64, 175, 0.22), 0 2px 6px -2px rgba(15, 23, 42, 0.06)",
+        glow: "0 0 22px -6px rgba(37, 99, 235, 0.5)",
       },
       keyframes: {
         "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },

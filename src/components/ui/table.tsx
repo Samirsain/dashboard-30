@@ -12,7 +12,7 @@ Table.displayName = "Table";
 
 const TableHeader = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
   ({ className, ...props }, ref) => (
-    <thead ref={ref} className={cn("sticky top-0 z-10 backdrop-blur-xl [&_tr]:border-white/10", className)} {...props} />
+    <thead ref={ref} className={cn("sticky top-0 z-10 backdrop-blur-xl [&_tr]:border-slate-200", className)} {...props} />
   )
 );
 TableHeader.displayName = "TableHeader";
@@ -26,7 +26,7 @@ TableBody.displayName = "TableBody";
 
 const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTMLTableRowElement>>(
   ({ className, ...props }, ref) => (
-    <tr ref={ref} className={cn("border-b border-white/[0.06] transition-colors hover:bg-white/[0.03]", className)} {...props} />
+    <tr ref={ref} className={cn("border-b border-slate-200/70 transition-colors hover:bg-slate-50", className)} {...props} />
   )
 );
 TableRow.displayName = "TableRow";
@@ -36,7 +36,7 @@ const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<
     <th
       ref={ref}
       className={cn(
-        "h-10 whitespace-nowrap bg-white/[0.03] px-3 text-left align-middle text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground",
+        "h-10 whitespace-nowrap bg-slate-50/80 px-3 text-left align-middle text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground",
         className
       )}
       {...props}

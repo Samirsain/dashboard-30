@@ -20,10 +20,10 @@ export function Header({
   source: string;
 }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-background/70 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/70 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl border border-primary/40 bg-white/5 font-display text-lg font-bold text-primary shadow-glow">
+          <div className="grid h-10 w-10 place-items-center rounded-xl border border-primary/30 bg-primary/10 font-display text-lg font-bold text-primary shadow-glow">
             30
           </div>
           <div className="flex flex-col leading-none">

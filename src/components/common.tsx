@@ -34,12 +34,12 @@ export function MetaTag({ value }: { value?: string }) {
 // --- Completion bar ----------------------------------------------------------
 export function ScoreBar({ pct }: { pct: number | null | undefined }) {
   const v = scoreVariant(pct);
-  const fill = { ok: "bg-ok", warn: "bg-warn", bad: "bg-bad", muted: "bg-white/20" }[v];
+  const fill = { ok: "bg-ok", warn: "bg-warn", bad: "bg-bad", muted: "bg-slate-300" }[v];
   const text = { ok: "text-ok", warn: "text-warn", bad: "text-bad", muted: "text-muted-foreground" }[v];
   return (
     <div className="flex min-w-[7.5rem] items-center gap-2">
       <span className={cn("w-9 text-right font-semibold tabular-nums", text)}>{pctText(pct)}</span>
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
+      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200">
         <div className={cn("h-full rounded-full transition-all", fill)} style={{ width: `${pct ?? 0}%` }} />
       </div>
     </div>

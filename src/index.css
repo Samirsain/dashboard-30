@@ -3,38 +3,38 @@
 @tailwind utilities;
 
 /* =============================================================================
-   ThirtyMilestones MIS — dark glassmorphism theme.
-   Premium navy/charcoal canvas, frosted translucent surfaces, gold accent.
+   ThirtyMilestones MIS — light "blue & white" glassmorphism theme.
+   Soft blue-tinted canvas, frosted white surfaces, blue accent.
    ============================================================================= */
 @layer base {
   :root {
-    --background: 222 47% 5%;
-    --foreground: 210 40% 96%;
+    --background: 214 42% 97%;
+    --foreground: 222 47% 17%;
 
-    --card: 222 32% 11%;
-    --card-foreground: 210 40% 96%;
-    --popover: 222 40% 9%;
-    --popover-foreground: 210 40% 96%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 17%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 17%;
 
-    --primary: 43 64% 62%; /* gold */
-    --primary-foreground: 222 47% 11%;
+    --primary: 221 83% 53%; /* blue-600 */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 30% 18%;
-    --secondary-foreground: 210 40% 96%;
+    --secondary: 214 32% 91%;
+    --secondary-foreground: 222 47% 17%;
 
-    --muted: 217 30% 16%;
-    --muted-foreground: 215 20% 62%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%; /* slate-500 */
 
-    --accent: 217 33% 20%;
-    --accent-foreground: 210 40% 96%;
+    --accent: 213 97% 92%; /* blue-100 */
+    --accent-foreground: 222 60% 30%;
 
-    --ok: 142 65% 47%;
-    --warn: 38 92% 55%;
-    --bad: 0 78% 63%;
+    --ok: 142 71% 36%; /* green-600 */
+    --warn: 30 90% 42%; /* amber-600 */
+    --bad: 0 72% 51%; /* red-600 */
 
-    --border: 215 28% 22%;
-    --input: 215 28% 24%;
-    --ring: 43 64% 62%;
+    --border: 214 32% 89%;
+    --input: 214 32% 86%;
+    --ring: 221 83% 53%;
 
     --radius: 0.9rem;
   }
@@ -45,36 +45,35 @@
     @apply border-border;
   }
   html {
-    color-scheme: dark;
+    color-scheme: light;
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
     min-height: 100vh;
-    /* Layered gradient canvas + soft blurred accent blobs for depth. */
+    /* Light canvas + soft blue ambient blobs for depth. */
     background-color: hsl(var(--background));
     background-image:
-      radial-gradient(60rem 60rem at 12% -10%, rgba(224, 194, 90, 0.10), transparent 60%),
-      radial-gradient(50rem 50rem at 110% 10%, rgba(56, 78, 140, 0.18), transparent 55%),
-      radial-gradient(40rem 40rem at 50% 120%, rgba(120, 80, 200, 0.10), transparent 60%);
+      radial-gradient(55rem 55rem at 8% -12%, rgba(37, 99, 235, 0.13), transparent 60%),
+      radial-gradient(50rem 50rem at 108% 4%, rgba(14, 165, 233, 0.13), transparent 55%),
+      radial-gradient(45rem 45rem at 50% 122%, rgba(59, 130, 246, 0.08), transparent 60%);
     background-attachment: fixed;
   }
 }
 
 @layer components {
-  /* Reusable frosted-glass surface. */
+  /* Frosted-glass surface (light): translucent white + blur, glossy edge. */
   .glass {
-    @apply border border-white/10 bg-white/[0.04] backdrop-blur-xl;
+    @apply border border-white/70 bg-white/65 backdrop-blur-xl;
   }
   .glass-strong {
-    @apply border border-white/10 bg-white/[0.06] backdrop-blur-2xl;
+    @apply border border-white/80 bg-white/85 backdrop-blur-2xl;
   }
-  /* Thin custom scrollbars that suit the dark canvas. */
   .scroll-slim::-webkit-scrollbar {
     height: 8px;
     width: 8px;
   }
   .scroll-slim::-webkit-scrollbar-thumb {
-    @apply rounded-full bg-white/10;
+    @apply rounded-full bg-slate-300;
   }
   .scroll-slim::-webkit-scrollbar-track {
     background: transparent;

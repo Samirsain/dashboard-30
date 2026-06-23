@@ -86,7 +86,7 @@ export function DelegationTab({ data }: { data: any }) {
               <EmptyRow span={8} />
             ) : (
               rows.map((r, i) => (
-                <TableRow key={i} className={cn(isDelegationAtRisk(r) && "bg-bad/[0.06]")}>
+                <TableRow key={i} className={cn(isDelegationAtRisk(r) && "bg-bad/10")}>
                   <TableCell className="font-medium">{r[H.Delegation.task]}</TableCell>
                   <TableCell>{r[H.Delegation.doer]}</TableCell>
                   <TableCell className="text-muted-foreground">{r[H.Delegation.givenBy]}</TableCell>
