@@ -8,9 +8,12 @@ Thumbs.db
 # Netlify
 .netlify/
 
-# Node (only if tooling is added later — no build step in v1)
+# Node / Vite build
 node_modules/
 npm-debug.log*
+dist/
+.vite/
+*.local
 
 # Local Apps Script credentials (if using clasp)
 .clasprc.json

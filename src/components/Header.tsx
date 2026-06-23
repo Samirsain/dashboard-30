@@ -1,0 +1,56 @@
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BRAND } from "@/lib/config";
+
+function SourceBadge({ source }: { source: string }) {
+  return source === "sample" ? <Badge variant="warn">Sample data</Badge> : <Badge variant="ok">Live</Badge>;
+}
+
+export function Header({
+  weeks,
+  weekKey,
+  onWeekChange,
+  weekLabel,
+  source,
+}: {
+  weeks: { key: string; label: string }[];
+  weekKey: string;
+  onWeekChange: (v: string) => void;
+  weekLabel: string;
+  source: string;
+}) {
+  return (
+    <header className="sticky top-0 z-30 border-b border-white/10 bg-background/70 backdrop-blur-xl">
+      <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <div className="flex items-center gap-3">
+          <div className="grid h-10 w-10 place-items-center rounded-xl border border-primary/40 bg-white/5 font-display text-lg font-bold text-primary shadow-glow">
+            30
+          </div>
+          <div className="flex flex-col leading-none">
+            <span className="font-display text-xl font-bold tracking-wide">{BRAND.name}</span>
+            <span className="text-[0.65rem] uppercase tracking-[0.2em] text-primary/80">{BRAND.tagline}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col items-end gap-1">
+            <span className="text-xs font-medium text-primary/90">{weekLabel}</span>
+            <Select value={weekKey} onValueChange={onWeekChange}>
+              <SelectTrigger className="h-8 w-[11.5rem] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {weeks.map((w) => (
+                  <SelectItem key={w.key} value={w.key}>
+                    {w.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <SourceBadge source={source} />
+        </div>
+      </div>
+    </header>
+  );
+}

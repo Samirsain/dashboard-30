@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =============================================================================
+   ThirtyMilestones MIS — dark glassmorphism theme.
+   Premium navy/charcoal canvas, frosted translucent surfaces, gold accent.
+   ============================================================================= */
+@layer base {
+  :root {
+    --background: 222 47% 5%;
+    --foreground: 210 40% 96%;
+
+    --card: 222 32% 11%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 40% 9%;
+    --popover-foreground: 210 40% 96%;
+
+    --primary: 43 64% 62%; /* gold */
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 217 30% 18%;
+    --secondary-foreground: 210 40% 96%;
+
+    --muted: 217 30% 16%;
+    --muted-foreground: 215 20% 62%;
+
+    --accent: 217 33% 20%;
+    --accent-foreground: 210 40% 96%;
+
+    --ok: 142 65% 47%;
+    --warn: 38 92% 55%;
+    --bad: 0 78% 63%;
+
+    --border: 215 28% 22%;
+    --input: 215 28% 24%;
+    --ring: 43 64% 62%;
+
+    --radius: 0.9rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    min-height: 100vh;
+    /* Layered gradient canvas + soft blurred accent blobs for depth. */
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(60rem 60rem at 12% -10%, rgba(224, 194, 90, 0.10), transparent 60%),
+      radial-gradient(50rem 50rem at 110% 10%, rgba(56, 78, 140, 0.18), transparent 55%),
+      radial-gradient(40rem 40rem at 50% 120%, rgba(120, 80, 200, 0.10), transparent 60%);
+    background-attachment: fixed;
+  }
+}
+
+@layer components {
+  /* Reusable frosted-glass surface. */
+  .glass {
+    @apply border border-white/10 bg-white/[0.04] backdrop-blur-xl;
+  }
+  .glass-strong {
+    @apply border border-white/10 bg-white/[0.06] backdrop-blur-2xl;
+  }
+  /* Thin custom scrollbars that suit the dark canvas. */
+  .scroll-slim::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+  }
+  .scroll-slim::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-white/10;
+  }
+  .scroll-slim::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
