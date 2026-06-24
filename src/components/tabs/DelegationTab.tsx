@@ -14,6 +14,10 @@ import {
   RagBadge,
   MetaTag,
   EmptyRow,
+  SectionHeading,
+  CountChips,
+  CountChip,
+  Avatar,
 } from "@/components/common";
 import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -46,8 +50,22 @@ export function DelegationTab({ data }: { data: any }) {
     [all, f]
   );
 
+  const red = rows.filter((r) => delegationColour(r) === COLOUR.RED).length;
+  const yellow = rows.filter((r) => delegationColour(r) === COLOUR.YELLOW).length;
+  const green = rows.length - red - yellow;
+
   return (
     <div className="space-y-4">
+      <SectionHeading
+        title="Delegation"
+        subtitle="One-time delegated tasks. Jitni baar revise hua utna kam discipline — 0 = Green, 1 = Yellow, 2+ = Red."
+      >
+        <CountChips>
+          <CountChip label="On-time" value={green} tone="ok" />
+          <CountChip label="Yellow" value={yellow} tone="warn" />
+          <CountChip label="Red" value={red} tone={red ? "bad" : "muted"} />
+        </CountChips>
+      </SectionHeading>
       <FilterBar>
         <SelectFilter label="Doer" value={f.doer} onChange={(v) => set({ doer: v })} options={activeDoerNames(data)} />
         <SelectFilter label="Department" value={f.department} onChange={(v) => set({ department: v })} options={departmentNames(data)} />
@@ -78,7 +96,12 @@ export function DelegationTab({ data }: { data: any }) {
               rows.map((r, i) => (
                 <TableRow key={r.taskId || i} className={cn(delegationColour(r) === COLOUR.RED && "bg-bad/10")}>
                   <TableCell className="max-w-[22rem] font-medium">{r.task}</TableCell>
-                  <TableCell>{r.doer}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Avatar name={r.doer} />
+                      <span className="whitespace-nowrap">{r.doer}</span>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{r.department}</TableCell>
                   <TableCell>{fmtDate(r.firstDate)}</TableCell>
                   <TableCell>{fmtDate(r.latestRevision)}</TableCell>

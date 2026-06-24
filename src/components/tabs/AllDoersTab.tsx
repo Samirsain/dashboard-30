@@ -5,7 +5,7 @@ import { doerSummaries, isChecklistDone, isDelegationDone, delegationColour, del
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { FilterBar, SelectFilter, SearchFilter, StatusBadge, Stack, Sub, EmptyRow } from "@/components/common";
+import { FilterBar, SelectFilter, SearchFilter, StatusBadge, Stack, Sub, EmptyRow, SectionHeading, Avatar } from "@/components/common";
 import { fmtDate, pctText, scoreVariant, type ScoreVariant } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -45,10 +45,13 @@ function DoerCard({ summary, items }: { summary: any; items: any[] }) {
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center justify-between gap-4 border-b border-slate-200/80 bg-slate-50/70 px-5 py-3">
-        <Stack>
-          <span className="text-base font-semibold">{summary.doer}</span>
-          <Sub>{summary.department || "—"}</Sub>
-        </Stack>
+        <div className="flex items-center gap-3">
+          <Avatar name={summary.doer} className="h-9 w-9 text-xs" />
+          <Stack>
+            <span className="text-base font-semibold">{summary.doer}</span>
+            <Sub>{summary.department || "—"}</Sub>
+          </Stack>
+        </div>
         <div className="flex flex-col items-end">
           <span className={cn("text-xl font-semibold tabular-nums", TEXT[v])}>{pctText(summary.pct)}</span>
           <Sub>
@@ -118,6 +121,10 @@ export function AllDoersTab({ data }: { data: any }) {
 
   return (
     <div className="space-y-4">
+      <SectionHeading
+        title="All Doers"
+        subtitle="Ek doer ka poora kaam ek jagah — Checklist aur Delegation dono, pending sabse upar."
+      />
       <FilterBar>
         <SelectFilter label="Doer" value={f.doer} onChange={(v) => set({ doer: v })} options={activeDoerNames(data)} />
         <SelectFilter label="Show" value={f.show} onChange={(v) => set({ show: v })} options={["Pending", "Done"]} />

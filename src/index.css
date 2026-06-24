@@ -46,17 +46,30 @@
   }
   html {
     color-scheme: light;
+    -webkit-text-size-adjust: 100%;
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
     min-height: 100vh;
-    /* Light canvas + soft blue ambient blobs for depth. */
+    font-feature-settings: "cv11", "ss01";
+    letter-spacing: -0.01em;
+    /* Light canvas + restrained blue ambient blobs for premium depth. */
     background-color: hsl(var(--background));
     background-image:
-      radial-gradient(55rem 55rem at 8% -12%, rgba(37, 99, 235, 0.13), transparent 60%),
-      radial-gradient(50rem 50rem at 108% 4%, rgba(14, 165, 233, 0.13), transparent 55%),
-      radial-gradient(45rem 45rem at 50% 122%, rgba(59, 130, 246, 0.08), transparent 60%);
+      radial-gradient(48rem 48rem at 6% -14%, rgba(37, 99, 235, 0.10), transparent 62%),
+      radial-gradient(44rem 44rem at 110% 2%, rgba(14, 165, 233, 0.09), transparent 58%),
+      radial-gradient(40rem 40rem at 50% 124%, rgba(59, 130, 246, 0.06), transparent 62%);
     background-attachment: fixed;
+  }
+  /* Elegant display headings (Cormorant Garamond). */
+  .font-display {
+    font-feature-settings: "lnum", "ss01";
+    letter-spacing: -0.015em;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
   }
 }
 

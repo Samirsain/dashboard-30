@@ -8,6 +8,113 @@ import { cn } from "@/lib/utils";
 import { pctText, scoreVariant } from "@/lib/format";
 import { ALL, STATUS } from "@/lib/config";
 
+// --- Section heading: title + plain-language one-liner -----------------------
+// Every tab opens with this so the screen explains itself at a glance.
+export function SectionHeading({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="space-y-1">
+        <h2 className="font-display text-2xl font-bold leading-none tracking-tight text-foreground sm:text-[1.7rem]">
+          {title}
+        </h2>
+        {subtitle && <p className="max-w-2xl text-sm text-muted-foreground">{subtitle}</p>}
+      </div>
+      {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
+    </div>
+  );
+}
+
+// --- Count chips: at-a-glance tallies (Done / Pending / Red …) ----------------
+type ChipTone = "ok" | "warn" | "bad" | "muted" | "primary";
+const CHIP_TONE: Record<ChipTone, string> = {
+  ok: "bg-ok/10 text-ok ring-ok/20",
+  warn: "bg-warn/10 text-warn ring-warn/20",
+  bad: "bg-bad/10 text-bad ring-bad/20",
+  primary: "bg-primary/10 text-primary ring-primary/20",
+  muted: "bg-slate-100 text-slate-600 ring-slate-200",
+};
+export function CountChip({ label, value, tone = "muted" }: { label: string; value: number | string; tone?: ChipTone }) {
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset", CHIP_TONE[tone])}>
+      <span className="font-display text-sm font-bold tabular-nums leading-none">{value}</span>
+      <span className="opacity-80">{label}</span>
+    </span>
+  );
+}
+export function CountChips({ children }: { children: React.ReactNode }) {
+  return <div className="flex flex-wrap items-center gap-2">{children}</div>;
+}
+
+// --- Avatar: coloured initials circle (blue/green family) --------------------
+const AVATAR_COLORS = [
+  "bg-blue-500",
+  "bg-emerald-500",
+  "bg-sky-500",
+  "bg-teal-500",
+  "bg-indigo-500",
+  "bg-cyan-600",
+  "bg-green-600",
+  "bg-blue-600",
+];
+function avatarHash(s: string) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+export function Avatar({ name, className }: { name: string; className?: string }) {
+  const clean = String(name ?? "").trim();
+  const initials =
+    clean
+      .split(/\s+/)
+      .map((w) => w[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "—";
+  const color = AVATAR_COLORS[avatarHash(clean) % AVATAR_COLORS.length];
+  return (
+    <span
+      className={cn(
+        "grid h-7 w-7 shrink-0 place-items-center rounded-full text-[0.62rem] font-bold tracking-tight text-white shadow-sm ring-1 ring-white/40",
+        color,
+        className
+      )}
+    >
+      {initials}
+    </span>
+  );
+}
+
+// --- NumPill: compact tinted number cell (MIS-style grid) --------------------
+type NumTone = "ok" | "warn" | "bad" | "info" | "muted";
+const NUM_TONE: Record<NumTone, string> = {
+  ok: "bg-ok/10 text-ok",
+  warn: "bg-warn/10 text-warn",
+  bad: "bg-bad/10 text-bad",
+  info: "bg-primary/10 text-primary",
+  muted: "bg-slate-100 text-slate-400",
+};
+export function NumPill({ value, tone = "muted" }: { value: number | string; tone?: NumTone }) {
+  const empty = value === 0 || value === "0" || value === "" || value == null;
+  return (
+    <span
+      className={cn(
+        "inline-block min-w-[1.9rem] rounded-md px-1.5 py-0.5 text-center text-xs font-semibold tabular-nums",
+        empty ? NUM_TONE.muted : NUM_TONE[tone]
+      )}
+    >
+      {empty ? "·" : value}
+    </span>
+  );
+}
+
 // --- Status & meta badges ----------------------------------------------------
 // Checklist: Done / Pending. Delegation: Completed / Week Shifted / Pending.
 export function StatusBadge({ value }: { value?: string }) {

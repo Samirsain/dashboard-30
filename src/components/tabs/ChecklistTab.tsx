@@ -14,6 +14,10 @@ import {
   Stack,
   Sub,
   EmptyRow,
+  SectionHeading,
+  CountChips,
+  CountChip,
+  Avatar,
 } from "@/components/common";
 import { fmtDate } from "@/lib/format";
 
@@ -44,8 +48,21 @@ export function ChecklistTab({ data }: { data: any }) {
     [all, f]
   );
 
+  const done = rows.filter(isChecklistDone).length;
+  const pending = rows.length - done;
+
   return (
     <div className="space-y-4">
+      <SectionHeading
+        title="Checklist"
+        subtitle="Routine recurring kaam — daily, weekly, monthly. Actual date bhar gayi = Done, blank = Pending."
+      >
+        <CountChips>
+          <CountChip label="Total" value={rows.length} tone="primary" />
+          <CountChip label="Done" value={done} tone="ok" />
+          <CountChip label="Pending" value={pending} tone={pending ? "bad" : "ok"} />
+        </CountChips>
+      </SectionHeading>
       <FilterBar>
         <SelectFilter label="Doer" value={f.doer} onChange={(v) => set({ doer: v })} options={activeDoerNames(data)} />
         <SelectFilter label="Department" value={f.department} onChange={(v) => set({ department: v })} options={departmentNames(data)} />
@@ -75,7 +92,12 @@ export function ChecklistTab({ data }: { data: any }) {
               rows.map((r, i) => (
                 <TableRow key={i}>
                   <TableCell className="max-w-[22rem] font-medium">{r.task}</TableCell>
-                  <TableCell>{r.doer}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Avatar name={r.doer} />
+                      <span className="whitespace-nowrap">{r.doer}</span>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{r.department}</TableCell>
                   <TableCell className="text-muted-foreground">{r.frequency}</TableCell>
                   <TableCell>{fmtDate(r.planned)}</TableCell>
