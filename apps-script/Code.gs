@@ -34,27 +34,58 @@ var WEEK_START = 0; // 0 = Sunday
 function doGet(e) {
   try {
     var params = (e && e.parameter) ? e.parameter : {};
-    var range = resolveWeek(params);
 
     var doerMap = {}; // canonical doer -> { doer, department, email }
     var checklist = readChecklist(doerMap);
     var delegation = readDelegation(doerMap);
     var fms = readFms(doerMap);
 
+    // Recurring checklists are pre-expanded months ahead; keep only up to the
+    // end of the current week so future blank rows don't flood the view.
+    var horizon = toISODate(addDays(startOfWeek(new Date()), 6));
+    checklist = checklist.filter(function (r) { return r.planned && r.planned <= horizon; });
+
     var doers = Object.keys(doerMap).map(function (k) { return doerMap[k]; }).sort(byDoer);
     var departments = uniqueDepartments(doers);
+    var weeks = buildWeeks(checklist, delegation);
+
+    // Default = ALL data (frontend does week filtering). A specific ?week=KEY
+    // still filters server-side for back-compat.
+    var wantAll = !params.week || params.week === "all";
+    var range = wantAll ? { key: "all", label: "All weeks", from: "", to: "" } : resolveWeek(params);
+    var filt = function (rows, field) { return wantAll ? rows : filterByDate(rows, field, range); };
 
     return json({
       doers: doers,
       departments: departments,
-      fms: filterByDate(fms, "plannedOrFirst", range),
-      checklist: filterByDate(checklist, "planned", range),
-      delegation: filterByDate(delegation, "firstDate", range),
+      fms: filt(fms, "plannedOrFirst"),
+      checklist: filt(checklist, "planned"),
+      delegation: filt(delegation, "firstDate"),
+      availableWeeks: weeks,
       weekRange: range,
     });
   } catch (err) {
     return json({ error: "Server error: " + (err && err.message ? err.message : err) });
   }
+}
+
+// Weeks (Sunday-start) spanning the data, newest first — drives the selector.
+function buildWeeks(checklist, delegation) {
+  var dates = [];
+  checklist.forEach(function (r) { if (r.planned) dates.push(r.planned); });
+  delegation.forEach(function (r) { if (r.firstDate) dates.push(r.firstDate); });
+  if (!dates.length) return [];
+  dates.sort();
+  var start = startOfWeek(parseISO(dates[0]));
+  var weeks = [];
+  var cur = startOfWeek(parseISO(dates[dates.length - 1])); // newest
+  var guard = 0;
+  while (cur >= start && guard++ < 400) {
+    var to = addDays(cur, 6);
+    weeks.push({ key: toISODate(cur), from: toISODate(cur), to: toISODate(to), label: weekLabel(cur, to) });
+    cur = addDays(cur, -7);
+  }
+  return weeks;
 }
 
 // ---- Checklist (CHECKLIST sheet → "Master" tab) ----------------------------
@@ -114,7 +145,11 @@ function readFms(doerMap) {
 // ---- Doer registry ---------------------------------------------------------
 // Reads a sheet's "Doer List" tab (headers vary) and folds doers into doerMap.
 function registerDoerList(ss, doerMap) {
-  var rows = tryReadTable(ss, ["Name"]); // Doer List always has "Name"
+  // Match the Doer List by columns unique to it ("Number" in TASKLIST,
+  // "Email Address" in CHECKLIST) so we don't pick up Master/Tasklist tabs,
+  // which also have a "Name" column.
+  var rows = tryReadTable(ss, ["Name", "Number"]);
+  if (!rows.length) rows = tryReadTable(ss, ["Name", "Email Address"]);
   rows.forEach(function (r) {
     var name = canonical(r["Name"]);
     if (!name) return;

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { TABS } from "@/lib/config";
-import { loadWeek, availableWeeks, defaultWeekKey } from "@/lib/data";
+import { loadData, weekOptions, filterByWeek } from "@/lib/data";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,18 +15,19 @@ import { cn } from "@/lib/utils";
 
 type LoadState = { loading: boolean; data: any; source: string; error: any };
 
-function useWeekData(weekKey: string, reloadToken: number): LoadState {
+// Load ALL data once; week filtering happens client-side afterwards.
+function useAllData(reloadToken: number): LoadState {
   const [state, setState] = React.useState<LoadState>({ loading: true, data: null, source: "sample", error: null });
   React.useEffect(() => {
     let alive = true;
     setState((s) => ({ ...s, loading: true }));
-    loadWeek(weekKey).then((res: any) => {
+    loadData().then((res: any) => {
       if (alive) setState({ loading: false, data: res.data, source: res.source, error: res.error });
     });
     return () => {
       alive = false;
     };
-  }, [weekKey, reloadToken]);
+  }, [reloadToken]);
   return state;
 }
 
@@ -49,7 +50,7 @@ function LoadingState() {
       <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <div className="font-medium">Loading data…</div>
-        <div className="max-w-sm text-sm text-muted-foreground">Fetching this week's FMS, Checklist and Delegation status.</div>
+        <div className="max-w-sm text-sm text-muted-foreground">Fetching the team's Checklist and Delegation status.</div>
       </div>
     </Card>
   );
@@ -81,17 +82,18 @@ function ErrorState({ error, onRetry }: { error: any; onRetry: () => void }) {
 }
 
 export default function App() {
-  const weeks = availableWeeks();
-  const [weekKey, setWeekKey] = React.useState<string>(defaultWeekKey());
   const [tab, setTab] = React.useState<string>(TABS[0].id);
+  const [week, setWeek] = React.useState<string>("all");
   const [reloadToken, setReloadToken] = React.useState(0);
-  const { loading, data, source, error } = useWeekData(weekKey, reloadToken);
+  const { loading, data, source, error } = useAllData(reloadToken);
 
-  const weekLabel = data?.weekRange?.label || weeks.find((w) => w.key === weekKey)?.label || weekKey;
+  const weeks = weekOptions(data);
+  const viewData = React.useMemo(() => filterByWeek(data, week), [data, week]);
+  const weekLabel = weeks.find((w) => w.key === week)?.label || "All weeks";
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Header weeks={weeks} weekKey={weekKey} onWeekChange={setWeekKey} weekLabel={weekLabel} source={source} />
+      <Header weeks={weeks} weekKey={week} onWeekChange={setWeek} weekLabel={weekLabel} source={source} />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
         <Tabs value={tab} onValueChange={setTab}>
@@ -117,27 +119,27 @@ export default function App() {
             <>
               <div className="mt-5">
                 {error && data && <Notice kind="warn">{error.message}</Notice>}
-                {data?.unknownDoers?.length > 0 && (
+                {viewData?.unknownDoers?.length > 0 && (
                   <Notice kind="info">
-                    Data quality: {data.unknownDoers.length} doer name(s) not in the master Doers list —{" "}
-                    {data.unknownDoers.join(", ")}. Rows are shown, not dropped.
+                    Data quality: {viewData.unknownDoers.length} doer name(s) not in the master Doers list —{" "}
+                    {viewData.unknownDoers.join(", ")}. Rows are shown, not dropped.
                   </Notice>
                 )}
               </div>
               <TabsContent value="summary">
-                <SummaryTab data={data} />
+                <SummaryTab data={viewData} />
               </TabsContent>
               <TabsContent value="fms">
-                <FmsTab data={data} />
+                <FmsTab data={viewData} />
               </TabsContent>
               <TabsContent value="checklist">
-                <ChecklistTab data={data} />
+                <ChecklistTab data={viewData} />
               </TabsContent>
               <TabsContent value="delegation">
-                <DelegationTab data={data} />
+                <DelegationTab data={viewData} />
               </TabsContent>
               <TabsContent value="allDoers">
-                <AllDoersTab data={data} />
+                <AllDoersTab data={viewData} />
               </TabsContent>
             </>
           )}
@@ -145,7 +147,7 @@ export default function App() {
       </main>
 
       <footer className="border-t border-slate-200 py-5 text-center text-xs text-muted-foreground">
-        ThirtyMilestones MIS Dashboard · read-only weekly MIS
+        ThirtyMilestones MIS Dashboard · read-only
       </footer>
     </div>
   );

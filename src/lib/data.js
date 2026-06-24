@@ -1,40 +1,31 @@
 // =============================================================================
-// data.js — Data-loading layer. Fetches the unified JSON from the Apps Script
-// doGet endpoint (which reads the TASKLIST + CHECKLIST sheets by ID) and falls
-// back to bundled sample data when no endpoint is configured or it's offline.
+// data.js — Loads ALL data once from the Apps Script endpoint (which now returns
+// every row plus the list of weeks), then the UI filters by week client-side.
+// This makes older weeks and the "All weeks" view instant (no re-fetch).
 // =============================================================================
 
 import { APPS_SCRIPT_URL, USE_SAMPLE_DATA_FALLBACK } from "./config.js";
-import { getSampleWeekData, SAMPLE_WEEKS } from "./sample-data.js";
+import { getAllSampleData } from "./sample-data.js";
 
-export function availableWeeks() {
-  return SAMPLE_WEEKS;
-}
+export const ALL_WEEKS = { key: "all", label: "All weeks", from: "", to: "" };
 
-export function defaultWeekKey() {
-  return SAMPLE_WEEKS[0].key;
-}
-
-// Load one week. Returns { data, source, error }.
-export async function loadWeek(weekKey) {
+// Fetch everything once. Returns { data, source, error }.
+export async function loadData() {
   if (!APPS_SCRIPT_URL) {
-    return { data: withDataQuality(getSampleWeekData(weekKey)), source: "sample", error: null };
+    return { data: withDataQuality(getAllSampleData()), source: "sample", error: null };
   }
-
   try {
-    const url = `${APPS_SCRIPT_URL}?week=${encodeURIComponent(weekKey)}`;
-    const res = await fetch(url, { method: "GET", redirect: "follow" });
+    const res = await fetch(`${APPS_SCRIPT_URL}?week=all`, { method: "GET", redirect: "follow" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const payload = await res.json();
-
     if (payload && payload.error) {
       return { data: null, source: "live", error: { message: payload.error, missingHeaders: payload.missingHeaders || [] } };
     }
-    return { data: withDataQuality(normalize(payload, weekKey)), source: "live", error: null };
+    return { data: withDataQuality(normalize(payload)), source: "live", error: null };
   } catch (err) {
     if (USE_SAMPLE_DATA_FALLBACK) {
       return {
-        data: withDataQuality(getSampleWeekData(weekKey)),
+        data: withDataQuality(getAllSampleData()),
         source: "sample",
         error: { message: `Live data unavailable (${err.message}); showing sample data.` },
       };
@@ -43,19 +34,41 @@ export async function loadWeek(weekKey) {
   }
 }
 
-function normalize(payload, weekKey) {
-  const week = SAMPLE_WEEKS.find((w) => w.key === weekKey);
+function normalize(payload) {
   return {
     doers: payload.doers || [],
     departments: payload.departments || [],
     fms: payload.fms || [],
     checklist: payload.checklist || [],
     delegation: payload.delegation || [],
-    weekRange: payload.weekRange || (week ? { key: week.key, label: week.label, from: week.from, to: week.to } : { label: weekKey }),
+    availableWeeks: payload.availableWeeks || [],
   };
 }
 
-// Flag — never drop — any work row whose doer is not in the canonical list.
+// Week selector options: "All weeks" + every week present in the data.
+export function weekOptions(data) {
+  return [ALL_WEEKS, ...((data && data.availableWeeks) || [])];
+}
+
+// Client-side week filter. "all" (or unknown) returns everything.
+export function filterByWeek(data, weekKey) {
+  if (!data) return data;
+  if (!weekKey || weekKey === "all") return data;
+  const wk = (data.availableWeeks || []).find((w) => w.key === weekKey);
+  if (!wk) return data;
+  const inRange = (d) => {
+    const s = String(d || "").trim();
+    return !!s && s >= wk.from && s <= wk.to;
+  };
+  return {
+    ...data,
+    checklist: (data.checklist || []).filter((r) => inRange(r.planned)),
+    delegation: (data.delegation || []).filter((r) => inRange(r.firstDate)),
+    fms: (data.fms || []).filter((r) => inRange(r.planned || r.firstDate)),
+    weekRange: { key: wk.key, label: wk.label, from: wk.from, to: wk.to },
+  };
+}
+
 function withDataQuality(data) {
   const known = new Set((data.doers || []).map((d) => String(d.doer ?? "").trim()));
   const unknown = new Set();

@@ -95,14 +95,19 @@ const DELEGATION_BY_WEEK = {
   ],
 };
 
-export function getSampleWeekData(weekKey) {
-  const week = SAMPLE_WEEKS.find((w) => w.key === weekKey) || SAMPLE_WEEKS[0];
+// All rows across every sample week + the week list (matches the live "all"
+// payload shape). The UI filters by week client-side.
+export function getAllSampleData() {
+  const checklist = [];
+  const delegation = [];
+  for (const k of Object.keys(CHECKLIST_BY_WEEK)) checklist.push(...CHECKLIST_BY_WEEK[k]);
+  for (const k of Object.keys(DELEGATION_BY_WEEK)) delegation.push(...DELEGATION_BY_WEEK[k]);
   return {
     doers: SAMPLE_DOERS,
     departments: SAMPLE_DEPARTMENTS,
-    fms: [], // wired in later
-    checklist: CHECKLIST_BY_WEEK[week.key] || [],
-    delegation: DELEGATION_BY_WEEK[week.key] || [],
-    weekRange: { key: week.key, label: week.label, from: week.from, to: week.to },
+    fms: [],
+    checklist,
+    delegation,
+    availableWeeks: SAMPLE_WEEKS,
   };
 }
