@@ -14,7 +14,7 @@
 // =============================================================================
 
 // Apps Script Web App URL (doGet). Blank → bundled sample data.
-export const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBBPtCXgh6Xz4oH_um-lishvYdBb2jovwChQiYnhzkH6PbdDePCyeUjUjDJGGDubBo/exec";
+export const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwBIiyG9au2CbiIfyaYTqTpktMj9_e_maQiA3BSYA_fNLUFnnRPWjO0UlUsJfDrca-s/exec";
 export const USE_SAMPLE_DATA_FALLBACK = true;
 
 export const BRAND = {
