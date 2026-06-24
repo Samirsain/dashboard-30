@@ -35,6 +35,19 @@ export function delegationRevisions(row) {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
+// Week-shifts: in this team's methodology every time a task slips to another
+// week it is logged as a revision, so the revision count IS the shift count.
+// This stays separate from the Completed/Pending status — a task can be
+// Completed AND have been week-shifted N times.
+export function delegationShifts(row) {
+  return delegationRevisions(row);
+}
+
+// True if the task ever slipped a week (still flagged even once it's Completed).
+export function wasShifted(row) {
+  return delegationShifts(row) > 0 || String(row.status ?? "").trim() === STATUS.SHIFTED;
+}
+
 // Red/Yellow/Green from revision count.
 export function delegationColour(row) {
   const r = delegationRevisions(row);
@@ -49,8 +62,9 @@ function pct(done, total) {
   return Math.round((done / total) * 100);
 }
 
-// Per-doer summary across Checklist + Delegation (FMS folds in automatically
-// once its rows arrive). Sorted worst-first by overall completion %.
+// Per-doer summary across every system (Checklist · Delegation · FMS). Each
+// system carries Done / Late / Pending so the scorecard shows "kitna hua, kitna
+// late, kitna baaki". Sorted worst-first by overall completion %.
 export function doerSummaries(data) {
   const byDoer = new Map();
 
@@ -60,8 +74,9 @@ export function doerSummaries(data) {
       byDoer.set(key, {
         doer: key,
         department: department || "",
-        checklist: { total: 0, done: 0 },
-        delegation: { total: 0, done: 0, green: 0, yellow: 0, red: 0 },
+        checklist: { total: 0, done: 0, late: 0 },
+        delegation: { total: 0, done: 0, late: 0, green: 0, yellow: 0, red: 0 },
+        fms: { total: 0, done: 0, late: 0 },
       });
     }
     const rec = byDoer.get(key);
@@ -75,33 +90,54 @@ export function doerSummaries(data) {
     ensure(d.doer, d.department);
   }
 
-  for (const r of data.checklist || []) {
-    const rec = ensure(r.doer, r.department).checklist;
-    rec.total += 1;
-    if (isChecklistDone(r)) rec.done += 1;
-  }
+  // Checklist + FMS share the same Done/Late shape (planned vs actual).
+  const tallyPlan = (rows, pick) => {
+    for (const r of rows || []) {
+      const rec = pick(ensure(r.doer, r.department));
+      rec.total += 1;
+      if (isChecklistDone(r)) rec.done += 1;
+      if (isChecklistLate(r)) rec.late += 1;
+    }
+  };
+  tallyPlan(data.checklist, (rec) => rec.checklist);
+  tallyPlan(data.fms, (rec) => rec.fms);
+
   for (const r of data.delegation || []) {
     const rec = ensure(r.doer, r.department).delegation;
     rec.total += 1;
     if (isDelegationDone(r)) rec.done += 1;
+    // "Late" stays a clean subset of Done: completed but it had to be week-shifted.
+    // (Full per-task shift counts — incl. still-pending ones — live in the Delegation tab.)
+    if (isDelegationDone(r) && wasShifted(r)) rec.late += 1;
     const c = delegationColour(r);
     if (c === COLOUR.RED) rec.red += 1;
     else if (c === COLOUR.YELLOW) rec.yellow += 1;
     else rec.green += 1;
   }
 
+  const withPending = (b) => ({ ...b, pending: b.total - b.done });
+
   const rows = [...byDoer.values()].map((rec) => {
-    const total = rec.checklist.total + rec.delegation.total;
-    const done = rec.checklist.done + rec.delegation.done;
+    const checklist = withPending(rec.checklist);
+    const delegation = withPending(rec.delegation);
+    const fms = withPending(rec.fms);
+    const total = checklist.total + delegation.total + fms.total;
+    const done = checklist.done + delegation.done + fms.done;
+    const late = checklist.late + delegation.late + fms.late;
     return {
       ...rec,
+      checklist,
+      delegation,
+      fms,
       total,
       done,
+      late,
       pending: total - done,
       pct: pct(done, total),
-      checklistPct: pct(rec.checklist.done, rec.checklist.total),
-      delegationPct: pct(rec.delegation.done, rec.delegation.total),
-      greenPct: pct(rec.delegation.green, rec.delegation.total),
+      checklistPct: pct(checklist.done, checklist.total),
+      delegationPct: pct(delegation.done, delegation.total),
+      fmsPct: pct(fms.done, fms.total),
+      greenPct: pct(delegation.green, delegation.total),
     };
   });
 
@@ -121,6 +157,7 @@ export function orgTotals(data) {
   const summaries = doerSummaries(data);
   let total = 0;
   let done = 0;
+  let late = 0;
   let cTotal = 0;
   let cDone = 0;
   let dTotal = 0;
@@ -129,6 +166,7 @@ export function orgTotals(data) {
   for (const s of summaries) {
     total += s.total;
     done += s.done;
+    late += s.late;
     cTotal += s.checklist.total;
     cDone += s.checklist.done;
     dTotal += s.delegation.total;
@@ -138,6 +176,7 @@ export function orgTotals(data) {
   return {
     total,
     done,
+    late,
     pending: total - done,
     pct: pct(done, total),
     checklistDonePct: pct(cDone, cTotal),

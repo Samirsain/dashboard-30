@@ -1,11 +1,11 @@
 import * as React from "react";
 import { ALL } from "@/lib/config";
 import { unique, matchesDropdown, matchesSearch } from "@/lib/filters";
-import { doerSummaries, isChecklistDone, isDelegationDone, delegationColour, delegationRevisions } from "@/lib/scoring";
+import { doerSummaries, isChecklistDone, isDelegationDone, delegationColour, delegationShifts } from "@/lib/scoring";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { FilterBar, SelectFilter, SearchFilter, StatusBadge, Stack, Sub, EmptyRow, SectionHeading, Avatar } from "@/components/common";
+import { FilterBar, SelectFilter, SearchFilter, StatusBadge, ShiftTag, Stack, Sub, EmptyRow, SectionHeading, Avatar } from "@/components/common";
 import { fmtDate, pctText, scoreVariant, type ScoreVariant } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +33,7 @@ function collectDoerItems(data: any, doer: string) {
       date: r.firstDate,
       status: r.status,
       done: isDelegationDone(r),
-      revisions: delegationRevisions(r),
+      shifts: delegationShifts(r),
       red: delegationColour(r) === "Red",
     });
   }
@@ -66,13 +66,12 @@ function DoerCard({ summary, items }: { summary: any; items: any[] }) {
             <TableHead>Item</TableHead>
             <TableHead>Department</TableHead>
             <TableHead>Date</TableHead>
-            <TableHead>Revisions</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {items.length === 0 ? (
-            <EmptyRow span={6} />
+            <EmptyRow span={5} />
           ) : (
             items.map((it, i) => (
               <TableRow key={i} className={cn(it.red && "bg-bad/10")}>
@@ -84,15 +83,11 @@ function DoerCard({ summary, items }: { summary: any; items: any[] }) {
                 <TableCell className="max-w-[24rem] font-medium">{it.item}</TableCell>
                 <TableCell className="text-muted-foreground">{it.department}</TableCell>
                 <TableCell>{fmtDate(it.date)}</TableCell>
-                <TableCell className="tabular-nums">
-                  {it.type === "Delegation" ? (
-                    <span className={it.revisions >= 2 ? "text-bad" : it.revisions === 1 ? "text-warn" : "text-ok"}>{it.revisions}</span>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </TableCell>
                 <TableCell>
-                  <StatusBadge value={it.status} />
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <StatusBadge value={it.status} />
+                    {it.type === "Delegation" && <ShiftTag shifts={it.shifts} />}
+                  </div>
                 </TableCell>
               </TableRow>
             ))

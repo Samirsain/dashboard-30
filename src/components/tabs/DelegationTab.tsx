@@ -1,7 +1,7 @@
 import * as React from "react";
 import { STATUS, COLOUR, ALL } from "@/lib/config";
 import { unique, matchesDropdown, matchesSearch, inDateRange } from "@/lib/filters";
-import { delegationColour, delegationRevisions } from "@/lib/scoring";
+import { delegationColour, delegationRevisions, delegationShifts, wasShifted } from "@/lib/scoring";
 import { Card } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import {
@@ -50,20 +50,20 @@ export function DelegationTab({ data }: { data: any }) {
     [all, f]
   );
 
-  const red = rows.filter((r) => delegationColour(r) === COLOUR.RED).length;
-  const yellow = rows.filter((r) => delegationColour(r) === COLOUR.YELLOW).length;
-  const green = rows.length - red - yellow;
+  const completed = rows.filter((r) => String(r.status ?? "").trim() === STATUS.COMPLETED).length;
+  const shifted = rows.filter(wasShifted).length;
+  const pending = rows.filter((r) => (String(r.status ?? "").trim() || STATUS.PENDING) === STATUS.PENDING).length;
 
   return (
     <div className="space-y-4">
       <SectionHeading
         title="Delegation"
-        subtitle="One-time delegated tasks. Jitni baar revise hua utna kam discipline — 0 = Green, 1 = Yellow, 2+ = Red."
+        subtitle="One-time delegated tasks. Complete ho gaya to status 'Completed' — par agar week shift hua tha to wo alag se 'Week Shifted ×N' bhi dikhta hai."
       >
         <CountChips>
-          <CountChip label="On-time" value={green} tone="ok" />
-          <CountChip label="Yellow" value={yellow} tone="warn" />
-          <CountChip label="Red" value={red} tone={red ? "bad" : "muted"} />
+          <CountChip label="Completed" value={completed} tone="ok" />
+          <CountChip label="Week Shifted" value={shifted} tone={shifted ? "warn" : "muted"} />
+          <CountChip label="Pending" value={pending} tone={pending ? "bad" : "muted"} />
         </CountChips>
       </SectionHeading>
       <FilterBar>
@@ -83,8 +83,8 @@ export function DelegationTab({ data }: { data: any }) {
               <TableHead>Doer</TableHead>
               <TableHead>Department</TableHead>
               <TableHead>First Date</TableHead>
-              <TableHead>Latest Revision</TableHead>
-              <TableHead>Revisions (RAG)</TableHead>
+              <TableHead>Last Shift</TableHead>
+              <TableHead>Week Shifted</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Priority</TableHead>
             </TableRow>
@@ -106,7 +106,7 @@ export function DelegationTab({ data }: { data: any }) {
                   <TableCell>{fmtDate(r.firstDate)}</TableCell>
                   <TableCell>{fmtDate(r.latestRevision)}</TableCell>
                   <TableCell>
-                    <RagBadge revisions={delegationRevisions(r)} />
+                    <RagBadge revisions={delegationShifts(r)} />
                   </TableCell>
                   <TableCell>
                     <StatusBadge value={r.status} />

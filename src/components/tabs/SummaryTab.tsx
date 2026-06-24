@@ -1,8 +1,8 @@
-import { CheckCircle2, Clock, ListChecks, ShieldCheck, AlertOctagon } from "lucide-react";
+import { CheckCircle2, Clock, Timer, AlertOctagon, ListTodo } from "lucide-react";
 import { doerSummaries, orgTotals } from "@/lib/scoring";
 import { Card } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { ScoreBar, Stack, Sub, RagCounts, SectionHeading, Avatar, NumPill } from "@/components/common";
+import { ScoreBar, Stack, Sub, SectionHeading, Avatar, NumPill } from "@/components/common";
 import { pctText, scoreVariant, type ScoreVariant } from "@/lib/format";
 import { SCORE_THRESHOLDS } from "@/lib/config";
 import { cn } from "@/lib/utils";
@@ -46,9 +46,33 @@ function Stat({
   );
 }
 
-// Grouped sub-header cell (Plan / Done / …) with a light divider on the left.
-function GHead({ children, divide }: { children: React.ReactNode; divide?: boolean }) {
-  return <TableHead className={cn("text-center", divide && "border-l border-slate-200/70")}>{children}</TableHead>;
+// One system's three columns: Done · Late · Pending.
+function SysCells({ bucket, lateLabel }: { bucket: { done: number; late: number; pending: number }; lateLabel?: string }) {
+  return (
+    <>
+      <TableCell className="border-l border-slate-200/70 text-center" title="Done">
+        <NumPill value={bucket.done} tone="ok" />
+      </TableCell>
+      <TableCell className="text-center" title={lateLabel || "Late"}>
+        <NumPill value={bucket.late} tone="warn" />
+      </TableCell>
+      <TableCell className="text-center" title="Pending">
+        <NumPill value={bucket.pending} tone="bad" />
+      </TableCell>
+    </>
+  );
+}
+
+// Grouped system header (spans Done/Late/Pend) with a coloured label.
+function SysHead({ label, color }: { label: string; color: string }) {
+  return (
+    <TableHead colSpan={3} className={cn("border-l border-slate-200/70 text-center", color)}>
+      {label}
+    </TableHead>
+  );
+}
+function SubHead({ children, divide }: { children: React.ReactNode; divide?: boolean }) {
+  return <TableHead className={cn("text-center font-medium normal-case tracking-normal", divide && "border-l border-slate-200/70")}>{children}</TableHead>;
 }
 
 export function SummaryTab({ data }: { data: any }) {
@@ -58,84 +82,76 @@ export function SummaryTab({ data }: { data: any }) {
   return (
     <div className="space-y-5">
       <SectionHeading
-        title="Team Summary"
-        subtitle="Har doer ka overall score — Checklist + Delegation. Kitna plan, kitna done, kitna red. Attention waale sabse upar."
+        title="Doer Scorecard"
+        subtitle="Har doer ki poori scoring — Checklist, Delegation aur FMS, teeno ka Done · Late · Pending alag-alag. Attention waale sabse upar."
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Stat label="Overall" hint="done of all tasks" value={pctText(totals.pct)} variant={scoreVariant(totals.pct)} icon={CheckCircle2} />
+        <Stat label="Done" hint="complete ho gaya" value={totals.done} variant="ok" icon={ListTodo} />
+        <Stat label="Late" hint="der se / shifted" value={totals.late} variant={totals.late ? "warn" : "ok"} icon={Timer} />
         <Stat label="Pending" hint="abhi baaki hai" value={totals.pending} variant={totals.pending ? "warn" : "ok"} icon={Clock} />
-        <Stat label="Checklist" hint="done %" value={pctText(totals.checklistDonePct)} variant={scoreVariant(totals.checklistDonePct)} icon={ListChecks} />
-        <Stat label="On-time" hint="delegation green" value={pctText(totals.delegationGreenPct)} variant={scoreVariant(totals.delegationGreenPct)} icon={ShieldCheck} />
-        <Stat label="Red flags" hint="2+ revisions" value={totals.redCount} variant={totals.redCount ? "bad" : "ok"} icon={AlertOctagon} />
+        <Stat label="Red flags" hint="2+ week shifts" value={totals.redCount} variant={totals.redCount ? "bad" : "ok"} icon={AlertOctagon} />
       </div>
 
       <Card>
         <div className="border-b border-slate-200/70 px-5 py-3">
-          <h3 className="font-display text-lg font-bold tracking-tight">All Doers — Checklist + Delegation</h3>
-          <p className="text-xs text-muted-foreground">Plan = total tasks · Done = complete · Pend/Red = needs attention</p>
+          <h3 className="font-display text-lg font-bold tracking-tight">All Doers — har system ki scoring</h3>
+          <p className="text-xs text-muted-foreground">
+            <span className="font-medium text-ok">Done</span> = ho gaya · <span className="font-medium text-warn">Late</span> = der se/shifted ·{" "}
+            <span className="font-medium text-bad">Pend</span> = baaki hai
+          </p>
         </div>
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead rowSpan={2} className="w-10 text-center">#</TableHead>
               <TableHead rowSpan={2}>Doer</TableHead>
-              <TableHead colSpan={3} className="border-l border-slate-200/70 text-center text-primary">Checklist</TableHead>
-              <TableHead colSpan={3} className="border-l border-slate-200/70 text-center text-ok">Delegation</TableHead>
-              <TableHead rowSpan={2} className="border-l border-slate-200/70 text-center">RAG</TableHead>
-              <TableHead rowSpan={2} className="min-w-[9rem] border-l border-slate-200/70">Progress</TableHead>
+              <SysHead label="Checklist" color="text-primary" />
+              <SysHead label="Delegation" color="text-ok" />
+              <SysHead label="FMS" color="text-sky-600" />
+              <TableHead rowSpan={2} className="min-w-[9rem] border-l border-slate-200/70">Score</TableHead>
             </TableRow>
             <TableRow className="hover:bg-transparent">
-              <GHead divide>Plan</GHead>
-              <GHead>Done</GHead>
-              <GHead>Pend</GHead>
-              <GHead divide>Plan</GHead>
-              <GHead>Done</GHead>
-              <GHead>Red</GHead>
+              <SubHead divide>Done</SubHead>
+              <SubHead>Late</SubHead>
+              <SubHead>Pend</SubHead>
+              <SubHead divide>Done</SubHead>
+              <SubHead>Shift</SubHead>
+              <SubHead>Pend</SubHead>
+              <SubHead divide>Done</SubHead>
+              <SubHead>Late</SubHead>
+              <SubHead>Pend</SubHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((r, i) => {
-              const cPend = r.checklist.total - r.checklist.done;
-              const dPend = r.delegation.total - r.delegation.done;
-              return (
-                <TableRow key={r.doer} className={cn(r.pct !== null && r.pct < SCORE_THRESHOLDS.WARN && "bg-bad/[0.05]")}>
-                  <TableCell className="text-center text-xs font-medium text-muted-foreground tabular-nums">{i + 1}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2.5">
-                      <Avatar name={r.doer} />
-                      <Stack>
-                        <span className="font-semibold leading-tight">{r.doer}</span>
-                        <Sub>{r.department || "—"}</Sub>
-                      </Stack>
-                    </div>
-                  </TableCell>
-                  <TableCell className="border-l border-slate-200/70 text-center"><NumPill value={r.checklist.total} tone="info" /></TableCell>
-                  <TableCell className="text-center"><NumPill value={r.checklist.done} tone="ok" /></TableCell>
-                  <TableCell className="text-center"><NumPill value={cPend} tone="bad" /></TableCell>
-                  <TableCell className="border-l border-slate-200/70 text-center"><NumPill value={r.delegation.total} tone="info" /></TableCell>
-                  <TableCell className="text-center"><NumPill value={r.delegation.done} tone="ok" /></TableCell>
-                  <TableCell className="text-center"><NumPill value={r.delegation.red} tone="bad" /></TableCell>
-                  <TableCell className="border-l border-slate-200/70">
-                    {r.delegation.total ? (
-                      <RagCounts green={r.delegation.green} yellow={r.delegation.yellow} red={r.delegation.red} />
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="border-l border-slate-200/70">
-                    <ScoreBar pct={r.pct} />
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+            {rows.map((r, i) => (
+              <TableRow key={r.doer} className={cn(r.pct !== null && r.pct < SCORE_THRESHOLDS.WARN && "bg-bad/[0.05]")}>
+                <TableCell className="text-center text-xs font-medium tabular-nums text-muted-foreground">{i + 1}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2.5">
+                    <Avatar name={r.doer} />
+                    <Stack>
+                      <span className="font-semibold leading-tight">{r.doer}</span>
+                      <Sub>{r.department || "—"}</Sub>
+                    </Stack>
+                  </div>
+                </TableCell>
+                <SysCells bucket={r.checklist} />
+                <SysCells bucket={r.delegation} lateLabel="Week shifted" />
+                <SysCells bucket={r.fms} />
+                <TableCell className="border-l border-slate-200/70">
+                  <ScoreBar pct={r.pct} />
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </Card>
 
       <p className="px-1 text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">Progress</span> = Checklist (Done) + Delegation (Completed).{" "}
-        <span className="font-medium text-foreground">RAG</span> = delegation discipline by revisions — Green 0 · Yellow 1 · Red 2+.
+        <span className="font-medium text-foreground">Score</span> = sab systems ka Done % (Checklist + Delegation + FMS). FMS abhi connect hone
+        par uske columns bhar jayenge.
       </p>
     </div>
   );

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Search } from "lucide-react";
+import { Search, RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -140,15 +140,29 @@ export function MetaTag({ value }: { value?: string }) {
   return <Badge variant={variant}>{v}</Badge>;
 }
 
-// --- RAG (Red/Yellow/Green) by revision count --------------------------------
+// --- Week-shift (Red/Yellow/Green by how many times a task slipped) -----------
+// Separate from status: a Completed task can still carry a "Shifted ×N" mark.
 export function RagBadge({ revisions }: { revisions: number }) {
   const n = Number(revisions) || 0;
   const variant = n >= 2 ? "bad" : n === 1 ? "warn" : "ok";
-  const label = n === 0 ? "On-time" : n === 1 ? "1 revision" : `${n} revisions`;
+  const label = n === 0 ? "On-time" : `Shifted ×${n}`;
   return (
     <Badge variant={variant}>
       <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />
       {label}
+    </Badge>
+  );
+}
+
+// Compact "week shifted" flag shown next to a status (e.g. Completed + Shifted ×2).
+export function ShiftTag({ shifts }: { shifts: number }) {
+  const n = Number(shifts) || 0;
+  if (n <= 0) return null;
+  const variant = n >= 2 ? "bad" : "warn";
+  return (
+    <Badge variant={variant} className="gap-1">
+      <RotateCcw className="h-3 w-3" />
+      Week Shifted ×{n}
     </Badge>
   );
 }
