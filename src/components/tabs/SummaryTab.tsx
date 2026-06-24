@@ -1,7 +1,7 @@
 import { doerSummaries, orgTotals } from "@/lib/scoring";
 import { Card } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { ScoreBar, Stack, Sub } from "@/components/common";
+import { ScoreBar, Stack, Sub, RagCounts } from "@/components/common";
 import { pctText, scoreVariant, type ScoreVariant } from "@/lib/format";
 import { SCORE_THRESHOLDS } from "@/lib/config";
 import { cn } from "@/lib/utils";
@@ -41,9 +41,9 @@ export function SummaryTab({ data }: { data: any }) {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Stat label="Overall completion" value={pctText(totals.pct)} variant={scoreVariant(totals.pct)} />
         <Stat label="Total pending" value={totals.pending} variant={totals.pending ? "warn" : "ok"} />
-        <Stat label="Committed items" value={totals.total} variant="neutral" />
-        <Stat label="FMS overdue" value={totals.fmsOverdue} variant={totals.fmsOverdue ? "bad" : "ok"} />
-        <Stat label="Urgent & pending" value={totals.urgentPending} variant={totals.urgentPending ? "bad" : "ok"} />
+        <Stat label="Checklist done" value={pctText(totals.checklistDonePct)} variant={scoreVariant(totals.checklistDonePct)} />
+        <Stat label="Delegation green" value={pctText(totals.delegationGreenPct)} variant={scoreVariant(totals.delegationGreenPct)} />
+        <Stat label="Delegation red" value={totals.redCount} variant={totals.redCount ? "bad" : "ok"} />
       </div>
 
       <Card>
@@ -51,9 +51,9 @@ export function SummaryTab({ data }: { data: any }) {
           <TableHeader>
             <TableRow>
               <TableHead>Doer</TableHead>
-              <TableHead>FMS</TableHead>
               <TableHead>Checklist</TableHead>
               <TableHead>Delegation</TableHead>
+              <TableHead>RAG (G·Y·R)</TableHead>
               <TableHead>Pending</TableHead>
               <TableHead className="min-w-[9rem]">Completion</TableHead>
             </TableRow>
@@ -68,13 +68,17 @@ export function SummaryTab({ data }: { data: any }) {
                   </Stack>
                 </TableCell>
                 <TableCell>
-                  <Bucket bucket={r.fms} pct={r.fmsPct} />
-                </TableCell>
-                <TableCell>
                   <Bucket bucket={r.checklist} pct={r.checklistPct} />
                 </TableCell>
                 <TableCell>
                   <Bucket bucket={r.delegation} pct={r.delegationPct} />
+                </TableCell>
+                <TableCell>
+                  {r.delegation.total ? (
+                    <RagCounts green={r.delegation.green} yellow={r.delegation.yellow} red={r.delegation.red} />
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <span className={cn("tabular-nums font-semibold", r.pending ? "text-warn" : "text-muted-foreground")}>{r.pending}</span>
@@ -89,7 +93,8 @@ export function SummaryTab({ data }: { data: any }) {
       </Card>
 
       <p className="px-1 text-xs text-muted-foreground">
-        Pooled completion across FMS + Checklist + Delegation for the selected week. Doers needing attention are sorted to the top.
+        Completion = Checklist (Done) + Delegation (Completed). RAG shows delegation discipline by revisions — Green 0 · Yellow 1 · Red 2+.
+        Doers needing attention are sorted to the top.
       </p>
     </div>
   );

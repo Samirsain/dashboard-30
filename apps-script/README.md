@@ -1,89 +1,60 @@
-# Apps Script — data export & notifications
+# Apps Script — unified data export
 
-This folder is the **backend** for the ThirtyMilestones MIS Dashboard: a Google
-Apps Script Web App bound to the data workbook. It does two jobs:
-
-- `Code.gs` — `doGet` endpoint that validates headers and emits the week's data
-  as JSON (PRD §7.1).
-- `Notifications.gs` — daily trigger that emails at-risk delegations and marks
-  them `Notified` (PRD §7.8).
-
-## 1. Build the workbook
-
-Create one Google Sheets workbook with these tabs. **Row 1 is the header row**;
-header strings must match EXACTLY (case-sensitive, trimmed) — they are the
-schema contract (PRD §5). Anything after row 1 is data.
-
-- **Doers** — `Doer`, `Department`, `Active` *(optional: `Email`)*
-- **Departments** — `Department`
-- **FMS** — `FMS Name`, `Step`, `Step No`, `Doer`, `Department`, `Frequency`,
-  `Planned Date`, `Planned Time`, `Actual Date`, `Status`
-- **Checklist** — `Task`, `Doer`, `Department`, `Date`, `Status`
-- **Delegation** — `Task`, `Doer`, `Given By`, `Department`, `Priority`,
-  `Urgency`, `Planned Date`, `Completed Date`, `Status`, `Notified`
-
-Conventions (PRD §5.1): dates `YYYY-MM-DD` (real Sheets dates are fine — they're
-normalised), times `HH:mm`, statuses from the fixed enums (`Done`/`Pending`,
-`Completed`/`Pending`), `Active`/`Notified` as checkboxes or TRUE/FALSE.
-
-> Tip: the bundled `js/sample-data.js` is a ready-made example of exactly these
-> columns and values — mirror it when setting up the sheets.
-
-## 2. Add the script
-
-**Extensions → Apps Script** from the workbook, then:
-
-1. Paste `Code.gs` and `Notifications.gs` into the project (create both files).
-2. Replace the default `appsscript.json` (enable *Show "appsscript.json"* under
-   Project Settings) with the one here, or just let the scopes auto-resolve on
-   first run.
-
-## 3. Deploy the Web App (the dashboard's data source)
-
-**Deploy → New deployment → Web app**:
-
-- Description: `MIS export`
-- Execute as: **Me**
-- Who has access: **Anyone**
-
-Copy the **Web app URL** (ends in `/exec`) and paste it into `APPS_SCRIPT_URL`
-in the frontend `js/config.js`.
-
-Test it directly in a browser:
+`Code.gs` is the **backend** for the dashboard: one standalone Google Apps
+Script Web App that reads the team's real sheets **by ID**, normalises them, and
+returns a single JSON payload:
 
 ```
-<your-exec-url>?week=2026-06-14
+{ doers, departments, fms[], checklist[], delegation[], weekRange }
 ```
 
-You should get JSON like `{ "doers": [...], "fms": [...], ... }`. If a header is
-wrong you'll get `{ "error": "...", "missingHeaders": ["FMS → Planned Date", ...] }`
-— fix the sheet header and retry. (The dashboard surfaces this same error.)
+## Sources (already configured in Code.gs)
 
-Week parameter (PRD §7.2):
+| Dashboard tab | Sheet | Detected tab | Key columns |
+|---|---|---|---|
+| **Delegation** | TASKLIST | tab with `Task ID` + `Total Revisions` | Name, Task, First Date, Latest Revision, Total Revisions, Status, Priority |
+| **Checklist** | CHECKLIST | `Master` (`Task ID`+`Planned`+`Actual`) | Name, Department, Freq, Task, Planned, Actual, Status |
+| **FMS** | *(add ID later)* | — | — |
 
-- `?week=YYYY-MM-DD` — the **Sunday** that starts the week (Sun–Sat). Omit it to
-  default to the current week.
-- `?from=YYYY-MM-DD&to=YYYY-MM-DD` — explicit range (overrides `week`).
+The tab is **auto-detected** by its header signature, so exact tab names don't
+matter. Doer names that differ across sheets (e.g. `SANDEP` ↔ `SANDEEP`,
+`SAHIL SIR` ↔ `SAHIL`) are merged via `DOER_ALIAS`. Dates are read as
+`DD/MM/YYYY` (or real date cells) and normalised to ISO.
 
-To use **Mon–Sun** weeks instead, set `WEEK_START = 1` in `Code.gs`.
+## Deploy (one time)
 
-## 4. Turn on Delegation notifications (optional, PRD §7.8)
+1. Go to **script.google.com → New project**. Delete the default code, paste
+   `Code.gs`. Name it e.g. *ThirtyMilestones MIS Export*.
+2. **Important:** sign in as an account that can open **all** the sheets
+   (the owner `mis.thirtymilestones@gmail.com`, or one they're shared with).
+3. **Deploy → New deployment → Web app**
+   - Execute as: **Me**
+   - Who has access: **Anyone**
+4. Run/authorise when prompted (it needs permission to read your Sheets).
+5. Copy the **Web app URL** (ends in `/exec`) and paste it into
+   `APPS_SCRIPT_URL` in [`src/lib/config.js`](../src/lib/config.js).
 
-1. Add an `Email` column to the **Doers** sheet with each doer's address (this
-   is the only thing notifications need beyond the core schema).
-2. In the Apps Script editor, run **`installDailyTrigger`** once and authorise
-   the mail/script scopes when prompted.
+Test it in a browser:
 
-Each morning it emails the doer of any delegation that is still `Pending`, is
-`Urgent` or `High` priority, and is within `NOTIFY_WINDOW_DAYS` of its
-`Planned Date` (or overdue), then sets `Notified = TRUE` so no one is emailed
-twice. Doers with no `Email` are reported to the deploying manager instead.
+```
+<your-exec-url>?week=2026-06-21
+```
 
-Tunables in `Notifications.gs`: `NOTIFY_WINDOW_DAYS`, the 8 a.m. send time in
-`installDailyTrigger`, and `MANAGER_EMAIL`.
+You should get JSON with `doers`, `checklist`, `delegation`. Week param:
+`?week=YYYY-MM-DD` (the **Sunday** that starts the week) or
+`?from=YYYY-MM-DD&to=YYYY-MM-DD`; omit to get the current week.
 
-## Redeploying after edits
+## Adding FMS later
 
-Apps Script Web Apps are versioned. After changing `Code.gs`, do **Deploy →
-Manage deployments → (edit) → New version** so the live `/exec` URL serves the
-update. (The URL stays the same.)
+Set `SHEET_IDS.fms` to the FMS sheet's ID and fill in the column mapping inside
+`readFms()`. Redeploy (**Manage deployments → edit → New version**) — the URL
+stays the same.
+
+## Notes
+
+- Reminders/emails are handled by each sheet's own built-in script (the
+  delegation/checklist templates already send them), so this export script is
+  read-only.
+- Weeks are **Sunday-start** (`WEEK_START`); the checklist sheet thinks in
+  Monday-weeks, so a task on a boundary day may land one week over — change
+  `WEEK_START = 1` if you prefer Monday.

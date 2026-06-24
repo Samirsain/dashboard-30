@@ -1,120 +1,106 @@
 // =============================================================================
-// sample-data.js — Bundled demo data for ThirtyMilestones (Real Estate,
-// Hanumangarh). Used when APPS_SCRIPT_URL is blank or the backend is
-// unreachable, so the dashboard is fully demonstrable before the Sheets are
-// wired up.
-//
-// IMPORTANT: rows are keyed by the EXACT sheet header strings (PRD §5), i.e.
-// the same shape the Apps Script doGet emits. This keeps the demo honest — the
-// frontend reads sample data through HEADERS.* exactly as it reads live data.
-//
-// This is ThirtyMilestones-specific *structure* with placeholder content
-// (PRD §5.4). Replace with the real team / processes when connecting Sheets.
+// sample-data.js — bundled demo data for ThirtyMilestones, shaped exactly like
+// the Apps Script output. Real doers/departments + a representative slice of
+// real Checklist (CHECKLIST sheet) and Delegation (TASKLIST sheet) rows so the
+// dashboard is fully demonstrable before the live endpoint is connected.
 // =============================================================================
 
-// Canonical departments (PRD §5.4).
+// Canonical departments (role-based, from the CHECKLIST Doer List).
 export const SAMPLE_DEPARTMENTS = [
-  { Department: "Sales" },
-  { Department: "Site/Operations" },
-  { Department: "Marketing" },
-  { Department: "Accounts" },
-  { Department: "Admin" },
+  { department: "MIS" },
+  { department: "EA" },
+  { department: "HR" },
+  { department: "SITE INCHARGE" },
+  { department: "PS" },
+  { department: "CRM" },
+  { department: "SUPERVISOR" },
+  { department: "ACCOUNTS" },
+  { department: "DRIVER" },
 ];
 
-// Canonical doers. One inactive doer (Manoj Yadav) demonstrates the Active flag.
+// Canonical doers (merged from both sheets; names normalised).
 export const SAMPLE_DOERS = [
-  { Doer: "Rohit Sharma", Department: "Sales", Active: true },
-  { Doer: "Priya Verma", Department: "Sales", Active: true },
-  { Doer: "Anil Kumar", Department: "Site/Operations", Active: true },
-  { Doer: "Neha Gupta", Department: "Marketing", Active: true },
-  { Doer: "Suresh Mehta", Department: "Accounts", Active: true },
-  { Doer: "Kavita Singh", Department: "Admin", Active: true },
-  { Doer: "Manoj Yadav", Department: "Sales", Active: false },
+  { doer: "SAMIR", department: "MIS", active: true },
+  { doer: "PRIYA", department: "EA", active: true },
+  { doer: "SHIKHA", department: "HR", active: true },
+  { doer: "SAHIL", department: "SITE INCHARGE", active: true },
+  { doer: "SANDEEP", department: "PS", active: true },
+  { doer: "LAXMI", department: "CRM", active: true },
+  { doer: "DEEPAK", department: "SUPERVISOR", active: true },
+  { doer: "KIRTI", department: "ACCOUNTS", active: true },
+  { doer: "DRIVER", department: "DRIVER", active: true },
 ];
 
-// Weeks available in the selector (Sun–Sat, matching the PRD example
-// "14 Jun – 20 Jun 2026"). `key` is what the Apps Script `week` param expects.
+// Weeks (Sunday–Saturday). Current week first.
 export const SAMPLE_WEEKS = [
   { key: "2026-06-21", label: "21 Jun – 27 Jun 2026", from: "2026-06-21", to: "2026-06-27" },
   { key: "2026-06-14", label: "14 Jun – 20 Jun 2026", from: "2026-06-14", to: "2026-06-20" },
+  { key: "2026-06-07", label: "7 Jun – 13 Jun 2026", from: "2026-06-07", to: "2026-06-13" },
+  { key: "2026-05-31", label: "31 May – 6 Jun 2026", from: "2026-05-31", to: "2026-06-06" },
 ];
 
-const GIVEN_BY = "Samir Sain"; // Owner/manager who delegates (PRD personas).
-
-// --- FMS rows per week -------------------------------------------------------
-const FMS_BY_WEEK = {
-  "2026-06-14": [
-    // New Lead Handling (Sales)
-    { "FMS Name": "New Lead Handling", Step: "Lead Capture", "Step No": 1, Doer: "Rohit Sharma", Department: "Sales", Frequency: "Daily", "Planned Date": "2026-06-15", "Planned Time": "10:00", "Actual Date": "2026-06-15", Status: "Done" },
-    { "FMS Name": "New Lead Handling", Step: "First Call", "Step No": 2, Doer: "Priya Verma", Department: "Sales", Frequency: "Daily", "Planned Date": "2026-06-15", "Planned Time": "12:00", "Actual Date": "2026-06-16", Status: "Done" },
-    { "FMS Name": "New Lead Handling", Step: "Site Visit Scheduling", "Step No": 3, Doer: "Rohit Sharma", Department: "Sales", Frequency: "Daily", "Planned Date": "2026-06-16", "Planned Time": "11:00", "Actual Date": "", Status: "Pending" },
-    // Site Visit Process (Site/Operations + Sales)
-    { "FMS Name": "Site Visit Process", Step: "Confirm Visit", "Step No": 1, Doer: "Priya Verma", Department: "Sales", Frequency: "Weekly", "Planned Date": "2026-06-16", "Planned Time": "09:30", "Actual Date": "2026-06-16", Status: "Done" },
-    { "FMS Name": "Site Visit Process", Step: "Conduct Visit", "Step No": 2, Doer: "Anil Kumar", Department: "Site/Operations", Frequency: "Weekly", "Planned Date": "2026-06-17", "Planned Time": "16:00", "Actual Date": "2026-06-17", Status: "Done" },
-    { "FMS Name": "Site Visit Process", Step: "Feedback Logging", "Step No": 3, Doer: "Anil Kumar", Department: "Site/Operations", Frequency: "Weekly", "Planned Date": "2026-06-18", "Planned Time": "18:00", "Actual Date": "", Status: "Pending" },
-    // Booking & Documentation (Sales + Admin)
-    { "FMS Name": "Booking & Documentation", Step: "Negotiation", "Step No": 1, Doer: "Rohit Sharma", Department: "Sales", Frequency: "Monthly", "Planned Date": "2026-06-17", "Planned Time": "", "Actual Date": "2026-06-17", Status: "Done" },
-    { "FMS Name": "Booking & Documentation", Step: "Booking Form", "Step No": 2, Doer: "Kavita Singh", Department: "Admin", Frequency: "Monthly", "Planned Date": "2026-06-18", "Planned Time": "", "Actual Date": "2026-06-18", Status: "Done" },
-    { "FMS Name": "Booking & Documentation", Step: "Agreement Drafting", "Step No": 3, Doer: "Kavita Singh", Department: "Admin", Frequency: "Monthly", "Planned Date": "2026-06-19", "Planned Time": "", "Actual Date": "", Status: "Pending" },
-    // Monthly Collection (Accounts)
-    { "FMS Name": "Monthly Collection", Step: "Invoice Generation", "Step No": 1, Doer: "Suresh Mehta", Department: "Accounts", Frequency: "Monthly", "Planned Date": "2026-06-15", "Planned Time": "", "Actual Date": "2026-06-15", Status: "Done" },
-    { "FMS Name": "Monthly Collection", Step: "Payment Follow-up", "Step No": 2, Doer: "Suresh Mehta", Department: "Accounts", Frequency: "Weekly", "Planned Date": "2026-06-18", "Planned Time": "", "Actual Date": "2026-06-19", Status: "Done" },
-    { "FMS Name": "Monthly Collection", Step: "Receipt Issuance", "Step No": 3, Doer: "Suresh Mehta", Department: "Accounts", Frequency: "Monthly", "Planned Date": "2026-06-19", "Planned Time": "", "Actual Date": "", Status: "Pending" },
-  ],
-  "2026-06-21": [
-    { "FMS Name": "New Lead Handling", Step: "Lead Capture", "Step No": 1, Doer: "Rohit Sharma", Department: "Sales", Frequency: "Daily", "Planned Date": "2026-06-22", "Planned Time": "10:00", "Actual Date": "2026-06-22", Status: "Done" },
-    { "FMS Name": "New Lead Handling", Step: "First Call", "Step No": 2, Doer: "Priya Verma", Department: "Sales", Frequency: "Daily", "Planned Date": "2026-06-22", "Planned Time": "12:00", "Actual Date": "", Status: "Pending" },
-    { "FMS Name": "New Lead Handling", Step: "Site Visit Scheduling", "Step No": 3, Doer: "Rohit Sharma", Department: "Sales", Frequency: "Daily", "Planned Date": "2026-06-23", "Planned Time": "11:00", "Actual Date": "", Status: "Pending" },
-    { "FMS Name": "Monthly Collection", Step: "Invoice Generation", "Step No": 1, Doer: "Suresh Mehta", Department: "Accounts", Frequency: "Monthly", "Planned Date": "2026-06-22", "Planned Time": "", "Actual Date": "", Status: "Pending" },
-  ],
-};
-
-// --- Checklist rows per week -------------------------------------------------
+// --- Checklist rows per week (CHECKLIST → Master): status Done | Pending -----
 const CHECKLIST_BY_WEEK = {
-  "2026-06-14": [
-    { Task: "Update lead tracker", Doer: "Rohit Sharma", Department: "Sales", Date: "2026-06-15", Status: "Done" },
-    { Task: "Update lead tracker", Doer: "Rohit Sharma", Department: "Sales", Date: "2026-06-16", Status: "Done" },
-    { Task: "Update lead tracker", Doer: "Rohit Sharma", Department: "Sales", Date: "2026-06-17", Status: "Pending" },
-    { Task: "Log follow-up calls", Doer: "Priya Verma", Department: "Sales", Date: "2026-06-15", Status: "Done" },
-    { Task: "Log follow-up calls", Doer: "Priya Verma", Department: "Sales", Date: "2026-06-16", Status: "Pending" },
-    { Task: "Reconcile cash register", Doer: "Suresh Mehta", Department: "Accounts", Date: "2026-06-15", Status: "Done" },
-    { Task: "Reconcile cash register", Doer: "Suresh Mehta", Department: "Accounts", Date: "2026-06-16", Status: "Done" },
-    { Task: "Reconcile cash register", Doer: "Suresh Mehta", Department: "Accounts", Date: "2026-06-17", Status: "Done" },
-    { Task: "Site safety walkthrough", Doer: "Anil Kumar", Department: "Site/Operations", Date: "2026-06-16", Status: "Done" },
-    { Task: "Site safety walkthrough", Doer: "Anil Kumar", Department: "Site/Operations", Date: "2026-06-17", Status: "Pending" },
-    { Task: "Update social media calendar", Doer: "Neha Gupta", Department: "Marketing", Date: "2026-06-16", Status: "Pending" },
-  ],
   "2026-06-21": [
-    { Task: "Update lead tracker", Doer: "Rohit Sharma", Department: "Sales", Date: "2026-06-22", Status: "Done" },
-    { Task: "Log follow-up calls", Doer: "Priya Verma", Department: "Sales", Date: "2026-06-22", Status: "Pending" },
-    { Task: "Reconcile cash register", Doer: "Suresh Mehta", Department: "Accounts", Date: "2026-06-22", Status: "Done" },
-    { Task: "Site safety walkthrough", Doer: "Anil Kumar", Department: "Site/Operations", Date: "2026-06-22", Status: "Pending" },
+    { task: "OFFICE WIFI KA BILL", doer: "PRIYA", department: "EA", frequency: "Monthly", planned: "2026-06-25", actual: "", status: "Pending" },
+    { task: "HAR 30 MINT ME SECURITY GUARD PHOTO KA UPDATE LENA HAI", doer: "PRIYA", department: "EA", frequency: "Daily", planned: "2026-06-22", actual: "2026-06-22", status: "Done" },
+    { task: "RAJENDRA & HITESH JI KO CALL & MSG DROP", doer: "SHIKHA", department: "HR", frequency: "Daily", planned: "2026-06-22", actual: "2026-06-23", status: "Done" },
+    { task: "SITE EXPENSE KA DAILY UPDATE", doer: "DEEPAK", department: "SUPERVISOR", frequency: "Daily", planned: "2026-06-22", actual: "", status: "Pending" },
+  ],
+  "2026-06-14": [
+    { task: "EMPORIO KA BIJLI KA BILL", doer: "PRIYA", department: "EA", frequency: "Monthly", planned: "2026-06-15", actual: "2026-06-15", status: "Done" },
+    { task: "GHAR KA BIJLI KA BILL", doer: "PRIYA", department: "EA", frequency: "Monthly", planned: "2026-06-18", actual: "2026-06-19", status: "Done" },
+    { task: "HAR SATURDAY KO SABHI STAFF KA TYPE OF WORK LIKHNA HAI", doer: "PRIYA", department: "EA", frequency: "Weekly", planned: "2026-06-20", actual: "", status: "Pending" },
+    { task: "RAJENDRA & HITESH JI KO CALL & MSG DROP", doer: "SHIKHA", department: "HR", frequency: "Daily", planned: "2026-06-16", actual: "2026-06-16", status: "Done" },
+  ],
+  "2026-06-07": [
+    { task: "RAJENDRA & HITESH JI KO CALL & MSG DROP", doer: "SHIKHA", department: "HR", frequency: "Daily", planned: "2026-06-09", actual: "2026-06-09", status: "Done" },
+    { task: "SITE EXPENSE KA DAILY UPDATE", doer: "DEEPAK", department: "SUPERVISOR", frequency: "Daily", planned: "2026-06-09", actual: "", status: "Pending" },
+  ],
+  "2026-05-31": [
+    { task: "SANDEEP SE SHOWROOM KA BILL MANGWANA HAI", doer: "PRIYA", department: "EA", frequency: "Monthly", planned: "2026-06-01", actual: "2026-06-01", status: "Done" },
+    { task: "MAYANK GARG KO BILL BHEJNA HAI", doer: "PRIYA", department: "EA", frequency: "Monthly", planned: "2026-06-01", actual: "2026-06-02", status: "Done" },
+    { task: "HAR 30 MINT ME SECURITY GUARD PHOTO KA UPDATE LENA HAI", doer: "PRIYA", department: "EA", frequency: "Daily", planned: "2026-06-02", actual: "", status: "Pending" },
   ],
 };
 
-// --- Delegation rows per week ------------------------------------------------
+// --- Delegation rows per week (TASKLIST): revisions → RAG; Status ------------
 const DELEGATION_BY_WEEK = {
-  "2026-06-14": [
-    { Task: "Prepare brochure for Green Valley project", Doer: "Neha Gupta", "Given By": GIVEN_BY, Department: "Marketing", Priority: "High", Urgency: "Urgent", "Planned Date": "2026-06-18", "Completed Date": "", Status: "Pending", Notified: true },
-    { Task: "Get RERA documents notarized", Doer: "Kavita Singh", "Given By": GIVEN_BY, Department: "Admin", Priority: "High", Urgency: "Normal", "Planned Date": "2026-06-19", "Completed Date": "2026-06-19", Status: "Completed", Notified: false },
-    { Task: "Arrange site banners", Doer: "Anil Kumar", "Given By": GIVEN_BY, Department: "Site/Operations", Priority: "Medium", Urgency: "Normal", "Planned Date": "2026-06-20", "Completed Date": "", Status: "Pending", Notified: false },
-    { Task: "Prepare June collection report", Doer: "Suresh Mehta", "Given By": GIVEN_BY, Department: "Accounts", Priority: "High", Urgency: "Urgent", "Planned Date": "2026-06-20", "Completed Date": "2026-06-20", Status: "Completed", Notified: true },
-    { Task: "Design Diwali campaign teaser", Doer: "Neha Gupta", "Given By": GIVEN_BY, Department: "Marketing", Priority: "Low", Urgency: "Normal", "Planned Date": "2026-06-20", "Completed Date": "", Status: "Pending", Notified: false },
-  ],
   "2026-06-21": [
-    { Task: "Follow up with bank for loan tie-up", Doer: "Rohit Sharma", "Given By": GIVEN_BY, Department: "Sales", Priority: "High", Urgency: "Urgent", "Planned Date": "2026-06-23", "Completed Date": "", Status: "Pending", Notified: true },
-    { Task: "Update website listings", Doer: "Neha Gupta", "Given By": GIVEN_BY, Department: "Marketing", Priority: "Medium", Urgency: "Urgent", "Planned Date": "2026-06-24", "Completed Date": "", Status: "Pending", Notified: false },
-    { Task: "Prepare client welcome kits", Doer: "Kavita Singh", "Given By": GIVEN_BY, Department: "Admin", Priority: "Low", Urgency: "Normal", "Planned Date": "2026-06-26", "Completed Date": "", Status: "Pending", Notified: false },
+    { taskId: "qh9a8lx", task: "ENGINEER KA RESUME DENA HAI SIR KO", doer: "SHIKHA", department: "HR", firstDate: "2026-06-22", latestRevision: "2026-06-24", revisions: 2, status: "Pending", priority: "Normal" },
+    { taskId: "sf6jdgz", task: "WHITE DRESS KA REMINDER SABHI KO DALNA HAI", doer: "PRIYA", department: "EA", firstDate: "2026-06-22", latestRevision: "2026-06-22", revisions: 0, status: "Completed", priority: "" },
+    { taskId: "klxubuh", task: "METER LAGNE KE BAAD COLONY KA SARA CONNECTION US PER KARNA HAI", doer: "SANDEEP", department: "PS", firstDate: "2026-06-22", latestRevision: "2026-06-23", revisions: 2, status: "Week Shifted", priority: "" },
+    { taskId: "v9c9e3c", task: "BIKANERWALA KA GRANITE CONFIRM KARNA HAI", doer: "DEEPAK", department: "SUPERVISOR", firstDate: "2026-06-22", latestRevision: "2026-06-22", revisions: 0, status: "Completed", priority: "" },
+  ],
+  "2026-06-14": [
+    { taskId: "7kfkvp2", task: "OVERALL TASKLIST SCORING SEND KRNI HAI SAHIL SIR KO", doer: "SAMIR", department: "MIS", firstDate: "2026-06-15", latestRevision: "2026-06-15", revisions: 0, status: "Completed", priority: "" },
+    { taskId: "w20qqdn", task: "3 NO KA POSSESSION", doer: "DEEPAK", department: "SUPERVISOR", firstDate: "2026-06-18", latestRevision: "2026-06-20", revisions: 2, status: "Week Shifted", priority: "" },
+    { taskId: "swywo9v", task: "PHOTOGRAPHER KO CALL", doer: "SHIKHA", department: "HR", firstDate: "2026-06-18", latestRevision: "2026-06-20", revisions: 2, status: "Week Shifted", priority: "" },
+    { taskId: "ysqh0bw", task: "PARAMJEET BALAJI COMPUTER SE GHAR KA CAMERA CHANGE KRVANA HAI", doer: "SANDEEP", department: "PS", firstDate: "2026-06-17", latestRevision: "2026-06-19", revisions: 2, status: "Week Shifted", priority: "" },
+    { taskId: "lyaf3cd", task: "THIRTY MILESTONES KA LOGO BNANA HAI", doer: "KIRTI", department: "ACCOUNTS", firstDate: "2026-06-16", latestRevision: "2026-06-17", revisions: 1, status: "Completed", priority: "" },
+  ],
+  "2026-06-07": [
+    { taskId: "qczqqgq", task: "OFFICE KI WOODEN FLOORING", doer: "SANDEEP", department: "PS", firstDate: "2026-06-07", latestRevision: "2026-06-09", revisions: 1, status: "Completed", priority: "" },
+    { taskId: "9u9619h", task: "FIRE WALO SE NOC LENA HAI", doer: "DEEPAK", department: "SUPERVISOR", firstDate: "2026-06-07", latestRevision: "2026-06-09", revisions: 2, status: "Completed", priority: "" },
+    { taskId: "ts17xqv", task: "CALLING MANAGEMENT (GIRL) HIRING", doer: "SHIKHA", department: "HR", firstDate: "2026-06-08", latestRevision: "2026-06-09", revisions: 1, status: "Completed", priority: "" },
+    { taskId: "w0g2pkn", task: "VIDEO EDIT KARNA HAI", doer: "KIRTI", department: "ACCOUNTS", firstDate: "2026-06-08", latestRevision: "2026-06-10", revisions: 2, status: "Completed", priority: "" },
+  ],
+  "2026-05-31": [
+    { taskId: "t2dhspz", task: "SEWERAGE WALA CONNECTION LAGWANA HAI", doer: "DEEPAK", department: "SUPERVISOR", firstDate: "2026-06-02", latestRevision: "2026-06-02", revisions: 0, status: "Completed", priority: "" },
+    { taskId: "eu661ln", task: "ACCOUNTANT HIRING", doer: "SHIKHA", department: "HR", firstDate: "2026-06-01", latestRevision: "2026-06-03", revisions: 2, status: "Week Shifted", priority: "" },
+    { taskId: "p1alfwu", task: "CHECKLIST (WITH DESKBOARD)", doer: "SAMIR", department: "MIS", firstDate: "2026-06-01", latestRevision: "2026-06-01", revisions: 0, status: "Completed", priority: "" },
+    { taskId: "1na78fk", task: "VISHNU SAROI KO BULA KAR CUSHION DIKHANE HAI", doer: "SANDEEP", department: "PS", firstDate: "2026-06-03", latestRevision: "2026-06-06", revisions: 1, status: "Completed", priority: "" },
+    { taskId: "qsmat7d", task: "THIRTY MILESTONES KA LOGO BNANA HAI", doer: "KIRTI", department: "ACCOUNTS", firstDate: "2026-06-04", latestRevision: "2026-06-04", revisions: 0, status: "Completed", priority: "" },
+    { taskId: "5uc4afk", task: "AASIM OR RAJENDRA SE (B-BLOCK) 13-18 NUMBER KA LIST LE KAR TASK ADD KRNE HAI", doer: "LAXMI", department: "CRM", firstDate: "2026-06-04", latestRevision: "2026-06-05", revisions: 2, status: "Week Shifted", priority: "" },
   ],
 };
 
-// Build the full doGet-shaped payload for a given week key.
 export function getSampleWeekData(weekKey) {
   const week = SAMPLE_WEEKS.find((w) => w.key === weekKey) || SAMPLE_WEEKS[0];
   return {
     doers: SAMPLE_DOERS,
     departments: SAMPLE_DEPARTMENTS,
-    fms: FMS_BY_WEEK[week.key] || [],
+    fms: [], // wired in later
     checklist: CHECKLIST_BY_WEEK[week.key] || [],
     delegation: DELEGATION_BY_WEEK[week.key] || [],
     weekRange: { key: week.key, label: week.label, from: week.from, to: week.to },

@@ -9,11 +9,13 @@ import { pctText, scoreVariant } from "@/lib/format";
 import { ALL, STATUS } from "@/lib/config";
 
 // --- Status & meta badges ----------------------------------------------------
-export function StatusBadge({ value, atRisk }: { value?: string; atRisk?: boolean }) {
-  const v = String(value ?? "").trim() || STATUS.PENDING; // blank → Pending (PRD §9)
+// Checklist: Done / Pending. Delegation: Completed / Week Shifted / Pending.
+export function StatusBadge({ value }: { value?: string }) {
+  const v = String(value ?? "").trim() || STATUS.PENDING;
   let variant: "ok" | "warn" | "bad" = "warn";
   if (v === STATUS.DONE || v === STATUS.COMPLETED) variant = "ok";
-  if (atRisk) variant = "bad";
+  else if (v === STATUS.SHIFTED) variant = "warn";
+  else if (v === STATUS.PENDING) variant = "bad";
   return (
     <Badge variant={variant}>
       <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />
@@ -29,6 +31,36 @@ export function MetaTag({ value }: { value?: string }) {
   if (v === "High" || v === "Urgent") variant = "bad";
   else if (v === "Medium") variant = "warn";
   return <Badge variant={variant}>{v}</Badge>;
+}
+
+// --- RAG (Red/Yellow/Green) by revision count --------------------------------
+export function RagBadge({ revisions }: { revisions: number }) {
+  const n = Number(revisions) || 0;
+  const variant = n >= 2 ? "bad" : n === 1 ? "warn" : "ok";
+  const label = n === 0 ? "On-time" : n === 1 ? "1 revision" : `${n} revisions`;
+  return (
+    <Badge variant={variant}>
+      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />
+      {label}
+    </Badge>
+  );
+}
+
+// Compact G/Y/R counts for the Summary table.
+export function RagCounts({ green, yellow, red }: { green: number; yellow: number; red: number }) {
+  const Chip = ({ n, cls }: { n: number; cls: string }) => (
+    <span className={cn("inline-flex items-center gap-1 tabular-nums", n ? cls : "text-muted-foreground/50")}>
+      <span className={cn("h-2 w-2 rounded-full", n ? cls.replace("text-", "bg-") : "bg-slate-300")} />
+      {n}
+    </span>
+  );
+  return (
+    <div className="flex items-center gap-3 text-xs font-medium">
+      <Chip n={green} cls="text-ok" />
+      <Chip n={yellow} cls="text-warn" />
+      <Chip n={red} cls="text-bad" />
+    </div>
+  );
 }
 
 // --- Completion bar ----------------------------------------------------------

@@ -1,7 +1,7 @@
 import * as React from "react";
-import { HEADERS, STATUS, ALL } from "@/lib/config";
+import { ALL } from "@/lib/config";
 import { unique, matchesDropdown, matchesSearch } from "@/lib/filters";
-import { doerSummaries, isWorkDone, isDelegationDone, isFmsOverdue, isDelegationAtRisk } from "@/lib/scoring";
+import { doerSummaries, isChecklistDone, isDelegationDone, delegationColour, delegationRevisions } from "@/lib/scoring";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
@@ -9,62 +9,38 @@ import { FilterBar, SelectFilter, SearchFilter, StatusBadge, Stack, Sub, EmptyRo
 import { fmtDate, pctText, scoreVariant, type ScoreVariant } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-const H = HEADERS;
 const TEXT: Record<ScoreVariant, string> = { ok: "text-ok", warn: "text-warn", bad: "text-bad", muted: "text-muted-foreground" };
-const activeDoerNames = (data: any) =>
-  unique((data.doers || []).filter((d: any) => d[H.Doers.active] !== false).map((d: any) => d[H.Doers.doer]));
+const activeDoerNames = (data: any) => unique((data.doers || []).filter((d: any) => d.active !== false).map((d: any) => d.doer));
 
-function statusMatch(selected: string, done: boolean) {
+// "Show" filter: Pending vs Done (Done = Checklist Done OR Delegation Completed).
+function showMatch(selected: string, done: boolean) {
   if (!selected || selected === ALL) return true;
-  return selected === STATUS.PENDING ? !done : done;
+  return selected === "Done" ? done : !done;
 }
 
-// Flatten one doer's rows across all three work types into unified items.
 function collectDoerItems(data: any, doer: string) {
   const items: any[] = [];
-  for (const r of data.fms || []) {
-    if (String(r[H.FMS.doer]).trim() !== doer) continue;
-    items.push({
-      type: "FMS",
-      item: `${r[H.FMS.fmsName]} — ${r[H.FMS.step]}`,
-      department: r[H.FMS.department],
-      planned: r[H.FMS.plannedDate],
-      doneOn: r[H.FMS.actualDate],
-      status: r[H.FMS.status],
-      done: isWorkDone(r),
-      atRisk: isFmsOverdue(r),
-    });
-  }
   for (const r of data.checklist || []) {
-    if (String(r[H.Checklist.doer]).trim() !== doer) continue;
-    items.push({
-      type: "Checklist",
-      item: r[H.Checklist.task],
-      department: r[H.Checklist.department],
-      planned: r[H.Checklist.date],
-      doneOn: "",
-      status: r[H.Checklist.status],
-      done: isWorkDone(r),
-      atRisk: false,
-    });
+    if (String(r.doer).trim() !== doer) continue;
+    items.push({ type: "Checklist", item: r.task, department: r.department, date: r.planned, status: r.status, done: isChecklistDone(r), red: false });
   }
   for (const r of data.delegation || []) {
-    if (String(r[H.Delegation.doer]).trim() !== doer) continue;
+    if (String(r.doer).trim() !== doer) continue;
     items.push({
       type: "Delegation",
-      item: r[H.Delegation.task],
-      department: r[H.Delegation.department],
-      planned: r[H.Delegation.plannedDate],
-      doneOn: r[H.Delegation.completedDate],
-      status: r[H.Delegation.status],
+      item: r.task,
+      department: r.department,
+      date: r.firstDate,
+      status: r.status,
       done: isDelegationDone(r),
-      atRisk: isDelegationAtRisk(r),
+      revisions: delegationRevisions(r),
+      red: delegationColour(r) === "Red",
     });
   }
-  return items.sort((a, b) => Number(a.done) - Number(b.done) || String(a.planned).localeCompare(String(b.planned)));
+  return items.sort((a, b) => Number(a.done) - Number(b.done) || String(a.date).localeCompare(String(b.date)));
 }
 
-function DoerCard({ summary, items, pinned }: { summary: any; items: any[]; pinned: boolean }) {
+function DoerCard({ summary, items }: { summary: any; items: any[] }) {
   const v = scoreVariant(summary.pct);
   return (
     <Card className="overflow-hidden">
@@ -86,8 +62,8 @@ function DoerCard({ summary, items, pinned }: { summary: any; items: any[]; pinn
             <TableHead>Type</TableHead>
             <TableHead>Item</TableHead>
             <TableHead>Department</TableHead>
-            <TableHead>Planned</TableHead>
-            <TableHead>Done On</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead>Revisions</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -96,18 +72,24 @@ function DoerCard({ summary, items, pinned }: { summary: any; items: any[]; pinn
             <EmptyRow span={6} />
           ) : (
             items.map((it, i) => (
-              <TableRow key={i} className={cn(it.atRisk && "bg-bad/10")}>
+              <TableRow key={i} className={cn(it.red && "bg-bad/10")}>
                 <TableCell>
                   <Badge variant="default" className="text-[0.65rem] font-semibold uppercase tracking-wide">
                     {it.type}
                   </Badge>
                 </TableCell>
-                <TableCell className="font-medium">{it.item}</TableCell>
+                <TableCell className="max-w-[24rem] font-medium">{it.item}</TableCell>
                 <TableCell className="text-muted-foreground">{it.department}</TableCell>
-                <TableCell>{fmtDate(it.planned)}</TableCell>
-                <TableCell>{fmtDate(it.doneOn)}</TableCell>
+                <TableCell>{fmtDate(it.date)}</TableCell>
+                <TableCell className="tabular-nums">
+                  {it.type === "Delegation" ? (
+                    <span className={it.revisions >= 2 ? "text-bad" : it.revisions === 1 ? "text-warn" : "text-ok"}>{it.revisions}</span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
                 <TableCell>
-                  <StatusBadge value={it.status} atRisk={it.atRisk} />
+                  <StatusBadge value={it.status} />
                 </TableCell>
               </TableRow>
             ))
@@ -119,7 +101,7 @@ function DoerCard({ summary, items, pinned }: { summary: any; items: any[]; pinn
 }
 
 export function AllDoersTab({ data }: { data: any }) {
-  const [f, setF] = React.useState({ doer: ALL, status: ALL, search: "" });
+  const [f, setF] = React.useState({ doer: ALL, show: ALL, search: "" });
   const set = (patch: Partial<typeof f>) => setF((prev) => ({ ...prev, ...patch }));
 
   const sections = React.useMemo(() => {
@@ -127,7 +109,7 @@ export function AllDoersTab({ data }: { data: any }) {
     return summaries
       .map((summary: any) => {
         const items = collectDoerItems(data, summary.doer)
-          .filter((it) => statusMatch(f.status, it.done))
+          .filter((it) => showMatch(f.show, it.done))
           .filter((it) => matchesSearch(f.search, [it.item, it.department]));
         return { summary, items };
       })
@@ -138,7 +120,7 @@ export function AllDoersTab({ data }: { data: any }) {
     <div className="space-y-4">
       <FilterBar>
         <SelectFilter label="Doer" value={f.doer} onChange={(v) => set({ doer: v })} options={activeDoerNames(data)} />
-        <SelectFilter label="Show" value={f.status} onChange={(v) => set({ status: v })} options={[STATUS.PENDING, STATUS.DONE]} />
+        <SelectFilter label="Show" value={f.show} onChange={(v) => set({ show: v })} options={["Pending", "Done"]} />
         <SearchFilter value={f.search} onChange={(v) => set({ search: v })} placeholder="Search item…" />
       </FilterBar>
       {sections.length === 0 ? (
@@ -148,7 +130,7 @@ export function AllDoersTab({ data }: { data: any }) {
       ) : (
         <div className="space-y-4">
           {sections.map(({ summary, items }) => (
-            <DoerCard key={summary.doer} summary={summary} items={items} pinned={f.doer !== ALL} />
+            <DoerCard key={summary.doer} summary={summary} items={items} />
           ))}
         </div>
       )}
