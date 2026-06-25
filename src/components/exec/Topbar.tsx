@@ -7,12 +7,14 @@ export function Topbar({
   weekKey,
   onWeekChange,
   source,
+  onLogout,
 }: {
   sectionLabel: string;
   weeks: { key: string; label: string }[];
   weekKey: string;
   onWeekChange: (v: string) => void;
   source: string;
+  onLogout?: () => void;
 }) {
   return (
     <header className="sticky top-0 z-10 flex h-16 w-full items-center justify-between gap-4 border-b border-outline-variant bg-glass-bg px-4 backdrop-blur-xl sm:px-6">
@@ -51,6 +53,15 @@ export function Topbar({
           <span className="h-1.5 w-1.5 rounded-full bg-current" />
           {source === "sample" ? "Sample" : "Live"}
         </span>
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-surface-container-lowest text-on-surface-variant transition-colors hover:bg-surface-container-high md:hidden"
+            title="Logout"
+          >
+            <Icon name="logout" className="text-[18px]" />
+          </button>
+        )}
       </div>
     </header>
   );

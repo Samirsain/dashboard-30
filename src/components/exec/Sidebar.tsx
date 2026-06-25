@@ -87,6 +87,37 @@ export function Sidebar({ active, onSelect }: { active: string; onSelect: (id: s
   );
 }
 
+// ---- Admin shell sidebar (scoring only) ------------------------------------
+export function AdminSidebar({ onLogout }: { onLogout: () => void }) {
+  return (
+    <nav className="sticky top-0 z-20 hidden h-screen w-64 shrink-0 flex-col border-r border-outline-variant bg-glass-bg px-4 py-7 backdrop-blur-xl md:flex">
+      <div className="mb-7 px-3">
+        <div className="flex items-center gap-2.5">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary font-display text-base font-bold text-white shadow-glow">30</span>
+          <div className="leading-tight">
+            <h1 className="truncate text-headline-sm font-bold text-primary" title={BRAND.name}>{BRAND.name}</h1>
+            <p className="text-label-sm text-on-surface-variant">Admin Portal</p>
+          </div>
+        </div>
+      </div>
+      <div className="flex-1 space-y-1">
+        <Item icon="leaderboard" label="Scoring" active />
+        <div className="my-3 border-t border-outline-variant" />
+        <Item icon="dashboard" label="Public Dashboard" href="/" />
+      </div>
+      <div className="mt-3 border-t border-outline-variant pt-3">
+        <button
+          onClick={onLogout}
+          className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-body-md text-danger transition-colors hover:bg-red-50"
+        >
+          <Icon name="logout" className="text-[20px]" />
+          Logout
+        </button>
+      </div>
+    </nav>
+  );
+}
+
 // Mobile section tabs (sidebar is hidden on small screens).
 export function MobileSectionTabs({ active, onSelect }: { active: string; onSelect: (id: string) => void }) {
   return (
