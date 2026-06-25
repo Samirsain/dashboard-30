@@ -6,6 +6,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
+import { Login } from "@/components/Login";
+import { isAuthed, logout } from "@/lib/auth";
 import { SummaryTab } from "@/components/tabs/SummaryTab";
 import { FmsTab } from "@/components/tabs/FmsTab";
 import { ChecklistTab } from "@/components/tabs/ChecklistTab";
@@ -82,6 +84,7 @@ function ErrorState({ error, onRetry }: { error: any; onRetry: () => void }) {
 }
 
 export default function App() {
+  const [authed, setAuthed] = React.useState<boolean>(() => isAuthed());
   const [tab, setTab] = React.useState<string>(TABS[0].id);
   const [week, setWeek] = React.useState<string>("all");
   const [reloadToken, setReloadToken] = React.useState(0);
@@ -91,9 +94,17 @@ export default function App() {
   const viewData = React.useMemo(() => filterByWeek(data, week), [data, week]);
   const weekLabel = weeks.find((w) => w.key === week)?.label || "All weeks";
 
+  // Scoring is gated — nothing renders until the admin logs in.
+  if (!authed) return <Login onSuccess={() => setAuthed(true)} />;
+
+  const onLogout = () => {
+    logout();
+    setAuthed(false);
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
-      <Header weeks={weeks} weekKey={week} onWeekChange={setWeek} weekLabel={weekLabel} source={source} />
+      <Header weeks={weeks} weekKey={week} onWeekChange={setWeek} weekLabel={weekLabel} source={source} onLogout={onLogout} />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
         <Tabs value={tab} onValueChange={setTab}>

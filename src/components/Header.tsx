@@ -1,4 +1,6 @@
+import { LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BRAND } from "@/lib/config";
 
@@ -12,12 +14,14 @@ export function Header({
   onWeekChange,
   weekLabel,
   source,
+  onLogout,
 }: {
   weeks: { key: string; label: string }[];
   weekKey: string;
   onWeekChange: (v: string) => void;
   weekLabel: string;
   source: string;
+  onLogout?: () => void;
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/70 backdrop-blur-xl">
@@ -49,6 +53,12 @@ export function Header({
             </Select>
           </div>
           <SourceBadge source={source} />
+          {onLogout && (
+            <Button variant="outline" onClick={onLogout} className="h-8 px-2.5 text-xs" title="Logout">
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </Button>
+          )}
         </div>
       </div>
     </header>
