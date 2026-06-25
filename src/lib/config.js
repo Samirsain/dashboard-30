@@ -35,14 +35,22 @@ export const STATUS = {
 export const COLOUR = { GREEN: "Green", YELLOW: "Yellow", RED: "Red" };
 export const RED_REVISIONS = 2;
 
-// Tabs. FMS stays in place (data wired in later).
+// Tabs. Public dashboard shows the data tabs; "summary" (Scorecard) is admin-only.
 export const TABS = [
-  { id: "summary", label: "Summary" },
-  { id: "fms", label: "FMS" },
+  { id: "summary", label: "Scorecard" },
+  { id: "fms", label: "Workflow" },
   { id: "checklist", label: "Checklist" },
-  { id: "delegation", label: "Delegation" },
+  { id: "delegation", label: "Task List" },
   { id: "allDoers", label: "All Doers" },
 ];
+
+// Display names per system — used in headings and the scorecard column groups.
+// (Internal data keys stay fms/checklist/delegation; only the labels change.)
+export const SYSTEM_LABELS = {
+  checklist: "Checklist",
+  delegation: "Task List",
+  fms: "Workflow",
+};
 
 // Headline thresholds for percentage scores (completion % / green %).
 export const SCORE_THRESHOLDS = { GOOD: 80, WARN: 50 };

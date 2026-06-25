@@ -22,12 +22,13 @@ function collectDoerItems(data: any, doer: string) {
   const items: any[] = [];
   for (const r of data.checklist || []) {
     if (String(r.doer).trim() !== doer) continue;
-    items.push({ type: "Checklist", item: r.task, department: r.department, date: r.planned, status: r.status, done: isChecklistDone(r), red: false });
+    items.push({ type: "Checklist", isDeleg: false, item: r.task, department: r.department, date: r.planned, status: r.status, done: isChecklistDone(r), red: false });
   }
   for (const r of data.delegation || []) {
     if (String(r.doer).trim() !== doer) continue;
     items.push({
-      type: "Delegation",
+      type: "Task List",
+      isDeleg: true,
       item: r.task,
       department: r.department,
       date: r.firstDate,
@@ -86,7 +87,7 @@ function DoerCard({ summary, items }: { summary: any; items: any[] }) {
                 <TableCell>
                   <div className="flex flex-wrap items-center gap-1.5">
                     <StatusBadge value={it.status} />
-                    {it.type === "Delegation" && <ShiftTag shifts={it.shifts} />}
+                    {it.isDeleg && <ShiftTag shifts={it.shifts} />}
                   </div>
                 </TableCell>
               </TableRow>

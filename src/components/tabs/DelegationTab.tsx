@@ -57,8 +57,8 @@ export function DelegationTab({ data }: { data: any }) {
   return (
     <div className="space-y-4">
       <SectionHeading
-        title="Delegation"
-        subtitle="One-time delegated tasks. Complete ho gaya to status 'Completed' — par agar week shift hua tha to wo alag se 'Week Shifted ×N' bhi dikhta hai."
+        title="Task List"
+        subtitle="Delegated one-time tasks. Complete ho gaya to status 'Completed' — par agar week shift hua tha to wo alag se 'Week Shifted ×N' bhi dikhta hai."
       >
         <CountChips>
           <CountChip label="Completed" value={completed} tone="ok" />

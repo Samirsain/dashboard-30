@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { ScoreBar, Stack, Sub, SectionHeading, Avatar, NumPill } from "@/components/common";
 import { pctText, scoreVariant, type ScoreVariant } from "@/lib/format";
-import { SCORE_THRESHOLDS } from "@/lib/config";
+import { SCORE_THRESHOLDS, SYSTEM_LABELS } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 const TEXT: Record<ScoreVariant, string> = { ok: "text-ok", warn: "text-warn", bad: "text-bad", muted: "text-muted-foreground" };
@@ -14,6 +14,13 @@ const TINT: Record<ScoreVariant | "neutral", string> = {
   bad: "bg-bad/10 text-bad ring-bad/15",
   muted: "bg-slate-100 text-slate-500 ring-slate-200",
   neutral: "bg-primary/10 text-primary ring-primary/15",
+};
+
+// Per-system colour identity (header tint + label colour).
+const SYS = {
+  checklist: { label: SYSTEM_LABELS.checklist, head: "bg-primary/[0.07] text-primary" },
+  delegation: { label: SYSTEM_LABELS.delegation, head: "bg-ok/[0.08] text-ok" },
+  fms: { label: SYSTEM_LABELS.fms, head: "bg-sky-500/[0.08] text-sky-600" },
 };
 
 function Stat({
@@ -46,6 +53,25 @@ function Stat({
   );
 }
 
+// Leaderboard rank — medal tint for the top three.
+function RankBadge({ rank }: { rank: number }) {
+  const medal =
+    rank === 1
+      ? "bg-amber-100 text-amber-700 ring-amber-200"
+      : rank === 2
+      ? "bg-slate-200 text-slate-600 ring-slate-300"
+      : rank === 3
+      ? "bg-orange-100 text-orange-700 ring-orange-200"
+      : "";
+  if (rank <= 3)
+    return (
+      <span className={cn("mx-auto grid h-6 w-6 place-items-center rounded-full text-xs font-bold tabular-nums ring-1 ring-inset", medal)}>
+        {rank}
+      </span>
+    );
+  return <span className="block text-center text-xs font-medium tabular-nums text-muted-foreground">{rank}</span>;
+}
+
 // One system's three columns: Done · Late · Pending.
 function SysCells({ bucket, lateLabel }: { bucket: { done: number; late: number; pending: number }; lateLabel?: string }) {
   return (
@@ -63,27 +89,26 @@ function SysCells({ bucket, lateLabel }: { bucket: { done: number; late: number;
   );
 }
 
-// Grouped system header (spans Done/Late/Pend) with a coloured label.
-function SysHead({ label, color }: { label: string; color: string }) {
+function SubHead({ children, divide }: { children: React.ReactNode; divide?: boolean }) {
   return (
-    <TableHead colSpan={3} className={cn("border-l border-slate-200/70 text-center", color)}>
-      {label}
+    <TableHead className={cn("text-center text-[0.65rem] font-semibold normal-case tracking-normal", divide && "border-l border-slate-200/70")}>
+      {children}
     </TableHead>
   );
-}
-function SubHead({ children, divide }: { children: React.ReactNode; divide?: boolean }) {
-  return <TableHead className={cn("text-center font-medium normal-case tracking-normal", divide && "border-l border-slate-200/70")}>{children}</TableHead>;
 }
 
 export function SummaryTab({ data }: { data: any }) {
   const totals = orgTotals(data);
-  const rows = doerSummaries(data).filter((s) => s.total > 0 || s.department);
+  // Professional leaderboard: best score first; only doers with tasks this week.
+  const rows = doerSummaries(data)
+    .filter((s) => s.total > 0)
+    .sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1) || b.done - a.done || a.pending - b.pending);
 
   return (
     <div className="space-y-5">
       <SectionHeading
-        title="Doer Scorecard"
-        subtitle="Har doer ki poori scoring — Checklist, Delegation aur FMS, teeno ka Done · Late · Pending alag-alag. Attention waale sabse upar."
+        title="Performance Scorecard"
+        subtitle="Har doer ki poori scoring — Checklist, Task List aur Workflow, teeno ka Done · Late · Pending. Top performer sabse upar."
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -94,23 +119,33 @@ export function SummaryTab({ data }: { data: any }) {
         <Stat label="Red flags" hint="2+ week shifts" value={totals.redCount} variant={totals.redCount ? "bad" : "ok"} icon={AlertOctagon} />
       </div>
 
-      <Card>
-        <div className="border-b border-slate-200/70 px-5 py-3">
-          <h3 className="font-display text-lg font-bold tracking-tight">All Doers — har system ki scoring</h3>
-          <p className="text-xs text-muted-foreground">
-            <span className="font-medium text-ok">Done</span> = ho gaya · <span className="font-medium text-warn">Late</span> = der se/shifted ·{" "}
-            <span className="font-medium text-bad">Pend</span> = baaki hai
-          </p>
+      <Card className="overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/70 px-5 py-3.5">
+          <div>
+            <h3 className="font-display text-lg font-bold tracking-tight">Doer Leaderboard</h3>
+            <p className="text-xs text-muted-foreground">
+              <span className="font-medium text-ok">Done</span> = ho gaya ·{" "}
+              <span className="font-medium text-warn">Late</span> = der se / week-shifted ·{" "}
+              <span className="font-medium text-bad">Pend</span> = baaki hai
+            </p>
+          </div>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-muted-foreground">{rows.length} doers</span>
         </div>
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead rowSpan={2} className="w-10 text-center">#</TableHead>
+              <TableHead rowSpan={2} className="w-12 text-center">Rank</TableHead>
               <TableHead rowSpan={2}>Doer</TableHead>
-              <SysHead label="Checklist" color="text-primary" />
-              <SysHead label="Delegation" color="text-ok" />
-              <SysHead label="FMS" color="text-sky-600" />
-              <TableHead rowSpan={2} className="min-w-[9rem] border-l border-slate-200/70">Score</TableHead>
+              <TableHead colSpan={3} className={cn("border-l border-slate-200/70 text-center", SYS.checklist.head)}>
+                {SYS.checklist.label}
+              </TableHead>
+              <TableHead colSpan={3} className={cn("border-l border-slate-200/70 text-center", SYS.delegation.head)}>
+                {SYS.delegation.label}
+              </TableHead>
+              <TableHead colSpan={3} className={cn("border-l border-slate-200/70 text-center", SYS.fms.head)}>
+                {SYS.fms.label}
+              </TableHead>
+              <TableHead rowSpan={2} className="min-w-[9.5rem] border-l border-slate-200/70 text-center">Score</TableHead>
             </TableRow>
             <TableRow className="hover:bg-transparent">
               <SubHead divide>Done</SubHead>
@@ -127,7 +162,9 @@ export function SummaryTab({ data }: { data: any }) {
           <TableBody>
             {rows.map((r, i) => (
               <TableRow key={r.doer} className={cn(r.pct !== null && r.pct < SCORE_THRESHOLDS.WARN && "bg-bad/[0.05]")}>
-                <TableCell className="text-center text-xs font-medium tabular-nums text-muted-foreground">{i + 1}</TableCell>
+                <TableCell className="text-center">
+                  <RankBadge rank={i + 1} />
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2.5">
                     <Avatar name={r.doer} />
@@ -141,7 +178,12 @@ export function SummaryTab({ data }: { data: any }) {
                 <SysCells bucket={r.delegation} lateLabel="Week shifted" />
                 <SysCells bucket={r.fms} />
                 <TableCell className="border-l border-slate-200/70">
-                  <ScoreBar pct={r.pct} />
+                  <div className="flex items-center justify-end gap-2.5">
+                    <span className={cn("font-display text-lg font-bold tabular-nums", TEXT[scoreVariant(r.pct)])}>{pctText(r.pct)}</span>
+                    <div className="w-16">
+                      <ScoreBar pct={r.pct} hideLabel />
+                    </div>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -150,8 +192,8 @@ export function SummaryTab({ data }: { data: any }) {
       </Card>
 
       <p className="px-1 text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">Score</span> = sab systems ka Done % (Checklist + Delegation + FMS). FMS abhi connect hone
-        par uske columns bhar jayenge.
+        <span className="font-medium text-foreground">Score</span> = sab systems ka Done % (Checklist + Task List + Workflow). Workflow connect
+        hone par uske columns bhar jayenge. Score 50% se neeche waale rows halki red me highlight hoti hain.
       </p>
     </div>
   );
