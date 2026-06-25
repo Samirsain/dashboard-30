@@ -5,6 +5,12 @@
   publish = "dist"
   command = "npm run build"
 
+# SPA fallback so /admin loads the app directly (client-side routed).
+[[redirects]]
+  from = "/admin"
+  to = "/index.html"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]

@@ -15,6 +15,15 @@ import { DelegationTab } from "@/components/tabs/DelegationTab";
 import { AllDoersTab } from "@/components/tabs/AllDoersTab";
 import { cn } from "@/lib/utils";
 
+// Public dashboard = all the data, no scoring. The Scorecard (Summary) lives
+// only in the admin panel at /admin.
+const PUBLIC_TABS = TABS.filter((t) => t.id !== "summary");
+
+function onAdminRoute(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.location.pathname.toLowerCase().replace(/\/+$/, "") === "/admin";
+}
+
 type LoadState = { loading: boolean; data: any; source: string; error: any };
 
 // Load ALL data once; week filtering happens client-side afterwards.
@@ -83,9 +92,67 @@ function ErrorState({ error, onRetry }: { error: any; onRetry: () => void }) {
   );
 }
 
-export default function App() {
+// Loading / error / data-quality wrapper shared by both views.
+function DataBody({
+  loading,
+  error,
+  data,
+  viewData,
+  onRetry,
+  children,
+}: {
+  loading: boolean;
+  error: any;
+  data: any;
+  viewData: any;
+  onRetry: () => void;
+  children: React.ReactNode;
+}) {
+  if (loading)
+    return (
+      <div className="mt-5">
+        <LoadingState />
+      </div>
+    );
+  if (error && !data)
+    return (
+      <div className="mt-5">
+        <ErrorState error={error} onRetry={onRetry} />
+      </div>
+    );
+  return (
+    <>
+      {(error || viewData?.unknownDoers?.length > 0) && (
+        <div className="mt-5">
+          {error && data && <Notice kind="warn">{error.message}</Notice>}
+          {viewData?.unknownDoers?.length > 0 && (
+            <Notice kind="info">
+              Data quality: {viewData.unknownDoers.length} doer name(s) not in the master Doers list —{" "}
+              {viewData.unknownDoers.join(", ")}. Rows are shown, not dropped.
+            </Notice>
+          )}
+        </div>
+      )}
+      {children}
+    </>
+  );
+}
+
+function Shell({ children, header }: { children: React.ReactNode; header: React.ReactNode }) {
+  return (
+    <div className="flex min-h-screen flex-col">
+      {header}
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">{children}</main>
+      <footer className="border-t border-slate-200 py-5 text-center text-xs text-muted-foreground">
+        ThirtyMilestones MIS Dashboard · read-only
+      </footer>
+    </div>
+  );
+}
+
+// ---- Admin panel (/admin): login → Scorecard only --------------------------
+function AdminPanel() {
   const [authed, setAuthed] = React.useState<boolean>(() => isAuthed());
-  const [tab, setTab] = React.useState<string>(TABS[0].id);
   const [week, setWeek] = React.useState<string>("all");
   const [reloadToken, setReloadToken] = React.useState(0);
   const { loading, data, source, error } = useAllData(reloadToken);
@@ -94,7 +161,6 @@ export default function App() {
   const viewData = React.useMemo(() => filterByWeek(data, week), [data, week]);
   const weekLabel = weeks.find((w) => w.key === week)?.label || "All weeks";
 
-  // Scoring is gated — nothing renders until the admin logs in.
   if (!authed) return <Login onSuccess={() => setAuthed(true)} />;
 
   const onLogout = () => {
@@ -103,63 +169,82 @@ export default function App() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header weeks={weeks} weekKey={week} onWeekChange={setWeek} weekLabel={weekLabel} source={source} onLogout={onLogout} />
-
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
-        <Tabs value={tab} onValueChange={setTab}>
-          <div className="overflow-x-auto scroll-slim pb-1">
-            <TabsList>
-              {TABS.map((t) => (
-                <TabsTrigger key={t.id} value={t.id}>
-                  {t.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
-
-          {loading ? (
-            <div className="mt-5">
-              <LoadingState />
-            </div>
-          ) : error && !data ? (
-            <div className="mt-5">
-              <ErrorState error={error} onRetry={() => setReloadToken((t) => t + 1)} />
-            </div>
-          ) : (
-            <>
-              <div className="mt-5">
-                {error && data && <Notice kind="warn">{error.message}</Notice>}
-                {viewData?.unknownDoers?.length > 0 && (
-                  <Notice kind="info">
-                    Data quality: {viewData.unknownDoers.length} doer name(s) not in the master Doers list —{" "}
-                    {viewData.unknownDoers.join(", ")}. Rows are shown, not dropped.
-                  </Notice>
-                )}
-              </div>
-              <TabsContent value="summary">
-                <SummaryTab data={viewData} />
-              </TabsContent>
-              <TabsContent value="fms">
-                <FmsTab data={viewData} />
-              </TabsContent>
-              <TabsContent value="checklist">
-                <ChecklistTab data={viewData} />
-              </TabsContent>
-              <TabsContent value="delegation">
-                <DelegationTab data={viewData} />
-              </TabsContent>
-              <TabsContent value="allDoers">
-                <AllDoersTab data={viewData} />
-              </TabsContent>
-            </>
-          )}
-        </Tabs>
-      </main>
-
-      <footer className="border-t border-slate-200 py-5 text-center text-xs text-muted-foreground">
-        ThirtyMilestones MIS Dashboard · read-only
-      </footer>
-    </div>
+    <Shell
+      header={
+        <Header
+          weeks={weeks}
+          weekKey={week}
+          onWeekChange={setWeek}
+          weekLabel={weekLabel}
+          source={source}
+          onLogout={onLogout}
+          navLink={{ href: "/", label: "Dashboard" }}
+        />
+      }
+    >
+      <DataBody loading={loading} error={error} data={data} viewData={viewData} onRetry={() => setReloadToken((t) => t + 1)}>
+        <div className="mt-5">
+          <SummaryTab data={viewData} />
+        </div>
+      </DataBody>
+    </Shell>
   );
+}
+
+// ---- Public dashboard (/): all data, no scoring ----------------------------
+function PublicDashboard() {
+  const [tab, setTab] = React.useState<string>("checklist");
+  const [week, setWeek] = React.useState<string>("all");
+  const [reloadToken, setReloadToken] = React.useState(0);
+  const { loading, data, source, error } = useAllData(reloadToken);
+
+  const weeks = weekOptions(data);
+  const viewData = React.useMemo(() => filterByWeek(data, week), [data, week]);
+  const weekLabel = weeks.find((w) => w.key === week)?.label || "All weeks";
+
+  return (
+    <Shell
+      header={
+        <Header
+          weeks={weeks}
+          weekKey={week}
+          onWeekChange={setWeek}
+          weekLabel={weekLabel}
+          source={source}
+          navLink={{ href: "/admin", label: "Admin", lock: true }}
+        />
+      }
+    >
+      <Tabs value={tab} onValueChange={setTab}>
+        <div className="overflow-x-auto scroll-slim pb-1">
+          <TabsList>
+            {PUBLIC_TABS.map((t) => (
+              <TabsTrigger key={t.id} value={t.id}>
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+
+        <DataBody loading={loading} error={error} data={data} viewData={viewData} onRetry={() => setReloadToken((t) => t + 1)}>
+          <TabsContent value="fms">
+            <FmsTab data={viewData} />
+          </TabsContent>
+          <TabsContent value="checklist">
+            <ChecklistTab data={viewData} />
+          </TabsContent>
+          <TabsContent value="delegation">
+            <DelegationTab data={viewData} />
+          </TabsContent>
+          <TabsContent value="allDoers">
+            <AllDoersTab data={viewData} />
+          </TabsContent>
+        </DataBody>
+      </Tabs>
+    </Shell>
+  );
+}
+
+export default function App() {
+  return onAdminRoute() ? <AdminPanel /> : <PublicDashboard />;
 }

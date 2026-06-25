@@ -29,14 +29,14 @@ export function Login({ onSuccess }: { onSuccess: () => void }) {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-10">
+    <div className="flex min-h-[55vh] items-center justify-center px-4 py-8">
       <div className="w-full max-w-sm animate-fade-in">
         <div className="mb-6 flex flex-col items-center text-center">
-          <div className="grid h-14 w-14 place-items-center rounded-2xl border border-primary/30 bg-primary/10 font-display text-2xl font-bold text-primary shadow-glow">
-            30
+          <div className="grid h-14 w-14 place-items-center rounded-2xl border border-primary/30 bg-primary/10 text-primary shadow-glow">
+            <ShieldCheck className="h-7 w-7" />
           </div>
-          <h1 className="mt-3 font-display text-2xl font-bold tracking-tight">{BRAND.name}</h1>
-          <p className="text-[0.7rem] uppercase tracking-[0.2em] text-primary/80">{BRAND.tagline}</p>
+          <h1 className="mt-3 font-display text-2xl font-bold tracking-tight">Admin — Scoring</h1>
+          <p className="text-sm text-muted-foreground">Scoring sirf admin ke liye. Login karein.</p>
         </div>
 
         <Card className="p-6">
