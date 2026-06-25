@@ -21,7 +21,9 @@ const PUBLIC_TABS = TABS.filter((t) => t.id !== "summary");
 
 function onAdminRoute(): boolean {
   if (typeof window === "undefined") return false;
-  return window.location.pathname.toLowerCase().replace(/\/+$/, "") === "/admin";
+  const path = window.location.pathname.toLowerCase().replace(/\/+$/, "");
+  const hash = window.location.hash.toLowerCase().replace(/^#\/?/, "");
+  return path === "/admin" || hash === "admin"; // /admin (rewrite) or /#admin (fallback)
 }
 
 type LoadState = { loading: boolean; data: any; source: string; error: any };
