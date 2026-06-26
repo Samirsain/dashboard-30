@@ -17,6 +17,23 @@ const PRIORITY_STYLE: Record<string, string> = {
   Normal: "border border-outline text-on-surface-variant",
 };
 
+// Which system a task belongs to — icon + label so it's scannable at a glance.
+const SYSTEM_META: Record<string, { icon: string; label: string }> = {
+  Checklist: { icon: "checklist", label: "Checklist" },
+  "Task List": { icon: "assignment", label: "Task List" },
+  Workflow: { icon: "account_tree", label: "Workflow" },
+  FMS: { icon: "account_tree", label: "Workflow" },
+};
+function SystemTag({ source }: { source: string }) {
+  const m = SYSTEM_META[source] || { icon: "folder", label: source || "—" };
+  return (
+    <span className="inline-flex items-center gap-1 whitespace-nowrap border border-on-surface px-2 py-0.5 font-label-sm text-label-sm uppercase text-on-surface">
+      <Icon name={m.icon} className="text-[14px]" />
+      {m.label}
+    </span>
+  );
+}
+
 function initials(name: string) {
   return (
     String(name || "")
@@ -54,14 +71,20 @@ export function TaskDirectory({
     return t;
   }, [data, source, todayOnly]);
 
+  // Show the "System" column only in the mixed view (no single source picked),
+  // e.g. the Today Follow List — so you can see which system each task is from.
+  const showSystem = !source;
+
   const [search, setSearch] = React.useState("");
   const [dept, setDept] = React.useState("All");
   const [status, setStatus] = React.useState("All");
   const [priority, setPriority] = React.useState("All");
+  const [system, setSystem] = React.useState("All");
   const [perPage, setPerPage] = React.useState(10);
   const [page, setPage] = React.useState(1);
 
   const depts = React.useMemo(() => uniq(all.map((t) => t.department)), [all]);
+  const systems = React.useMemo(() => uniq(all.map((t) => t.source)), [all]);
   const hasPriority = React.useMemo(() => all.some((t) => t.priority), [all]);
 
   const rows = React.useMemo(() => {
@@ -71,11 +94,12 @@ export function TaskDirectory({
         (dept === "All" || t.department === dept) &&
         (status === "All" || t.status === status) &&
         (priority === "All" || t.priority === priority) &&
+        (system === "All" || t.source === system) &&
         (!q || `${t.task} ${t.doer} ${t.id}`.toLowerCase().includes(q))
     );
-  }, [all, search, dept, status, priority]);
+  }, [all, search, dept, status, priority, system]);
 
-  React.useEffect(() => setPage(1), [search, dept, status, priority, perPage, source]);
+  React.useEffect(() => setPage(1), [search, dept, status, priority, system, perPage, source]);
 
   const totalPages = Math.max(1, Math.ceil(rows.length / perPage));
   const clampedPage = Math.min(page, totalPages);
@@ -107,16 +131,20 @@ export function TaskDirectory({
         <span className="flex items-center gap-1.5 font-label-sm text-label-sm uppercase text-on-surface">
           <Icon name="filter_alt" className="text-[18px]" /> Filter
         </span>
+        {showSystem && systems.length > 1 && (
+          <FilterSelect value={system} onChange={setSystem} options={["Checklist", "Task List", "Workflow"]} allLabel="All Systems" />
+        )}
         <FilterSelect value={dept} onChange={setDept} options={depts} allLabel="All Departments" />
         <FilterSelect value={status} onChange={setStatus} options={["Completed", "Late", "Pending"]} allLabel="All Statuses" />
         {hasPriority && <FilterSelect value={priority} onChange={setPriority} options={["High", "Medium", "Low"]} allLabel="All Priorities" />}
-        {(search || dept !== "All" || status !== "All" || priority !== "All") && (
+        {(search || dept !== "All" || status !== "All" || priority !== "All" || system !== "All") && (
           <button
             onClick={() => {
               setSearch("");
               setDept("All");
               setStatus("All");
               setPriority("All");
+              setSystem("All");
             }}
             className="ml-auto font-label-sm text-label-sm font-bold uppercase text-error hover:underline"
           >
@@ -131,6 +159,7 @@ export function TaskDirectory({
             <tr className="border-b-2 border-on-surface bg-surface-container">
               <th className="w-16 border-r border-outline-variant px-3 py-3 font-label-sm text-label-sm uppercase text-on-surface">ID</th>
               <th className="border-r border-outline-variant px-3 py-3 font-label-sm text-label-sm uppercase text-on-surface">Description</th>
+              {showSystem && <th className="border-r border-outline-variant px-3 py-3 font-label-sm text-label-sm uppercase text-on-surface">System</th>}
               <th className="border-r border-outline-variant px-3 py-3 font-label-sm text-label-sm uppercase text-on-surface">Doer</th>
               <th className="hidden border-r border-outline-variant px-3 py-3 font-label-sm text-label-sm uppercase text-on-surface md:table-cell">Dept</th>
               <th className="hidden border-r border-outline-variant px-3 py-3 text-center font-label-sm text-label-sm uppercase text-on-surface lg:table-cell">
@@ -144,7 +173,7 @@ export function TaskDirectory({
           <tbody>
             {pageRows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-3 py-12 text-center font-mono text-data-mono uppercase text-on-surface-variant">
+                <td colSpan={showSystem ? 9 : 8} className="px-3 py-12 text-center font-mono text-data-mono uppercase text-on-surface-variant">
                   No matching records.
                 </td>
               </tr>
@@ -155,6 +184,11 @@ export function TaskDirectory({
                   <td className="max-w-[180px] truncate border-r border-outline-variant px-3 py-3 text-body-md font-medium text-on-surface group-hover:underline sm:max-w-[300px]" title={t.task}>
                     {t.task}
                   </td>
+                  {showSystem && (
+                    <td className="border-r border-outline-variant px-3 py-3">
+                      <SystemTag source={t.source} />
+                    </td>
+                  )}
                   <td className="border-r border-outline-variant px-3 py-3">
                     <div className="flex items-center gap-2">
                       <span className="grid h-7 w-7 shrink-0 place-items-center border border-on-surface bg-surface-container font-mono text-[10px] font-bold text-on-surface">
