@@ -69,14 +69,14 @@ const DELEGATION_BY_WEEK = {
   "2026-06-21": [
     { taskId: "qh9a8lx", task: "ENGINEER KA RESUME DENA HAI SIR KO", doer: "SHIKHA", department: "HR", firstDate: "2026-06-22", latestRevision: "2026-06-24", revisions: 2, status: "Pending", priority: "Normal" },
     { taskId: "sf6jdgz", task: "WHITE DRESS KA REMINDER SABHI KO DALNA HAI", doer: "PRIYA", department: "EA", firstDate: "2026-06-22", latestRevision: "2026-06-22", revisions: 0, status: "Completed", priority: "" },
-    { taskId: "klxubuh", task: "METER LAGNE KE BAAD COLONY KA SARA CONNECTION US PER KARNA HAI", doer: "SANDEEP", department: "PS", firstDate: "2026-06-22", latestRevision: "2026-06-23", revisions: 2, status: "Week Shifted", priority: "" },
+    { taskId: "klxubuh", task: "METER LAGNE KE BAAD COLONY KA SARA CONNECTION US PER KARNA HAI", doer: "SANDEEP", department: "PS", firstDate: "2026-06-22", latestRevision: "2026-06-23", revisions: 2, status: "Pending", priority: "" },
     { taskId: "v9c9e3c", task: "BIKANERWALA KA GRANITE CONFIRM KARNA HAI", doer: "DEEPAK", department: "SUPERVISOR", firstDate: "2026-06-22", latestRevision: "2026-06-22", revisions: 0, status: "Completed", priority: "" },
   ],
   "2026-06-14": [
     { taskId: "7kfkvp2", task: "OVERALL TASKLIST SCORING SEND KRNI HAI SAHIL SIR KO", doer: "SAMIR", department: "MIS", firstDate: "2026-06-15", latestRevision: "2026-06-15", revisions: 0, status: "Completed", priority: "" },
-    { taskId: "w20qqdn", task: "3 NO KA POSSESSION", doer: "DEEPAK", department: "SUPERVISOR", firstDate: "2026-06-18", latestRevision: "2026-06-20", revisions: 2, status: "Week Shifted", priority: "" },
-    { taskId: "swywo9v", task: "PHOTOGRAPHER KO CALL", doer: "SHIKHA", department: "HR", firstDate: "2026-06-18", latestRevision: "2026-06-20", revisions: 2, status: "Week Shifted", priority: "" },
-    { taskId: "ysqh0bw", task: "PARAMJEET BALAJI COMPUTER SE GHAR KA CAMERA CHANGE KRVANA HAI", doer: "SANDEEP", department: "PS", firstDate: "2026-06-17", latestRevision: "2026-06-19", revisions: 2, status: "Week Shifted", priority: "" },
+    { taskId: "w20qqdn", task: "3 NO KA POSSESSION", doer: "DEEPAK", department: "SUPERVISOR", firstDate: "2026-06-18", latestRevision: "2026-06-20", revisions: 2, status: "Pending", priority: "" },
+    { taskId: "swywo9v", task: "PHOTOGRAPHER KO CALL", doer: "SHIKHA", department: "HR", firstDate: "2026-06-18", latestRevision: "2026-06-20", revisions: 2, status: "Pending", priority: "" },
+    { taskId: "ysqh0bw", task: "PARAMJEET BALAJI COMPUTER SE GHAR KA CAMERA CHANGE KRVANA HAI", doer: "SANDEEP", department: "PS", firstDate: "2026-06-17", latestRevision: "2026-06-19", revisions: 2, status: "Pending", priority: "" },
     { taskId: "lyaf3cd", task: "THIRTY MILESTONES KA LOGO BNANA HAI", doer: "KIRTI", department: "ACCOUNTS", firstDate: "2026-06-16", latestRevision: "2026-06-17", revisions: 1, status: "Completed", priority: "" },
   ],
   "2026-06-07": [
@@ -87,11 +87,11 @@ const DELEGATION_BY_WEEK = {
   ],
   "2026-05-31": [
     { taskId: "t2dhspz", task: "SEWERAGE WALA CONNECTION LAGWANA HAI", doer: "DEEPAK", department: "SUPERVISOR", firstDate: "2026-06-02", latestRevision: "2026-06-02", revisions: 0, status: "Completed", priority: "" },
-    { taskId: "eu661ln", task: "ACCOUNTANT HIRING", doer: "SHIKHA", department: "HR", firstDate: "2026-06-01", latestRevision: "2026-06-03", revisions: 2, status: "Week Shifted", priority: "" },
+    { taskId: "eu661ln", task: "ACCOUNTANT HIRING", doer: "SHIKHA", department: "HR", firstDate: "2026-06-01", latestRevision: "2026-06-03", revisions: 2, status: "Pending", priority: "" },
     { taskId: "p1alfwu", task: "CHECKLIST (WITH DESKBOARD)", doer: "SAMIR", department: "MIS", firstDate: "2026-06-01", latestRevision: "2026-06-01", revisions: 0, status: "Completed", priority: "" },
     { taskId: "1na78fk", task: "VISHNU SAROI KO BULA KAR CUSHION DIKHANE HAI", doer: "SANDEEP", department: "PS", firstDate: "2026-06-03", latestRevision: "2026-06-06", revisions: 1, status: "Completed", priority: "" },
     { taskId: "qsmat7d", task: "THIRTY MILESTONES KA LOGO BNANA HAI", doer: "KIRTI", department: "ACCOUNTS", firstDate: "2026-06-04", latestRevision: "2026-06-04", revisions: 0, status: "Completed", priority: "" },
-    { taskId: "5uc4afk", task: "AASIM OR RAJENDRA SE (B-BLOCK) 13-18 NUMBER KA LIST LE KAR TASK ADD KRNE HAI", doer: "LAXMI", department: "CRM", firstDate: "2026-06-04", latestRevision: "2026-06-05", revisions: 2, status: "Week Shifted", priority: "" },
+    { taskId: "5uc4afk", task: "AASIM OR RAJENDRA SE (B-BLOCK) 13-18 NUMBER KA LIST LE KAR TASK ADD KRNE HAI", doer: "LAXMI", department: "CRM", firstDate: "2026-06-04", latestRevision: "2026-06-05", revisions: 2, status: "Pending", priority: "" },
   ],
 };
 

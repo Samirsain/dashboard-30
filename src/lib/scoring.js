@@ -35,17 +35,10 @@ export function delegationRevisions(row) {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
-// Week-shifts: in this team's methodology every time a task slips to another
-// week it is logged as a revision, so the revision count IS the shift count.
-// This stays separate from the Completed/Pending status — a task can be
-// Completed AND have been week-shifted N times.
-export function delegationShifts(row) {
-  return delegationRevisions(row);
-}
-
-// True if the task ever slipped a week (still flagged even once it's Completed).
-export function wasShifted(row) {
-  return delegationShifts(row) > 0 || String(row.status ?? "").trim() === STATUS.SHIFTED;
+// A delegation task that needed one or more revisions = "reworked". This is the
+// signal behind a Late completion (done, but it took extra rounds).
+export function delegationReworked(row) {
+  return delegationRevisions(row) > 0;
 }
 
 // Red/Yellow/Green from revision count.
@@ -106,9 +99,8 @@ export function doerSummaries(data) {
     const rec = ensure(r.doer, r.department).delegation;
     rec.total += 1;
     if (isDelegationDone(r)) rec.done += 1;
-    // "Late" stays a clean subset of Done: completed but it had to be week-shifted.
-    // (Full per-task shift counts — incl. still-pending ones — live in the Delegation tab.)
-    if (isDelegationDone(r) && wasShifted(r)) rec.late += 1;
+    // "Late" stays a clean subset of Done: completed, but it needed revisions/rework.
+    if (isDelegationDone(r) && delegationReworked(r)) rec.late += 1;
     const c = delegationColour(r);
     if (c === COLOUR.RED) rec.red += 1;
     else if (c === COLOUR.YELLOW) rec.yellow += 1;

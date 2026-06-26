@@ -38,8 +38,8 @@ export function KpiCards({ data }: { data: any }) {
   const cards = [
     { label: "Total Tasks", value: k.total, icon: "format_list_bulleted", tint: "bg-primary-fixed text-primary" },
     { label: "Completed", value: k.done, icon: "check_circle", tint: "bg-green-100 text-success" },
+    { label: "Late", value: k.late, icon: "schedule", tint: "bg-red-100 text-danger" },
     { label: "Pending", value: k.pending, icon: "pending_actions", tint: "bg-amber-100 text-warning" },
-    { label: "Week Shifted", value: k.shifted, icon: "update", tint: "bg-purple-100 text-status-shifted" },
   ];
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">

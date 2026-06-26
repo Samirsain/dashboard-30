@@ -8,14 +8,13 @@ import {
   isChecklistLate,
   isDelegationDone,
   delegationColour,
-  delegationShifts,
-  wasShifted,
+  delegationReworked,
   doerSummaries,
 } from "./scoring.js";
 
-// Unified task rows for the directory + analytics. Status ∈
-// Completed | Late | Pending | Week Shifted. `shifts` keeps the week-shift count
-// so a Completed-but-shifted task can still flag it.
+// Unified task rows for the directory + analytics. Status ∈ Completed | Late |
+// Pending. "Late" = done but not clean: checklist finished after its planned
+// date, or a delegation task that needed revisions/rework.
 export function unifyTasks(data) {
   const out = [];
   (data.checklist || []).forEach((r, i) => {
@@ -33,13 +32,11 @@ export function unifyTasks(data) {
       due: r.planned || "",
       actual: r.actual || "",
       status: done ? (late ? "Late" : "Completed") : "Pending",
-      shifts: 0,
     });
   });
   (data.delegation || []).forEach((r, i) => {
     const done = isDelegationDone(r);
-    const shifts = delegationShifts(r);
-    const status = done ? "Completed" : wasShifted(r) ? "Week Shifted" : "Pending";
+    const status = done ? (delegationReworked(r) ? "Late" : "Completed") : "Pending";
     out.push({
       id: r.taskId || `TL-${i + 1}`,
       source: "Task List",
@@ -52,7 +49,6 @@ export function unifyTasks(data) {
       due: r.firstDate || "",
       actual: done ? r.latestRevision || "" : "",
       status,
-      shifts,
       red: delegationColour(r) === "Red",
     });
   });
@@ -66,9 +62,8 @@ export function kpis(data) {
   const total = tasks.length;
   const done = tasks.filter(isDone).length;
   const pending = tasks.filter((t) => t.status === "Pending").length;
-  const shifted = tasks.filter((t) => t.status === "Week Shifted").length;
   const late = tasks.filter((t) => t.status === "Late").length;
-  return { total, done, pending, shifted, late, pct: total ? Math.round((done / total) * 100) : 0 };
+  return { total, done, pending, late, pct: total ? Math.round((done / total) * 100) : 0 };
 }
 
 // Status split for the donut.
@@ -79,15 +74,13 @@ export function statusBreakdown(data) {
   const completed = count("Completed");
   const late = count("Late");
   const pending = count("Pending");
-  const shifted = count("Week Shifted");
   const pctOf = (n) => Math.round((n / total) * 100);
   return {
     total: tasks.length,
     segments: [
       { key: "Completed", value: completed, pct: pctOf(completed), color: "#16a34a" },
-      { key: "Pending", value: pending, pct: pctOf(pending), color: "#d97706" },
-      { key: "Week Shifted", value: shifted, pct: pctOf(shifted), color: "#7c3aed" },
       { key: "Late", value: late, pct: pctOf(late), color: "#dc2626" },
+      { key: "Pending", value: pending, pct: pctOf(pending), color: "#d97706" },
     ],
   };
 }
@@ -212,7 +205,7 @@ export function insights(data) {
     });
   }
   const k = kpis(data);
-  if (k.shifted > 0) out.push({ title: "Week shifts", body: `${k.shifted} task is week shift hue hain — follow-up zaroori.` });
+  if (k.late > 0) out.push({ title: "Late completions", body: `${k.late} task der se ya rework ke saath complete hue — follow-up zaroori.` });
   return out.slice(0, 3);
 }
 
@@ -222,7 +215,6 @@ export function recentActivity(data, limit = 6) {
   const events = [];
   for (const t of tasks) {
     if (isDone(t) && t.actual) events.push({ date: t.actual, kind: "done", task: t.task, who: t.doer, id: t.id });
-    else if (t.status === "Week Shifted" && t.due) events.push({ date: t.due, kind: "shifted", task: t.task, who: t.doer, id: t.id });
   }
   events.sort((a, b) => String(b.date).localeCompare(String(a.date)));
   return events.slice(0, limit);

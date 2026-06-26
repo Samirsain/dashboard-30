@@ -82,7 +82,7 @@ export function Scorecard({ data }: { data: any }) {
           <div>
             <h3 className="text-headline-sm font-semibold text-on-surface">Doer Leaderboard</h3>
             <p className="text-label-sm text-on-surface-variant">
-              <span className="font-medium text-success">Done</span> · <span className="font-medium text-warning">Late/Shift</span> ·{" "}
+              <span className="font-medium text-success">Done</span> · <span className="font-medium text-warning">Late</span> ·{" "}
               <span className="font-medium text-danger">Pend</span>
             </p>
           </div>
@@ -101,7 +101,7 @@ export function Scorecard({ data }: { data: any }) {
               </tr>
               <tr className="border-b border-border bg-surface-container-low/70">
                 <Sub divide>Done</Sub><Sub>Late</Sub><Sub>Pend</Sub>
-                <Sub divide>Done</Sub><Sub>Shift</Sub><Sub>Pend</Sub>
+                <Sub divide>Done</Sub><Sub>Late</Sub><Sub>Pend</Sub>
                 <Sub divide>Done</Sub><Sub>Late</Sub><Sub>Pend</Sub>
               </tr>
             </thead>
@@ -146,7 +146,7 @@ export function Scorecard({ data }: { data: any }) {
       </div>
 
       <p className="px-1 text-label-sm text-on-surface-variant">
-        Score = sab systems ka Done % (Checklist + Task List + Workflow). Late = ho gaya par der se / week-shifted. 50% se neeche rows highlight.
+        Score = sab systems ka Done % (Checklist + Task List + Workflow). Late = ho gaya par der se / rework ke saath. 50% se neeche rows highlight.
       </p>
     </div>
   );

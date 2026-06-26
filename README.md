@@ -45,18 +45,21 @@ src/
   App.tsx                  Shell: header, tabs, week load, loading/error states
   index.css                Tailwind + dark-glass theme tokens + .glass utility
   components/
-    Header.tsx             Brand, week selector, live/sample badge
-    common.tsx             Filters, status/meta badges, score bar, empty state
+    Login.tsx              Admin login screen (salted SHA-256 verify)
+    exec/                  Executive Portal shell + views:
+                           Sidebar, Topbar, Overview, OverviewParts (KPI cards,
+                           status donut, dept bars), TaskDirectory, Scorecard,
+                           Icon
     ui/                    shadcn/ui primitives (button, card, tabs, select,
                            table, badge, input) — glass-tuned
-    tabs/                  SummaryTab, FmsTab, ChecklistTab, DelegationTab,
-                           AllDoersTab
   lib/
     config.js              ⭐ Schema contract (header strings) + brand + settings
     data.js                Fetch from Apps Script; sample fallback; data-quality
     sample-data.js         Bundled ThirtyMilestones demo data (doGet-shaped)
-    scoring.js             Metrics & scoring (PRD §9) — pooled completion %
-    filters.js             Pure, composable client-side filter helpers (PRD §8)
+    analytics.js           Dashboard metrics (KPIs, status split, dept perf)
+    scoring.js             Per-doer Done/Late/Pending scoring + org totals
+    auth.ts                Admin auth (salted SHA-256, localStorage session)
+    filters.js             Pure, composable client-side filter helpers
     format.ts              Date / percent / score-colour formatting
     utils.ts               cn() class-merge helper
 apps-script/               doGet export + header validation + notifications

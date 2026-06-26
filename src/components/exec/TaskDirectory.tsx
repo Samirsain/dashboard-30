@@ -8,7 +8,6 @@ const STATUS_STYLE: Record<string, string> = {
   Completed: "bg-green-100 text-success border-green-200",
   Late: "bg-red-100 text-danger border-red-200",
   Pending: "bg-amber-100 text-warning border-amber-200",
-  "Week Shifted": "bg-purple-100 text-status-shifted border-purple-200",
 };
 const PRIORITY_STYLE: Record<string, string> = {
   High: "bg-red-50 text-danger",
@@ -96,7 +95,7 @@ export function TaskDirectory({ data, source, title = "Enterprise Task Directory
           <Icon name="filter_alt" className="text-[18px] text-outline" /> Filters
         </span>
         <FilterSelect value={dept} onChange={setDept} options={depts} allLabel="All Departments" />
-        <FilterSelect value={status} onChange={setStatus} options={["Completed", "Pending", "Late", "Week Shifted"]} allLabel="All Statuses" />
+        <FilterSelect value={status} onChange={setStatus} options={["Completed", "Late", "Pending"]} allLabel="All Statuses" />
         {hasPriority && <FilterSelect value={priority} onChange={setPriority} options={["High", "Medium", "Low"]} allLabel="All Priorities" />}
         {(search || dept !== "All" || status !== "All" || priority !== "All") && (
           <button
@@ -161,14 +160,7 @@ export function TaskDirectory({ data, source, title = "Enterprise Task Directory
                   <td className="px-4 py-3 text-body-sm text-on-surface-variant">{fmtDate(t.due) || "—"}</td>
                   <td className="px-4 py-3 text-body-sm text-on-surface-variant">{fmtDate(t.actual) || "—"}</td>
                   <td className="px-4 py-3">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-label-sm font-medium", STATUS_STYLE[t.status])}>{t.status}</span>
-                      {t.shifts > 0 && t.status !== "Week Shifted" && (
-                        <span className="inline-flex items-center gap-0.5 rounded-full border border-purple-200 bg-purple-50 px-1.5 py-0.5 text-label-sm font-medium text-status-shifted" title="Week shifted">
-                          <Icon name="update" className="text-[13px]" />×{t.shifts}
-                        </span>
-                      )}
-                    </div>
+                    <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-label-sm font-medium", STATUS_STYLE[t.status])}>{t.status}</span>
                   </td>
                 </tr>
               ))

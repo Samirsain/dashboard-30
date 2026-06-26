@@ -3,8 +3,9 @@
 //
 // Real data sources (separate Google Sheets, all owned by the same account):
 //   • TASKLIST  → Delegation  (Name, Task, First Date, Total Revisions,
-//                 Latest Revision, Status[Completed/Week Shifted/Pending],
-//                 Priority).  Scored Red/Yellow/Green by revisions.
+//                 Latest Revision, Status, Priority).  Only "Completed" counts
+//                 as done; anything else (incl. the sheet's old "Week Shifted")
+//                 is treated as Pending. Completed-with-revisions = Late.
 //   • CHECKLIST → Checklist   (Master tab: Name, Department, Freq, Task,
 //                 Planned, Actual, Status[Done / blank]).  Scored Done/Pending.
 //   • FMS       → (to be added later)
@@ -32,7 +33,6 @@ export const STATUS = {
   DONE: "Done", // Checklist (Actual filled)
   PENDING: "Pending", // Checklist (blank) + Delegation
   COMPLETED: "Completed", // Delegation
-  SHIFTED: "Week Shifted", // Delegation (slipped to another week)
 };
 
 // Delegation RAG colour from the revision count (the team's own methodology):

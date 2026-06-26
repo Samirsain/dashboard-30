@@ -41,7 +41,6 @@ export default {
         danger: "#dc2626",
         "status-completed": "#16a34a",
         "status-pending": "#d97706",
-        "status-shifted": "#7c3aed",
         "status-late": "#dc2626",
         "status-progress": "#2563eb",
         "primary-container": "#2563eb",
