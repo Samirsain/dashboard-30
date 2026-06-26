@@ -2,7 +2,7 @@ import * as React from "react";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { loadData, weekOptions, filterByWeek } from "@/lib/data";
 import { Login } from "@/components/Login";
-import { isAuthed, logout } from "@/lib/auth";
+import { isAuthed, currentRole, logout, type Role } from "@/lib/auth";
 import { Sidebar, AdminSidebar, MobileSectionTabs, SECTIONS } from "@/components/exec/Sidebar";
 import { Topbar } from "@/components/exec/Topbar";
 import { Overview } from "@/components/exec/Overview";
@@ -73,11 +73,12 @@ function ComingSoon({ title, note }: { title: string; note: string }) {
 }
 
 // ---- Public Executive dashboard (/) ----------------------------------------
-function PublicApp() {
+function PublicApp({ role, onLogout }: { role: Role; onLogout: () => void }) {
   const [section, setSection] = React.useState<string>("dashboard");
   const [week, setWeek] = React.useState<string>("all");
   const [reloadToken, setReloadToken] = React.useState(0);
   const { loading, data, source, error } = useAllData(reloadToken);
+  const isAdmin = role === "admin";
 
   const weeks = weekOptions(data);
   const viewData = React.useMemo(() => filterByWeek(data, week), [data, week]);
@@ -93,10 +94,10 @@ function PublicApp() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface text-on-surface antialiased">
-      <Sidebar active={section} onSelect={setSection} />
+      <Sidebar active={section} onSelect={setSection} showAdmin={isAdmin} onLogout={onLogout} />
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-        <Topbar sectionLabel={sectionLabel} weeks={weeks} weekKey={week} onWeekChange={setWeek} source={source} />
-        <MobileSectionTabs active={section} onSelect={setSection} />
+        <Topbar sectionLabel={sectionLabel} weeks={weeks} weekKey={week} onWeekChange={setWeek} source={source} onLogout={onLogout} />
+        <MobileSectionTabs active={section} onSelect={setSection} showAdmin={isAdmin} />
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-24 sm:p-6">
           <div className="mx-auto min-w-0 max-w-[1440px]">
             {error && data && (
@@ -110,22 +111,14 @@ function PublicApp() {
   );
 }
 
-// ---- Admin panel (/admin): login → Scorecard, in the same shell -----------
-function AdminPanel() {
-  const [authed, setAuthed] = React.useState<boolean>(() => isAuthed());
+// ---- Admin panel (/admin): Scorecard, in the same shell (admin role only) --
+function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [week, setWeek] = React.useState<string>("all");
   const [reloadToken, setReloadToken] = React.useState(0);
   const { loading, data, source, error } = useAllData(reloadToken);
 
   const weeks = weekOptions(data);
   const viewData = React.useMemo(() => filterByWeek(data, week), [data, week]);
-
-  if (!authed) return <Login onSuccess={() => setAuthed(true)} />;
-
-  const onLogout = () => {
-    logout();
-    setAuthed(false);
-  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface text-on-surface antialiased">
@@ -154,5 +147,28 @@ function AdminPanel() {
 }
 
 export default function App() {
-  return onAdminRoute() ? <AdminPanel /> : <PublicApp />;
+  const [authed, setAuthed] = React.useState<boolean>(() => isAuthed());
+
+  if (!authed) return <Login onSuccess={() => setAuthed(true)} />;
+
+  const role = currentRole() ?? "staff";
+  const onLogout = () => {
+    logout();
+    setAuthed(false);
+  };
+
+  // Only the admin can open the Scoring panel; staff (PC30) is sent to the
+  // normal dashboard instead.
+  if (onAdminRoute()) {
+    if (role !== "admin") {
+      try {
+        window.history.replaceState(null, "", "/");
+      } catch {
+        /* ignore */
+      }
+      return <PublicApp role={role} onLogout={onLogout} />;
+    }
+    return <AdminPanel onLogout={onLogout} />;
+  }
+  return <PublicApp role={role} onLogout={onLogout} />;
 }

@@ -67,7 +67,17 @@ function Brand({ subtitle }: { subtitle: string }) {
   );
 }
 
-export function Sidebar({ active, onSelect }: { active: string; onSelect: (id: string) => void }) {
+export function Sidebar({
+  active,
+  onSelect,
+  showAdmin,
+  onLogout,
+}: {
+  active: string;
+  onSelect: (id: string) => void;
+  showAdmin?: boolean;
+  onLogout?: () => void;
+}) {
   return (
     <nav className="sticky top-0 z-20 hidden h-screen w-64 shrink-0 flex-col border-r-2 border-on-surface bg-surface md:flex">
       <Brand subtitle="Enterprise RE MIS" />
@@ -75,16 +85,19 @@ export function Sidebar({ active, onSelect }: { active: string; onSelect: (id: s
         {SECTIONS.map((s) => (
           <Item key={s.id} icon={s.icon} label={s.label} active={active === s.id} onClick={() => onSelect(s.id)} />
         ))}
+        {showAdmin && <Item icon="admin_panel_settings" label="Admin · Scoring" href="/admin" />}
       </div>
-      <div className="border-t-2 border-on-surface py-2">
-        <Item icon="admin_panel_settings" label="Admin · Scoring" href="/admin" />
-        <div className="flex items-center gap-3 px-4 py-3 text-on-surface-variant">
-          <span className="grid h-7 w-7 shrink-0 place-items-center border border-on-surface bg-surface-container font-mono text-[10px] font-bold text-on-surface">
-            TM
-          </span>
-          <span className="font-label-sm text-label-sm uppercase">Read-only Access</span>
+      {onLogout && (
+        <div className="border-t-2 border-on-surface py-2">
+          <button
+            onClick={onLogout}
+            className="flex w-full items-center gap-3 border-l-4 border-transparent px-4 py-3 font-label-sm text-label-sm uppercase text-error transition-colors hover:bg-error hover:text-on-error"
+          >
+            <Icon name="logout" className="text-[20px]" />
+            Logout
+          </button>
         </div>
-      </div>
+      )}
     </nav>
   );
 }
@@ -112,7 +125,7 @@ export function AdminSidebar({ onLogout }: { onLogout: () => void }) {
 }
 
 // Mobile section tabs (sidebar is hidden on small screens).
-export function MobileSectionTabs({ active, onSelect }: { active: string; onSelect: (id: string) => void }) {
+export function MobileSectionTabs({ active, onSelect, showAdmin }: { active: string; onSelect: (id: string) => void; showAdmin?: boolean }) {
   return (
     <div className="scroll-slim flex gap-0 overflow-x-auto border-b-2 border-on-surface bg-surface md:hidden">
       {SECTIONS.map((s) => (
@@ -128,13 +141,15 @@ export function MobileSectionTabs({ active, onSelect }: { active: string; onSele
           {s.label}
         </button>
       ))}
-      <a
-        href="/admin"
-        className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2.5 font-label-sm text-label-sm uppercase text-on-surface-variant"
-      >
-        <Icon name="admin_panel_settings" className="text-[18px]" />
-        Admin
-      </a>
+      {showAdmin && (
+        <a
+          href="/admin"
+          className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2.5 font-label-sm text-label-sm uppercase text-on-surface-variant"
+        >
+          <Icon name="admin_panel_settings" className="text-[18px]" />
+          Admin
+        </a>
+      )}
     </div>
   );
 }

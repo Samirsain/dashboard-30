@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Lock, User, Loader2, Eye, EyeOff } from "lucide-react";
 import { BRAND } from "@/lib/config";
-import { verifyCredentials, setAuthed } from "@/lib/auth";
+import { verifyCredentials, setSession } from "@/lib/auth";
 
 export function Login({ onSuccess }: { onSuccess: () => void }) {
   const [username, setUsername] = React.useState("");
@@ -15,9 +15,9 @@ export function Login({ onSuccess }: { onSuccess: () => void }) {
     if (busy) return;
     setBusy(true);
     setError("");
-    const ok = await verifyCredentials(username, password);
-    if (ok) {
-      setAuthed();
+    const role = await verifyCredentials(username, password);
+    if (role) {
+      setSession(role);
       onSuccess();
     } else {
       setError("Invalid username or password. Try again.");
@@ -41,7 +41,7 @@ export function Login({ onSuccess }: { onSuccess: () => void }) {
         <div className="glass-card">
           <div className="flex items-center gap-2 border-b-2 border-on-surface bg-surface-container-low px-5 py-3">
             <Lock className="h-4 w-4 text-on-surface" />
-            <span className="font-label-sm text-label-sm uppercase text-on-surface">Admin Access — Scoring</span>
+            <span className="font-label-sm text-label-sm uppercase text-on-surface">Secure Login</span>
           </div>
 
           <form onSubmit={submit} className="space-y-4 p-5">
@@ -99,7 +99,7 @@ export function Login({ onSuccess }: { onSuccess: () => void }) {
         </div>
 
         <p className="mt-4 border-l-4 border-on-surface px-3 font-label-sm text-label-sm uppercase text-on-surface-variant">
-          Authorised staff only. Scoring is shown after login.
+          Authorised staff only. Admin sees scoring; staff sees the dashboard.
         </p>
       </div>
     </div>
