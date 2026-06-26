@@ -24,35 +24,35 @@ export default {
         bad: "hsl(var(--bad))",
         gold: { DEFAULT: "#e0c25a", soft: "#c9a227" },
 
-        // ---- Swiss Modernist (Vercel-inspired) palette -------------------------
-        surface: "#f9f9f9",
-        "on-surface": "#1a1c1c",
-        "on-surface-variant": "#43474f",
-        "surface-variant": "#e2e2e2",
-        "surface-container-lowest": "#ffffff",
-        "surface-container-low": "#f3f3f3",
-        "surface-container": "#eeeeee",
-        "surface-container-high": "#e8e8e8",
-        "surface-container-highest": "#e2e2e2",
-        outline: "#747780",
-        "outline-variant": "#c4c6d0",
-        success: "#1a1c1c",
-        warning: "#43474f",
-        danger: "#ba1a1a",
-        "status-completed": "#1a1c1c",
-        "status-pending": "#43474f",
-        "status-late": "#ba1a1a",
-        "status-progress": "#4F5A6B",
-        "primary-container": "#4F5A6B", // accent (slate)
-        "on-primary-container": "#C9CBCF",
-        "accent-neutral": "#C9CBCF", // light grey (primary tint)
-        "primary-fixed": "#C9CBCF",
-        "primary-fixed-variant": "#4F5A6B",
-        "on-primary": "#ffffff",
-        error: "#ba1a1a",
-        "on-error": "#ffffff",
-        "error-container": "#ffdad6",
-        "glass-bg": "#f9f9f9",
+        // ---- Beige + Espresso (warm two-tone) palette --------------------------
+        surface: "#e8e0cf", // beige canvas
+        "on-surface": "#281c15", // espresso (text + 2px borders)
+        "on-surface-variant": "#6b584a", // muted brown
+        "surface-variant": "#d8cdb6",
+        "surface-container-lowest": "#fbf8f1", // cream cards
+        "surface-container-low": "#f3eddf", // table headers
+        "surface-container": "#ece4d2",
+        "surface-container-high": "#e3dac4",
+        "surface-container-highest": "#dacfb8",
+        outline: "#8a7867",
+        "outline-variant": "#cbbda4", // light brown dividers
+        success: "#281c15",
+        warning: "#6b584a",
+        danger: "#9a3412", // burnt rust
+        "status-completed": "#281c15",
+        "status-pending": "#c9bca6",
+        "status-late": "#9a3412",
+        "status-progress": "#281c15",
+        "primary-container": "#281c15", // accent = espresso
+        "on-primary-container": "#e8e0cf",
+        "accent-neutral": "#c9bca6",
+        "primary-fixed": "#e3dac4",
+        "primary-fixed-variant": "#281c15",
+        "on-primary": "#fbf8f1", // cream text on espresso
+        error: "#9a3412",
+        "on-error": "#fbf8f1",
+        "error-container": "#f0d9cc",
+        "glass-bg": "#e8e0cf",
       },
       fontSize: {
         "display-lg": ["48px", { lineHeight: "1.05", letterSpacing: "-0.04em", fontWeight: "800" }],

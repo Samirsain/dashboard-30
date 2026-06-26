@@ -95,7 +95,7 @@ function arcPath(cx: number, cy: number, outerR: number, innerR: number, startDe
   ].join(" ");
 }
 
-// ---- Status donut (monochrome Swiss) ---------------------------------------
+// ---- Status donut (warm beige/espresso) ------------------------------------
 export function StatusDonut({ data, className }: { data: any; className?: string }) {
   const { segments, total } = statusBreakdown(data);
   const [hovered, setHovered] = React.useState<string | null>(null);
@@ -118,14 +118,14 @@ export function StatusDonut({ data, className }: { data: any; className?: string
         <div className="relative shrink-0">
           <svg width="150" height="150" viewBox="0 0 160 160">
             {total === 0 ? (
-              <circle cx={CX} cy={CY} r={OR} fill="#e2e2e2" stroke="#1a1c1c" strokeWidth={2} />
+              <circle cx={CX} cy={CY} r={OR} fill="#d8cdb6" stroke="#281c15" strokeWidth={2} />
             ) : (
               arcs.map((arc) => (
                 <path
                   key={arc.key}
                   d={arc.path}
                   fill={arc.color}
-                  stroke="#1a1c1c"
+                  stroke="#281c15"
                   strokeWidth={1.5}
                   opacity={hovered && hovered !== arc.key ? 0.3 : 1}
                   style={{ cursor: "pointer", transition: "opacity 0.12s" }}
@@ -134,25 +134,25 @@ export function StatusDonut({ data, className }: { data: any; className?: string
                 />
               ))
             )}
-            <circle cx={CX} cy={CY} r={IR} fill="#ffffff" stroke="#1a1c1c" strokeWidth={2} />
+            <circle cx={CX} cy={CY} r={IR} fill="#fbf8f1" stroke="#281c15" strokeWidth={2} />
             {active ? (
               <>
-                <text x={CX} y={CY - 8} textAnchor="middle" style={{ fontSize: 26, fontWeight: 800, fontFamily: "JetBrains Mono", fill: "#1a1c1c" }}>
+                <text x={CX} y={CY - 8} textAnchor="middle" style={{ fontSize: 26, fontWeight: 800, fontFamily: "JetBrains Mono", fill: "#281c15" }}>
                   {active.pct}%
                 </text>
-                <text x={CX} y={CY + 10} textAnchor="middle" style={{ fontSize: 11, fontFamily: "JetBrains Mono", fill: "#43474f" }}>
+                <text x={CX} y={CY + 10} textAnchor="middle" style={{ fontSize: 11, fontFamily: "JetBrains Mono", fill: "#6b584a" }}>
                   {active.value} TASKS
                 </text>
-                <text x={CX} y={CY + 24} textAnchor="middle" style={{ fontSize: 9, letterSpacing: "0.08em", fill: "#1a1c1c", fontWeight: 700 }}>
+                <text x={CX} y={CY + 24} textAnchor="middle" style={{ fontSize: 9, letterSpacing: "0.08em", fill: "#281c15", fontWeight: 700 }}>
                   {active.key.toUpperCase()}
                 </text>
               </>
             ) : (
               <>
-                <text x={CX} y={CY - 2} textAnchor="middle" style={{ fontSize: 30, fontWeight: 800, fontFamily: "JetBrains Mono", fill: "#1a1c1c" }}>
+                <text x={CX} y={CY - 2} textAnchor="middle" style={{ fontSize: 30, fontWeight: 800, fontFamily: "JetBrains Mono", fill: "#281c15" }}>
                   {total}
                 </text>
-                <text x={CX} y={CY + 16} textAnchor="middle" style={{ fontSize: 10, letterSpacing: "0.1em", fontFamily: "JetBrains Mono", fill: "#43474f" }}>
+                <text x={CX} y={CY + 16} textAnchor="middle" style={{ fontSize: 10, letterSpacing: "0.1em", fontFamily: "JetBrains Mono", fill: "#6b584a" }}>
                   TASKS
                 </text>
               </>

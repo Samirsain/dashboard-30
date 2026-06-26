@@ -2,7 +2,7 @@ import * as React from "react";
 import { Icon } from "./Icon";
 import { cn } from "@/lib/utils";
 import { fmtDate } from "@/lib/format";
-import { unifyTasks } from "@/lib/analytics";
+import { unifyTasks, todayISO } from "@/lib/analytics";
 
 const STATUS_STYLE: Record<string, string> = {
   Completed: "bg-primary-container text-on-primary border-2 border-primary-container",
@@ -33,11 +33,26 @@ function uniq(vals: any[]) {
   return [...new Set(vals.map((v) => String(v || "").trim()).filter(Boolean))].sort();
 }
 
-export function TaskDirectory({ data, source, title = "Active Task Directory" }: { data: any; source?: "Checklist" | "Task List"; title?: string }) {
+export function TaskDirectory({
+  data,
+  source,
+  title = "Active Task Directory",
+  todayOnly = false,
+}: {
+  data: any;
+  source?: "Checklist" | "Task List";
+  title?: string;
+  todayOnly?: boolean;
+}) {
   const all = React.useMemo(() => {
-    const t = unifyTasks(data);
-    return source ? t.filter((x) => x.source === source) : t;
-  }, [data, source]);
+    let t = unifyTasks(data);
+    if (source) t = t.filter((x) => x.source === source);
+    if (todayOnly) {
+      const today = todayISO();
+      t = t.filter((x) => String(x.due || x.created || "").trim() === today);
+    }
+    return t;
+  }, [data, source, todayOnly]);
 
   const [search, setSearch] = React.useState("");
   const [dept, setDept] = React.useState("All");
@@ -72,7 +87,9 @@ export function TaskDirectory({ data, source, title = "Active Task Directory" }:
       <div className="flex flex-col justify-between gap-4 border-b-2 border-on-surface bg-surface-container-low p-5 md:flex-row md:items-center">
         <div>
           <h3 className="font-headline-md text-headline-md uppercase tracking-tight text-on-surface">{title}</h3>
-          <p className="font-mono text-data-mono uppercase text-on-surface-variant">{rows.length} Entries • System Live</p>
+          <p className="font-mono text-data-mono uppercase text-on-surface-variant">
+            {rows.length} Entries • {todayOnly ? fmtDate(todayISO()) : "System Live"}
+          </p>
         </div>
         <div className="relative">
           <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-on-surface-variant" />

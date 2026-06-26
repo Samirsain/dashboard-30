@@ -78,9 +78,9 @@ export function statusBreakdown(data) {
   return {
     total: tasks.length,
     segments: [
-      { key: "Completed", value: completed, pct: pctOf(completed), color: "#4f5a6b" },
-      { key: "Late", value: late, pct: pctOf(late), color: "#ba1a1a" },
-      { key: "Pending", value: pending, pct: pctOf(pending), color: "#c9cbcf" },
+      { key: "Completed", value: completed, pct: pctOf(completed), color: "#281c15" },
+      { key: "Late", value: late, pct: pctOf(late), color: "#9a3412" },
+      { key: "Pending", value: pending, pct: pctOf(pending), color: "#c9bca6" },
     ],
   };
 }
@@ -160,6 +160,16 @@ export function activityHeatmap(data, days = 90) {
     cells.push({ date: d, count: n, intensity });
   }
   return cells;
+}
+
+// Tasks scheduled for today (current date) — drives the "Today Followup" panel.
+// A task's due date is its checklist planned date or delegation first date.
+export function todayTasks(data) {
+  const today = todayISO();
+  return unifyTasks(data).filter((t) => {
+    const d = String(t.due || t.created || "").trim();
+    return d === today;
+  });
 }
 
 // Headline highlights for the "Today's Summary" panel.

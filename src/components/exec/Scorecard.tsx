@@ -24,7 +24,7 @@ function Stat({ label, value, danger, striped }: { label: string; value: string 
       {striped && (
         <div
           className="pointer-events-none absolute inset-0 opacity-10"
-          style={{ backgroundImage: "repeating-linear-gradient(45deg, #ba1a1a 0, #ba1a1a 2px, transparent 2px, transparent 10px)" }}
+          style={{ backgroundImage: "repeating-linear-gradient(45deg, #9a3412 0, #9a3412 2px, transparent 2px, transparent 10px)" }}
         />
       )}
     </div>

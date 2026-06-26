@@ -8,33 +8,33 @@
    ============================================================================= */
 @layer base {
   :root {
-    --background: 0 0% 98%; /* #f9f9f9 */
-    --foreground: 200 6% 11%; /* #1a1c1c */
+    --background: 42 33% 86%; /* #e8e0cf beige canvas */
+    --foreground: 21 31% 12%; /* #281c15 espresso */
 
-    --card: 0 0% 100%;
-    --card-foreground: 200 6% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 200 6% 11%;
+    --card: 42 50% 96%; /* #fbf8f1 cream */
+    --card-foreground: 21 31% 12%;
+    --popover: 42 50% 96%;
+    --popover-foreground: 21 31% 12%;
 
-    --primary: 200 6% 11%; /* #1a1c1c — Swiss absolute black */
-    --primary-foreground: 0 0% 100%;
+    --primary: 21 31% 12%; /* #281c15 — espresso */
+    --primary-foreground: 42 50% 96%; /* cream */
 
-    --secondary: 0 0% 89%; /* #e2e2e2 */
-    --secondary-foreground: 200 6% 11%;
+    --secondary: 41 36% 83%; /* #e3dac4 */
+    --secondary-foreground: 21 31% 12%;
 
-    --muted: 0 0% 95%; /* #f3f3f3 */
-    --muted-foreground: 222 8% 29%; /* #43474f */
+    --muted: 42 38% 91%; /* #f3eddf */
+    --muted-foreground: 27 19% 36%; /* #6b584a */
 
-    --accent: 0 0% 93%; /* #eeeeee */
-    --accent-foreground: 200 6% 11%;
+    --accent: 41 39% 87%; /* #ece4d2 */
+    --accent-foreground: 21 31% 12%;
 
-    --ok: 200 6% 11%; /* black */
-    --warn: 222 8% 29%; /* gray */
-    --bad: 0 75% 42%; /* #ba1a1a */
+    --ok: 21 31% 12%; /* espresso */
+    --warn: 27 19% 36%; /* muted brown */
+    --bad: 17 79% 34%; /* #9a3412 rust */
 
-    --border: 200 6% 11%; /* #1a1c1c — structural 2px black borders */
-    --input: 200 6% 11%;
-    --ring: 200 6% 11%;
+    --border: 21 31% 12%; /* #281c15 — structural 2px borders */
+    --input: 21 31% 12%;
+    --ring: 21 31% 12%;
 
     --radius: 0rem; /* sharp 90° corners */
   }
@@ -116,7 +116,7 @@
     top: 0;
     bottom: 0;
     width: 4px;
-    background-color: #4f5a6b;
+    background-color: #281c15;
   }
   .table-row-hover:hover {
     background-color: #f3f3f3;

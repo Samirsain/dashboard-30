@@ -13,7 +13,7 @@ export function Overview({ data }: { data: any }) {
         <StatusDonut data={data} className="lg:col-span-5" />
       </div>
 
-      <TaskDirectory data={data} />
+      <TaskDirectory data={data} todayOnly title="Today Follow List" />
     </div>
   );
 }
