@@ -42,7 +42,7 @@ export function Topbar({
             "hidden items-center gap-1.5 border-2 px-2.5 py-1.5 font-label-sm text-label-sm font-semibold uppercase sm:inline-flex " +
             (source === "sample"
               ? "border-on-surface bg-surface-container text-on-surface-variant"
-              : "border-on-surface bg-on-surface text-on-primary")
+              : "border-primary-container bg-primary-container text-on-primary")
           }
         >
           <span className="h-1.5 w-1.5 rounded-full bg-current" />

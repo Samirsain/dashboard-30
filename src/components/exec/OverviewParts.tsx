@@ -114,9 +114,9 @@ export function StatusDonut({ data, className }: { data: any; className?: string
 
   return (
     <Panel title="Task Status" icon="donut_large" className={className}>
-      <div className="flex flex-col items-center gap-7 sm:flex-row sm:justify-around">
+      <div className="flex flex-col items-center gap-5 xl:flex-row xl:items-center xl:gap-6">
         <div className="relative shrink-0">
-          <svg width="160" height="160" viewBox="0 0 160 160">
+          <svg width="150" height="150" viewBox="0 0 160 160">
             {total === 0 ? (
               <circle cx={CX} cy={CY} r={OR} fill="#e2e2e2" stroke="#1a1c1c" strokeWidth={2} />
             ) : (
@@ -159,18 +159,18 @@ export function StatusDonut({ data, className }: { data: any; className?: string
             )}
           </svg>
         </div>
-        <div className="w-full sm:w-auto">
+        <div className="w-full min-w-0 border-t-2 border-on-surface xl:border-t-0">
           {segments.map((s) => (
             <div
               key={s.key}
-              className="flex cursor-pointer items-center gap-3 border-b border-outline-variant px-1 py-2 transition-colors last:border-0 hover:bg-surface-container-low"
+              className="flex cursor-pointer items-center gap-2.5 border-b border-outline-variant px-1 py-2 transition-colors last:border-0 hover:bg-surface-container-low"
               onMouseEnter={() => setHovered(s.key)}
               onMouseLeave={() => setHovered(null)}
             >
               <span className="h-3 w-3 shrink-0 border border-on-surface" style={{ backgroundColor: s.color }} />
-              <span className="w-24 font-label-sm text-label-sm uppercase text-on-surface">{s.key}</span>
-              <span className="ml-auto w-9 text-right font-mono text-data-mono font-bold text-on-surface">{s.value}</span>
-              <span className="w-10 text-right font-mono text-data-mono text-on-surface-variant">{s.pct}%</span>
+              <span className="min-w-0 flex-1 truncate font-label-sm text-label-sm uppercase text-on-surface">{s.key}</span>
+              <span className="shrink-0 text-right font-mono text-data-mono font-bold text-on-surface">{s.value}</span>
+              <span className="w-11 shrink-0 text-right font-mono text-data-mono text-on-surface-variant">{s.pct}%</span>
             </div>
           ))}
         </div>

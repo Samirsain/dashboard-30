@@ -51,16 +51,16 @@ function Item({
 
 function Brand({ subtitle }: { subtitle: string }) {
   return (
-    <div className="border-b-2 border-on-surface p-6">
-      <div className="flex items-center gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center border-2 border-on-surface bg-on-surface font-mono text-base font-bold text-on-primary">
+    <div className="border-b-2 border-on-surface p-5">
+      <div className="flex items-center gap-2.5">
+        <span className="grid h-9 w-9 shrink-0 place-items-center border-2 border-on-surface bg-on-surface font-mono text-sm font-bold text-on-primary">
           30
         </span>
-        <div className="leading-tight">
-          <h1 className="font-headline-md text-headline-md font-bold uppercase tracking-tighter text-on-surface" title={BRAND.name}>
+        <div className="min-w-0 leading-tight">
+          <h1 className="truncate text-[15px] font-bold uppercase leading-none tracking-tight text-on-surface" title={BRAND.name}>
             {BRAND.name}
           </h1>
-          <p className="font-label-sm text-label-sm uppercase text-on-surface-variant">{subtitle}</p>
+          <p className="mt-1 truncate font-label-sm text-label-sm uppercase text-on-surface-variant">{subtitle}</p>
         </div>
       </div>
     </div>

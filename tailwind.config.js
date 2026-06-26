@@ -42,11 +42,12 @@ export default {
         "status-completed": "#1a1c1c",
         "status-pending": "#43474f",
         "status-late": "#ba1a1a",
-        "status-progress": "#002b5c",
-        "primary-container": "#002b5c",
-        "on-primary-container": "#7594cb",
-        "primary-fixed": "#d6e3ff",
-        "primary-fixed-variant": "#002b5c",
+        "status-progress": "#4F5A6B",
+        "primary-container": "#4F5A6B", // accent (slate)
+        "on-primary-container": "#C9CBCF",
+        "accent-neutral": "#C9CBCF", // light grey (primary tint)
+        "primary-fixed": "#C9CBCF",
+        "primary-fixed-variant": "#4F5A6B",
         "on-primary": "#ffffff",
         error: "#ba1a1a",
         "on-error": "#ffffff",

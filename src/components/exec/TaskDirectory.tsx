@@ -5,7 +5,7 @@ import { fmtDate } from "@/lib/format";
 import { unifyTasks } from "@/lib/analytics";
 
 const STATUS_STYLE: Record<string, string> = {
-  Completed: "bg-on-surface text-on-primary border-2 border-on-surface",
+  Completed: "bg-primary-container text-on-primary border-2 border-primary-container",
   Late: "bg-error text-on-error border-2 border-error",
   Pending: "bg-transparent text-on-surface border-2 border-on-surface",
 };
@@ -109,38 +109,36 @@ export function TaskDirectory({ data, source, title = "Active Task Directory" }:
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px] border-collapse text-left">
+        <table className="w-full min-w-[560px] border-collapse text-left">
           <thead>
             <tr className="border-b-2 border-on-surface bg-surface-container">
-              {["Task ID", "Description", "Doer", "Department", source === "Task List" ? "Priority" : "Frequency", "Due", "Actual", "Status"].map((h, i) => (
-                <th
-                  key={h}
-                  className={cn(
-                    "border-r border-outline-variant px-4 py-3 font-label-sm text-label-sm uppercase text-on-surface last:border-r-0",
-                    (h === "Priority" || h === "Status") && "text-center",
-                    i === 0 && "w-28"
-                  )}
-                >
-                  {h}
-                </th>
-              ))}
+              <th className="w-16 border-r border-outline-variant px-3 py-3 font-label-sm text-label-sm uppercase text-on-surface">ID</th>
+              <th className="border-r border-outline-variant px-3 py-3 font-label-sm text-label-sm uppercase text-on-surface">Description</th>
+              <th className="border-r border-outline-variant px-3 py-3 font-label-sm text-label-sm uppercase text-on-surface">Doer</th>
+              <th className="hidden border-r border-outline-variant px-3 py-3 font-label-sm text-label-sm uppercase text-on-surface md:table-cell">Dept</th>
+              <th className="hidden border-r border-outline-variant px-3 py-3 text-center font-label-sm text-label-sm uppercase text-on-surface lg:table-cell">
+                {source === "Task List" ? "Priority" : "Freq"}
+              </th>
+              <th className="hidden border-r border-outline-variant px-3 py-3 font-label-sm text-label-sm uppercase text-on-surface sm:table-cell">Due</th>
+              <th className="hidden border-r border-outline-variant px-3 py-3 font-label-sm text-label-sm uppercase text-on-surface lg:table-cell">Actual</th>
+              <th className="px-3 py-3 text-center font-label-sm text-label-sm uppercase text-on-surface">Status</th>
             </tr>
           </thead>
           <tbody>
             {pageRows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center font-mono text-data-mono uppercase text-on-surface-variant">
+                <td colSpan={8} className="px-3 py-12 text-center font-mono text-data-mono uppercase text-on-surface-variant">
                   No matching records.
                 </td>
               </tr>
             ) : (
               pageRows.map((t) => (
                 <tr key={t.id} className="table-row-hover group border-b border-outline-variant">
-                  <td className="border-r border-outline-variant px-4 py-3 font-mono text-data-mono text-on-surface-variant">{t.id}</td>
-                  <td className="max-w-[260px] truncate border-r border-outline-variant px-4 py-3 text-body-md font-medium text-on-surface group-hover:underline" title={t.task}>
+                  <td className="whitespace-nowrap border-r border-outline-variant px-3 py-3 font-mono text-data-mono text-on-surface-variant">{t.id}</td>
+                  <td className="max-w-[180px] truncate border-r border-outline-variant px-3 py-3 text-body-md font-medium text-on-surface group-hover:underline sm:max-w-[300px]" title={t.task}>
                     {t.task}
                   </td>
-                  <td className="border-r border-outline-variant px-4 py-3">
+                  <td className="border-r border-outline-variant px-3 py-3">
                     <div className="flex items-center gap-2">
                       <span className="grid h-7 w-7 shrink-0 place-items-center border border-on-surface bg-surface-container font-mono text-[10px] font-bold text-on-surface">
                         {initials(t.doer)}
@@ -148,8 +146,8 @@ export function TaskDirectory({ data, source, title = "Active Task Directory" }:
                       <span className="whitespace-nowrap font-label-sm text-label-sm uppercase text-on-surface">{t.doer}</span>
                     </div>
                   </td>
-                  <td className="border-r border-outline-variant px-4 py-3 font-mono text-data-mono uppercase text-on-surface-variant">{t.department || "—"}</td>
-                  <td className="border-r border-outline-variant px-4 py-3 text-center font-mono text-data-mono uppercase text-on-surface-variant">
+                  <td className="hidden border-r border-outline-variant px-3 py-3 font-mono text-data-mono uppercase text-on-surface-variant md:table-cell">{t.department || "—"}</td>
+                  <td className="hidden border-r border-outline-variant px-3 py-3 text-center font-mono text-data-mono uppercase text-on-surface-variant lg:table-cell">
                     {source === "Task List" ? (
                       t.priority ? (
                         <span className={cn("inline-block px-2 py-0.5 font-label-sm text-label-sm uppercase", PRIORITY_STYLE[t.priority] || "border border-outline text-on-surface-variant")}>
@@ -162,10 +160,10 @@ export function TaskDirectory({ data, source, title = "Active Task Directory" }:
                       t.frequency || "—"
                     )}
                   </td>
-                  <td className="border-r border-outline-variant px-4 py-3 font-mono text-data-mono text-on-surface-variant">{fmtDate(t.due) || "—"}</td>
-                  <td className="border-r border-outline-variant px-4 py-3 font-mono text-data-mono text-on-surface-variant">{fmtDate(t.actual) || "—"}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={cn("inline-block px-3 py-1 font-label-sm text-label-sm uppercase", STATUS_STYLE[t.status])}>{t.status}</span>
+                  <td className="hidden whitespace-nowrap border-r border-outline-variant px-3 py-3 font-mono text-data-mono text-on-surface-variant sm:table-cell">{fmtDate(t.due) || "—"}</td>
+                  <td className="hidden whitespace-nowrap border-r border-outline-variant px-3 py-3 font-mono text-data-mono text-on-surface-variant lg:table-cell">{fmtDate(t.actual) || "—"}</td>
+                  <td className="px-3 py-3 text-center">
+                    <span className={cn("inline-block whitespace-nowrap px-3 py-1 font-label-sm text-label-sm uppercase", STATUS_STYLE[t.status])}>{t.status}</span>
                   </td>
                 </tr>
               ))

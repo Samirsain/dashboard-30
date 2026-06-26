@@ -78,9 +78,9 @@ export function statusBreakdown(data) {
   return {
     total: tasks.length,
     segments: [
-      { key: "Completed", value: completed, pct: pctOf(completed), color: "#1a1c1c" },
+      { key: "Completed", value: completed, pct: pctOf(completed), color: "#4f5a6b" },
       { key: "Late", value: late, pct: pctOf(late), color: "#ba1a1a" },
-      { key: "Pending", value: pending, pct: pctOf(pending), color: "#c4c6d0" },
+      { key: "Pending", value: pending, pct: pctOf(pending), color: "#c9cbcf" },
     ],
   };
 }
