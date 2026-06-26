@@ -17,23 +17,16 @@ export function Topbar({
   onLogout?: () => void;
 }) {
   return (
-    <header className="sticky top-0 z-10 flex h-16 w-full items-center justify-between gap-4 border-b border-outline-variant bg-glass-bg px-4 backdrop-blur-xl sm:px-6">
-      <div className="min-w-0">
-        <h2 className="hidden truncate text-headline-sm font-bold text-on-surface sm:block">ThirtyMilestones MIS</h2>
-        <div className="flex items-center gap-1 text-label-sm text-on-surface-variant">
-          <span>Overview</span>
-          <Icon name="chevron_right" className="text-[14px]" />
-          <span className="font-medium text-primary">{sectionLabel}</span>
-        </div>
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between gap-4 border-b-2 border-on-surface bg-surface px-4 sm:px-6">
+      <div className="flex min-w-0 items-center gap-2 font-label-sm text-label-sm uppercase">
+        <span className="text-on-surface-variant">Overview</span>
+        <span className="text-outline">/</span>
+        <span className="truncate border-b-2 border-on-surface pb-0.5 font-bold text-on-surface">{sectionLabel}</span>
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
-        <div className="hidden items-center gap-2 rounded-lg border border-border bg-surface-container-low px-3 py-1.5 text-body-sm text-on-surface-variant lg:flex">
-          <Icon name="calendar_month" className="text-[18px]" />
-          <span className="max-w-[10rem] truncate">{weeks.find((w) => w.key === weekKey)?.label || "All weeks"}</span>
-        </div>
         <Select value={weekKey} onValueChange={onWeekChange}>
-          <SelectTrigger className="h-9 w-[11rem] border-border bg-surface-container-lowest text-body-sm">
+          <SelectTrigger className="h-9 w-[11rem] rounded-none border-2 border-on-surface bg-surface-container-lowest font-mono text-data-mono uppercase">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -46,8 +39,10 @@ export function Topbar({
         </Select>
         <span
           className={
-            "hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-label-sm font-medium sm:inline-flex " +
-            (source === "sample" ? "bg-amber-100 text-warning" : "bg-green-100 text-success")
+            "hidden items-center gap-1.5 border-2 px-2.5 py-1.5 font-label-sm text-label-sm font-semibold uppercase sm:inline-flex " +
+            (source === "sample"
+              ? "border-on-surface bg-surface-container text-on-surface-variant"
+              : "border-on-surface bg-on-surface text-on-primary")
           }
         >
           <span className="h-1.5 w-1.5 rounded-full bg-current" />
@@ -56,7 +51,7 @@ export function Topbar({
         {onLogout && (
           <button
             onClick={onLogout}
-            className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-surface-container-lowest text-on-surface-variant transition-colors hover:bg-surface-container-high md:hidden"
+            className="grid h-9 w-9 place-items-center border-2 border-on-surface bg-surface-container-lowest text-on-surface transition-colors hover:bg-on-surface hover:text-on-primary md:hidden"
             title="Logout"
           >
             <Icon name="logout" className="text-[18px]" />

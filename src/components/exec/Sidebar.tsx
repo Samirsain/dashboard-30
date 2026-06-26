@@ -6,9 +6,9 @@ export type Section = { id: string; label: string; icon: string };
 
 export const SECTIONS: Section[] = [
   { id: "dashboard", label: "Dashboard", icon: "dashboard" },
-  { id: "checklist", label: "Checklist", icon: "fact_check" },
-  { id: "tasklist", label: "Task List", icon: "account_tree" },
-  { id: "workflow", label: "Workflow", icon: "assignment" },
+  { id: "checklist", label: "Checklist", icon: "checklist" },
+  { id: "tasklist", label: "Task List", icon: "assignment" },
+  { id: "workflow", label: "Workflow", icon: "account_tree" },
 ];
 
 function Item({
@@ -25,8 +25,10 @@ function Item({
   href?: string;
 }) {
   const cls = cn(
-    "relative flex items-center gap-3 rounded-lg px-4 py-2.5 text-body-md transition-colors",
-    active ? "nav-item-active" : "text-on-surface-variant hover:bg-surface-container-high"
+    "relative flex items-center gap-3 border-l-4 px-4 py-3 font-label-sm text-label-sm uppercase transition-colors",
+    active
+      ? "nav-item-active border-transparent font-bold"
+      : "border-transparent text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
   );
   const inner = (
     <>
@@ -47,40 +49,40 @@ function Item({
   );
 }
 
-export function Sidebar({ active, onSelect }: { active: string; onSelect: (id: string) => void }) {
+function Brand({ subtitle }: { subtitle: string }) {
   return (
-    <nav className="sticky top-0 z-20 hidden h-screen w-64 shrink-0 flex-col border-r border-outline-variant bg-glass-bg px-4 py-7 backdrop-blur-xl md:flex">
-      <div className="mb-7 px-3">
-        <div className="flex items-center gap-2.5">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary font-display text-base font-bold text-white shadow-glow">
-            30
-          </span>
-          <div className="leading-tight">
-            <h1 className="truncate text-headline-sm font-bold text-primary" title={BRAND.name}>
-              {BRAND.name}
-            </h1>
-            <p className="text-label-sm text-on-surface-variant">Executive Portal</p>
-          </div>
+    <div className="border-b-2 border-on-surface p-6">
+      <div className="flex items-center gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center border-2 border-on-surface bg-on-surface font-mono text-base font-bold text-on-primary">
+          30
+        </span>
+        <div className="leading-tight">
+          <h1 className="font-headline-md text-headline-md font-bold uppercase tracking-tighter text-on-surface" title={BRAND.name}>
+            {BRAND.name}
+          </h1>
+          <p className="font-label-sm text-label-sm uppercase text-on-surface-variant">{subtitle}</p>
         </div>
       </div>
+    </div>
+  );
+}
 
-      <div className="flex-1 space-y-1 overflow-y-auto pr-1">
+export function Sidebar({ active, onSelect }: { active: string; onSelect: (id: string) => void }) {
+  return (
+    <nav className="sticky top-0 z-20 hidden h-screen w-64 shrink-0 flex-col border-r-2 border-on-surface bg-surface md:flex">
+      <Brand subtitle="Enterprise RE MIS" />
+      <div className="flex-1 overflow-y-auto py-3">
         {SECTIONS.map((s) => (
           <Item key={s.id} icon={s.icon} label={s.label} active={active === s.id} onClick={() => onSelect(s.id)} />
         ))}
-        <div className="my-3 border-t border-outline-variant" />
-        <Item icon="admin_panel_settings" label="Admin · Scoring" href="/admin" />
       </div>
-
-      <div className="mt-3 border-t border-outline-variant pt-3">
-        <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-on-surface-variant">
-          <span className="grid h-8 w-8 place-items-center rounded-full bg-primary-fixed text-xs font-bold text-primary-fixed-variant">
+      <div className="border-t-2 border-on-surface py-2">
+        <Item icon="admin_panel_settings" label="Admin · Scoring" href="/admin" />
+        <div className="flex items-center gap-3 px-4 py-3 text-on-surface-variant">
+          <span className="grid h-7 w-7 shrink-0 place-items-center border border-on-surface bg-surface-container font-mono text-[10px] font-bold text-on-surface">
             TM
           </span>
-          <div className="leading-tight">
-            <p className="text-body-sm font-medium text-on-surface">ThirtyMilestones</p>
-            <p className="text-label-sm text-on-surface-variant">Read-only</p>
-          </div>
+          <span className="font-label-sm text-label-sm uppercase">Read-only Access</span>
         </div>
       </div>
     </nav>
@@ -90,25 +92,16 @@ export function Sidebar({ active, onSelect }: { active: string; onSelect: (id: s
 // ---- Admin shell sidebar (scoring only) ------------------------------------
 export function AdminSidebar({ onLogout }: { onLogout: () => void }) {
   return (
-    <nav className="sticky top-0 z-20 hidden h-screen w-64 shrink-0 flex-col border-r border-outline-variant bg-glass-bg px-4 py-7 backdrop-blur-xl md:flex">
-      <div className="mb-7 px-3">
-        <div className="flex items-center gap-2.5">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary font-display text-base font-bold text-white shadow-glow">30</span>
-          <div className="leading-tight">
-            <h1 className="truncate text-headline-sm font-bold text-primary" title={BRAND.name}>{BRAND.name}</h1>
-            <p className="text-label-sm text-on-surface-variant">Admin Portal</p>
-          </div>
-        </div>
-      </div>
-      <div className="flex-1 space-y-1">
+    <nav className="sticky top-0 z-20 hidden h-screen w-64 shrink-0 flex-col border-r-2 border-on-surface bg-surface md:flex">
+      <Brand subtitle="Admin Portal" />
+      <div className="flex-1 py-3">
         <Item icon="leaderboard" label="Scoring" active />
-        <div className="my-3 border-t border-outline-variant" />
         <Item icon="dashboard" label="Public Dashboard" href="/" />
       </div>
-      <div className="mt-3 border-t border-outline-variant pt-3">
+      <div className="border-t-2 border-on-surface py-2">
         <button
           onClick={onLogout}
-          className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-body-md text-danger transition-colors hover:bg-red-50"
+          className="flex w-full items-center gap-3 border-l-4 border-transparent px-4 py-3 font-label-sm text-label-sm uppercase text-error transition-colors hover:bg-error hover:text-on-error"
         >
           <Icon name="logout" className="text-[20px]" />
           Logout
@@ -121,14 +114,14 @@ export function AdminSidebar({ onLogout }: { onLogout: () => void }) {
 // Mobile section tabs (sidebar is hidden on small screens).
 export function MobileSectionTabs({ active, onSelect }: { active: string; onSelect: (id: string) => void }) {
   return (
-    <div className="scroll-slim flex gap-2 overflow-x-auto border-b border-outline-variant bg-glass-bg px-4 py-2 backdrop-blur-xl md:hidden">
+    <div className="scroll-slim flex gap-0 overflow-x-auto border-b-2 border-on-surface bg-surface md:hidden">
       {SECTIONS.map((s) => (
         <button
           key={s.id}
           onClick={() => onSelect(s.id)}
           className={cn(
-            "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-body-sm transition-colors",
-            active === s.id ? "bg-primary text-white" : "bg-surface-container-low text-on-surface-variant"
+            "flex items-center gap-1.5 whitespace-nowrap border-r border-on-surface px-3 py-2.5 font-label-sm text-label-sm uppercase transition-colors",
+            active === s.id ? "bg-on-surface text-on-primary" : "text-on-surface-variant hover:bg-surface-container"
           )}
         >
           <Icon name={s.icon} className="text-[18px]" />
@@ -137,7 +130,7 @@ export function MobileSectionTabs({ active, onSelect }: { active: string; onSele
       ))}
       <a
         href="/admin"
-        className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-surface-container-low px-3 py-1.5 text-body-sm text-on-surface-variant"
+        className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2.5 font-label-sm text-label-sm uppercase text-on-surface-variant"
       >
         <Icon name="admin_panel_settings" className="text-[18px]" />
         Admin

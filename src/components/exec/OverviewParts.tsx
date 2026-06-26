@@ -17,59 +17,56 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section className={cn("glass-card p-5 sm:p-6", className)}>
+    <section className={cn("glass-card flex flex-col", className)}>
       {(title || right) && (
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <h3 className="flex items-center gap-2 text-headline-sm font-semibold text-on-surface">
-            {icon && <Icon name={icon} className="text-[20px] text-primary" />}
+        <div className="flex items-center justify-between gap-3 border-b-2 border-on-surface bg-surface-container-low px-5 py-3">
+          <h3 className="flex items-center gap-2 font-headline-md text-headline-md uppercase tracking-tight text-on-surface">
+            {icon && <Icon name={icon} className="text-[20px]" />}
             {title}
           </h3>
           {right}
         </div>
       )}
-      {children}
+      <div className="flex-1 p-5">{children}</div>
     </section>
   );
 }
 
-// ---- KPI cards -------------------------------------------------------------
+// ---- Hero metric — full-width black banner ---------------------------------
+export function HeroMetric({ data }: { data: any }) {
+  const k = kpis(data);
+  return (
+    <div className="relative overflow-hidden border-2 border-on-surface bg-on-surface p-6 sm:p-8">
+      <span className="font-label-sm text-label-sm uppercase tracking-[0.2em] text-surface-variant">System Status</span>
+      <h2 className="mt-3 font-mono text-[clamp(34px,6vw,52px)] font-extrabold leading-none tracking-tighter text-surface-container-lowest">
+        {k.pct}% <span className="font-sans font-bold">Overall Completion</span>
+      </h2>
+      <div className="mt-5 h-2 w-full max-w-xl border border-surface-variant/40">
+        <div className="h-full bg-surface-container-lowest" style={{ width: `${k.pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+// ---- KPI cards — bordered Swiss tiles ---------------------------------------
 export function KpiCards({ data }: { data: any }) {
   const k = kpis(data);
   const cards = [
-    { label: "Total Tasks", value: k.total, icon: "format_list_bulleted", tint: "bg-primary-fixed text-primary" },
-    { label: "Completed", value: k.done, icon: "check_circle", tint: "bg-green-100 text-success" },
-    { label: "Late", value: k.late, icon: "schedule", tint: "bg-red-100 text-danger" },
-    { label: "Pending", value: k.pending, icon: "pending_actions", tint: "bg-amber-100 text-warning" },
+    { label: "Total Tasks", value: k.total, tone: "text-on-surface" },
+    { label: "Completed", value: k.done, tone: "text-on-surface" },
+    { label: "Late", value: k.late, tone: "text-error" },
+    { label: "Pending", value: k.pending, tone: "text-on-surface-variant" },
   ];
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       {cards.map((c) => (
-        <div key={c.label} className="glass-card glass-card-hover p-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="mb-1 text-label-md uppercase tracking-wider text-on-surface-variant">{c.label}</p>
-              <h3 className="text-headline-lg font-bold tabular-nums text-on-surface">{c.value.toLocaleString()}</h3>
-            </div>
-            <span className={cn("grid h-10 w-10 place-items-center rounded-full", c.tint)}>
-              <Icon name={c.icon} className="text-[20px]" />
-            </span>
-          </div>
+        <div key={c.label} className="glass-card glass-card-hover flex flex-col justify-between p-4">
+          <span className="mb-4 border-b-2 border-on-surface pb-2 font-label-sm text-label-sm uppercase text-on-surface-variant">
+            {c.label}
+          </span>
+          <div className={cn("font-mono text-4xl font-bold tabular-nums", c.tone)}>{String(c.value).padStart(2, "0")}</div>
         </div>
       ))}
-      <div className="glass-card glass-card-hover col-span-2 bg-gradient-to-br from-primary to-primary-fixed-variant p-5 text-white lg:col-span-1">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="mb-1 text-label-md uppercase tracking-wider text-primary-fixed">Completion %</p>
-            <h3 className="text-headline-lg font-bold tabular-nums">{k.pct}%</h3>
-          </div>
-          <span className="grid h-10 w-10 place-items-center rounded-full bg-white/20 backdrop-blur-sm">
-            <Icon name="speed" className="text-[20px]" />
-          </span>
-        </div>
-        <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-black/20">
-          <div className="h-full rounded-full bg-white transition-all" style={{ width: `${k.pct}%` }} />
-        </div>
-      </div>
     </div>
   );
 }
@@ -81,7 +78,7 @@ function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
 }
 
 function arcPath(cx: number, cy: number, outerR: number, innerR: number, startDeg: number, endDeg: number) {
-  const gap = 0.8; // degrees gap between segments
+  const gap = 1.2; // degrees gap between segments
   const s = startDeg + (startDeg === 0 ? 0 : gap / 2);
   const e = endDeg - gap / 2;
   const large = e - s > 180 ? 1 : 0;
@@ -98,15 +95,13 @@ function arcPath(cx: number, cy: number, outerR: number, innerR: number, startDe
   ].join(" ");
 }
 
-// ---- Status donut (the pie chart) ------------------------------------------
+// ---- Status donut (monochrome Swiss) ---------------------------------------
 export function StatusDonut({ data, className }: { data: any; className?: string }) {
   const { segments, total } = statusBreakdown(data);
   const [hovered, setHovered] = React.useState<string | null>(null);
-
   const active = hovered ? segments.find((s) => s.key === hovered) : null;
 
-  // Build SVG arcs
-  const CX = 80, CY = 80, OR = 72, IR = 48;
+  const CX = 80, CY = 80, OR = 74, IR = 50;
   let acc = 0;
   const arcs = segments
     .filter((s) => s.value > 0)
@@ -114,69 +109,68 @@ export function StatusDonut({ data, className }: { data: any; className?: string
       const startDeg = (acc / (total || 1)) * 360;
       acc += s.value;
       const endDeg = (acc / (total || 1)) * 360;
-      return { ...s, startDeg, endDeg, path: arcPath(CX, CY, OR, IR, startDeg, endDeg) };
+      return { ...s, path: arcPath(CX, CY, OR, IR, startDeg, endDeg) };
     });
 
   return (
     <Panel title="Task Status" icon="donut_large" className={className}>
       <div className="flex flex-col items-center gap-7 sm:flex-row sm:justify-around">
         <div className="relative shrink-0">
-          <svg width="160" height="160" viewBox="0 0 160 160" style={{ overflow: "visible" }}>
+          <svg width="160" height="160" viewBox="0 0 160 160">
             {total === 0 ? (
-              <circle cx={CX} cy={CY} r={OR} fill="#e0e3e5" />
+              <circle cx={CX} cy={CY} r={OR} fill="#e2e2e2" stroke="#1a1c1c" strokeWidth={2} />
             ) : (
               arcs.map((arc) => (
                 <path
                   key={arc.key}
                   d={arc.path}
                   fill={arc.color}
-                  opacity={hovered && hovered !== arc.key ? 0.35 : 1}
-                  style={{ cursor: "pointer", transition: "opacity 0.15s" }}
+                  stroke="#1a1c1c"
+                  strokeWidth={1.5}
+                  opacity={hovered && hovered !== arc.key ? 0.3 : 1}
+                  style={{ cursor: "pointer", transition: "opacity 0.12s" }}
                   onMouseEnter={() => setHovered(arc.key)}
                   onMouseLeave={() => setHovered(null)}
                 />
               ))
             )}
-            {/* center hole */}
-            <circle cx={CX} cy={CY} r={IR} className="fill-surface-container-lowest" style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.1))" }} />
-            {/* center label */}
+            <circle cx={CX} cy={CY} r={IR} fill="#ffffff" stroke="#1a1c1c" strokeWidth={2} />
             {active ? (
               <>
-                <text x={CX} y={CY - 10} textAnchor="middle" className="fill-on-surface" style={{ fontSize: 22, fontWeight: 700, fontFamily: "inherit" }}>
+                <text x={CX} y={CY - 8} textAnchor="middle" style={{ fontSize: 26, fontWeight: 800, fontFamily: "JetBrains Mono", fill: "#1a1c1c" }}>
                   {active.pct}%
                 </text>
-                <text x={CX} y={CY + 9} textAnchor="middle" className="fill-on-surface-variant" style={{ fontSize: 10, fontFamily: "inherit" }}>
-                  {active.value} tasks
+                <text x={CX} y={CY + 10} textAnchor="middle" style={{ fontSize: 11, fontFamily: "JetBrains Mono", fill: "#43474f" }}>
+                  {active.value} TASKS
                 </text>
-                <text x={CX} y={CY + 22} textAnchor="middle" style={{ fontSize: 9, fill: active.color, fontFamily: "inherit", fontWeight: 600 }}>
-                  {active.key}
+                <text x={CX} y={CY + 24} textAnchor="middle" style={{ fontSize: 9, letterSpacing: "0.08em", fill: "#1a1c1c", fontWeight: 700 }}>
+                  {active.key.toUpperCase()}
                 </text>
               </>
             ) : (
               <>
-                <text x={CX} y={CY - 4} textAnchor="middle" className="fill-on-surface" style={{ fontSize: 26, fontWeight: 700, fontFamily: "inherit" }}>
+                <text x={CX} y={CY - 2} textAnchor="middle" style={{ fontSize: 30, fontWeight: 800, fontFamily: "JetBrains Mono", fill: "#1a1c1c" }}>
                   {total}
                 </text>
-                <text x={CX} y={CY + 14} textAnchor="middle" className="fill-on-surface-variant" style={{ fontSize: 11, fontFamily: "inherit" }}>
-                  Tasks
+                <text x={CX} y={CY + 16} textAnchor="middle" style={{ fontSize: 10, letterSpacing: "0.1em", fontFamily: "JetBrains Mono", fill: "#43474f" }}>
+                  TASKS
                 </text>
               </>
             )}
           </svg>
         </div>
-        <div className="w-full space-y-2.5 sm:w-auto">
+        <div className="w-full sm:w-auto">
           {segments.map((s) => (
             <div
               key={s.key}
-              className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1 transition-colors"
-              style={{ background: hovered === s.key ? `${s.color}18` : "transparent" }}
+              className="flex cursor-pointer items-center gap-3 border-b border-outline-variant px-1 py-2 transition-colors last:border-0 hover:bg-surface-container-low"
               onMouseEnter={() => setHovered(s.key)}
               onMouseLeave={() => setHovered(null)}
             >
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
-              <span className="w-28 text-body-sm text-on-surface">{s.key}</span>
-              <span className="ml-auto w-9 text-right text-label-md font-bold tabular-nums text-on-surface">{s.value}</span>
-              <span className="w-10 text-right text-label-sm text-on-surface-variant">{s.pct}%</span>
+              <span className="h-3 w-3 shrink-0 border border-on-surface" style={{ backgroundColor: s.color }} />
+              <span className="w-24 font-label-sm text-label-sm uppercase text-on-surface">{s.key}</span>
+              <span className="ml-auto w-9 text-right font-mono text-data-mono font-bold text-on-surface">{s.value}</span>
+              <span className="w-10 text-right font-mono text-data-mono text-on-surface-variant">{s.pct}%</span>
             </div>
           ))}
         </div>
@@ -185,31 +179,29 @@ export function StatusDonut({ data, className }: { data: any; className?: string
   );
 }
 
-// ---- Department performance (horizontal completion bars) -------------------
+// ---- Department performance (Swiss bars) -----------------------------------
 export function DeptPerformance({ data, className }: { data: any; className?: string }) {
   const rows = departmentPerformance(data);
   return (
-    <Panel title="Department Performance" icon="bar_chart" className={className}>
+    <Panel title="Department Performance" icon="bar_chart" right={<span className="font-label-sm text-label-sm uppercase text-on-surface-variant">By Completion %</span>} className={className}>
       {rows.length === 0 ? (
-        <div className="py-8 text-center text-body-sm text-on-surface-variant">Is week ke liye data nahi hai.</div>
+        <div className="py-8 text-center font-mono text-data-mono uppercase text-on-surface-variant">No data for this week.</div>
       ) : (
-        <div className="space-y-3.5">
-          {rows.map((r) => {
-            const tone = r.pct >= 80 ? "bg-success" : r.pct >= 50 ? "bg-primary" : "bg-warning";
-            return (
-              <div key={r.department}>
-                <div className="mb-1 flex items-center justify-between text-body-sm">
-                  <span className="font-medium text-on-surface">{r.department}</span>
-                  <span className="text-on-surface-variant">
-                    <span className="font-semibold text-on-surface">{r.done}</span>/{r.total} · {r.pct}%
-                  </span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-surface-container-high">
-                  <div className={cn("h-full rounded-full transition-all", tone)} style={{ width: `${r.pct}%` }} />
-                </div>
+        <div className="flex flex-col gap-4">
+          {rows.map((r) => (
+            <div key={r.department} className="flex items-center gap-4">
+              <span className="w-28 shrink-0 truncate font-mono text-data-mono uppercase text-on-surface" title={r.department}>
+                {r.department}
+              </span>
+              <div className="relative h-4 flex-1 border-2 border-on-surface bg-surface-container">
+                <div className={cn("absolute left-0 top-0 h-full", r.pct < 50 ? "bg-error" : "bg-on-surface")} style={{ width: `${r.pct}%` }} />
               </div>
-            );
-          })}
+              <span className="w-16 shrink-0 text-right font-mono text-data-mono text-on-surface-variant">
+                {r.done}/{r.total}
+              </span>
+              <span className="w-10 shrink-0 text-right font-mono text-data-mono font-bold text-on-surface">{r.pct}%</span>
+            </div>
+          ))}
         </div>
       )}
     </Panel>

@@ -1,8 +1,5 @@
 import * as React from "react";
-import { Lock, User, Loader2, ShieldCheck, Eye, EyeOff } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Lock, User, Loader2, Eye, EyeOff } from "lucide-react";
 import { BRAND } from "@/lib/config";
 import { verifyCredentials, setAuthed } from "@/lib/auth";
 
@@ -23,60 +20,62 @@ export function Login({ onSuccess }: { onSuccess: () => void }) {
       setAuthed();
       onSuccess();
     } else {
-      setError("Galat username ya password. Dobara try karein.");
+      setError("Invalid username or password. Try again.");
       setBusy(false);
     }
   }
 
   return (
-    <div className="flex min-h-[55vh] items-center justify-center px-4 py-8">
-      <div className="w-full max-w-sm animate-fade-in">
-        <div className="mb-6 flex flex-col items-center text-center">
-          <div className="grid h-14 w-14 place-items-center rounded-2xl border border-primary/30 bg-primary/10 text-primary shadow-glow">
-            <ShieldCheck className="h-7 w-7" />
+    <div className="flex min-h-screen items-center justify-center bg-surface px-4 py-8">
+      <div className="w-full max-w-sm">
+        <div className="mb-6 flex items-center gap-3">
+          <span className="grid h-12 w-12 shrink-0 place-items-center border-2 border-on-surface bg-on-surface font-mono text-lg font-bold text-on-primary">
+            30
+          </span>
+          <div className="leading-tight">
+            <h1 className="font-headline-md text-headline-md font-bold uppercase tracking-tighter text-on-surface">{BRAND.name}</h1>
+            <p className="font-label-sm text-label-sm uppercase text-on-surface-variant">Enterprise RE MIS</p>
           </div>
-          <h1 className="mt-3 font-display text-2xl font-bold tracking-tight">Admin — Scoring</h1>
-          <p className="text-sm text-muted-foreground">Scoring sirf admin ke liye. Login karein.</p>
         </div>
 
-        <Card className="p-6">
-          <div className="mb-4 flex items-center gap-2 text-sm font-medium text-foreground">
-            <ShieldCheck className="h-4 w-4 text-primary" />
-            Admin Login
+        <div className="glass-card">
+          <div className="flex items-center gap-2 border-b-2 border-on-surface bg-surface-container-low px-5 py-3">
+            <Lock className="h-4 w-4 text-on-surface" />
+            <span className="font-label-sm text-label-sm uppercase text-on-surface">Admin Access — Scoring</span>
           </div>
 
-          <form onSubmit={submit} className="space-y-3">
+          <form onSubmit={submit} className="space-y-4 p-5">
             <label className="flex flex-col gap-1.5">
-              <span className="text-[0.7rem] font-medium uppercase tracking-wide text-muted-foreground">Username</span>
+              <span className="font-label-sm text-label-sm uppercase text-on-surface-variant">Username</span>
               <div className="relative">
-                <User className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
+                <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
+                <input
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="admin"
                   autoComplete="username"
                   autoFocus
-                  className="pl-8"
+                  className="w-full border-2 border-on-surface bg-surface-container-lowest py-2.5 pl-9 pr-3 font-mono text-data-mono uppercase outline-none focus:bg-surface-container-low"
                 />
               </div>
             </label>
 
             <label className="flex flex-col gap-1.5">
-              <span className="text-[0.7rem] font-medium uppercase tracking-wide text-muted-foreground">Password</span>
+              <span className="font-label-sm text-label-sm uppercase text-on-surface-variant">Password</span>
               <div className="relative">
-                <Lock className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
+                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
+                <input
                   type={show ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   autoComplete="current-password"
-                  className="px-8"
+                  className="w-full border-2 border-on-surface bg-surface-container-lowest py-2.5 pl-9 pr-9 font-mono text-data-mono outline-none focus:bg-surface-container-low"
                 />
                 <button
                   type="button"
                   onClick={() => setShow((s) => !s)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
                   aria-label={show ? "Hide password" : "Show password"}
                 >
                   {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -84,17 +83,23 @@ export function Login({ onSuccess }: { onSuccess: () => void }) {
               </div>
             </label>
 
-            {error && <div className="rounded-lg border border-bad/30 bg-bad/10 px-3 py-2 text-sm text-bad">{error}</div>}
+            {error && (
+              <div className="border-2 border-error bg-error/5 px-3 py-2 font-label-sm text-label-sm uppercase text-error">{error}</div>
+            )}
 
-            <Button type="submit" disabled={busy} className="w-full">
+            <button
+              type="submit"
+              disabled={busy}
+              className="flex w-full items-center justify-center gap-2 border-2 border-on-surface bg-on-surface py-3 font-label-sm text-label-sm uppercase text-on-primary transition-colors hover:bg-surface hover:text-on-surface disabled:opacity-50"
+            >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-              {busy ? "Checking…" : "Login"}
-            </Button>
+              {busy ? "Verifying…" : "Sign In"}
+            </button>
           </form>
-        </Card>
+        </div>
 
-        <p className="mt-4 text-center text-xs text-muted-foreground">
-          Sirf authorised staff. Scoring login ke baad hi dikhega.
+        <p className="mt-4 border-l-4 border-on-surface px-3 font-label-sm text-label-sm uppercase text-on-surface-variant">
+          Authorised staff only. Scoring is shown after login.
         </p>
       </div>
     </div>

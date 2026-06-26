@@ -1,7 +1,6 @@
 import * as React from "react";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { loadData, weekOptions, filterByWeek } from "@/lib/data";
-import { Button } from "@/components/ui/button";
 import { Login } from "@/components/Login";
 import { isAuthed, logout } from "@/lib/auth";
 import { Sidebar, AdminSidebar, MobileSectionTabs, SECTIONS } from "@/components/exec/Sidebar";
@@ -38,22 +37,25 @@ function useAllData(reloadToken: number): LoadState {
 function LoadingState() {
   return (
     <div className="glass-card flex flex-col items-center justify-center gap-3 py-20 text-center">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      <div className="font-medium">Loading data…</div>
-      <div className="max-w-sm text-body-sm text-on-surface-variant">Fetching the team's Checklist and Task List status.</div>
+      <Loader2 className="h-8 w-8 animate-spin text-on-surface" />
+      <div className="font-label-sm text-label-sm uppercase text-on-surface">Loading data…</div>
+      <div className="max-w-sm font-mono text-data-mono uppercase text-on-surface-variant">Fetching Checklist and Task List status.</div>
     </div>
   );
 }
 
 function ErrorState({ error, onRetry }: { error: any; onRetry: () => void }) {
   return (
-    <div className="glass-card flex flex-col items-center justify-center gap-3 border-bad/30 py-16 text-center">
-      <AlertTriangle className="h-8 w-8 text-bad" />
-      <div className="text-lg font-semibold text-bad">Couldn't load the dashboard</div>
-      <div className="max-w-md text-body-sm text-on-surface-variant">{error?.message || "Unknown error."}</div>
-      <Button onClick={onRetry} className="mt-1">
+    <div className="glass-card flex flex-col items-center justify-center gap-3 border-error py-16 text-center">
+      <AlertTriangle className="h-8 w-8 text-error" />
+      <div className="font-headline-md text-headline-md uppercase text-error">Couldn't load the dashboard</div>
+      <div className="max-w-md font-mono text-data-mono text-on-surface-variant">{error?.message || "Unknown error."}</div>
+      <button
+        onClick={onRetry}
+        className="mt-1 inline-flex items-center gap-2 border-2 border-on-surface bg-on-surface px-4 py-2 font-label-sm text-label-sm uppercase text-on-primary transition-colors hover:bg-surface hover:text-on-surface"
+      >
         <RefreshCw className="h-4 w-4" /> Retry
-      </Button>
+      </button>
     </div>
   );
 }
@@ -61,11 +63,11 @@ function ErrorState({ error, onRetry }: { error: any; onRetry: () => void }) {
 function ComingSoon({ title, note }: { title: string; note: string }) {
   return (
     <div className="glass-card flex flex-col items-center justify-center gap-3 py-16 text-center">
-      <span className="grid h-12 w-12 place-items-center rounded-xl bg-primary-fixed text-primary">
-        <Icon name="assignment" className="text-[24px]" />
+      <span className="grid h-12 w-12 place-items-center border-2 border-on-surface bg-surface-container text-on-surface">
+        <Icon name="account_tree" className="text-[24px]" />
       </span>
-      <div className="text-headline-sm font-semibold text-on-surface">{title}</div>
-      <div className="max-w-md text-body-sm text-on-surface-variant">{note}</div>
+      <div className="font-headline-md text-headline-md uppercase text-on-surface">{title}</div>
+      <div className="max-w-md font-mono text-data-mono text-on-surface-variant">{note}</div>
     </div>
   );
 }
@@ -98,7 +100,7 @@ function PublicApp() {
         <main className="flex-1 overflow-y-auto p-4 pb-24 sm:p-6">
           <div className="mx-auto max-w-[1440px]">
             {error && data && (
-              <div className="mb-4 rounded-lg border border-warn/30 bg-warn/10 px-3 py-2 text-body-sm text-warn">{error.message}</div>
+              <div className="mb-4 border-2 border-on-surface bg-surface-container px-3 py-2 font-mono text-data-mono uppercase text-on-surface">{error.message}</div>
             )}
             {body}
           </div>
@@ -139,7 +141,7 @@ function AdminPanel() {
             ) : (
               <>
                 {error && data && (
-                  <div className="mb-4 rounded-lg border border-warn/30 bg-warn/10 px-3 py-2 text-body-sm text-warn">{error.message}</div>
+                  <div className="mb-4 border-2 border-on-surface bg-surface-container px-3 py-2 font-mono text-data-mono uppercase text-on-surface">{error.message}</div>
                 )}
                 <Scorecard data={viewData} />
               </>

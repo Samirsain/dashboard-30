@@ -5,22 +5,18 @@ import { fmtDate } from "@/lib/format";
 import { unifyTasks } from "@/lib/analytics";
 
 const STATUS_STYLE: Record<string, string> = {
-  Completed: "bg-green-100 text-success border-green-200",
-  Late: "bg-red-100 text-danger border-red-200",
-  Pending: "bg-amber-100 text-warning border-amber-200",
+  Completed: "bg-on-surface text-on-primary border-2 border-on-surface",
+  Late: "bg-error text-on-error border-2 border-error",
+  Pending: "bg-transparent text-on-surface border-2 border-on-surface",
 };
 const PRIORITY_STYLE: Record<string, string> = {
-  High: "bg-red-50 text-danger",
-  Urgent: "bg-red-50 text-danger",
-  Medium: "bg-amber-50 text-warning",
-  Low: "bg-blue-50 text-primary",
+  High: "bg-on-surface text-on-primary",
+  Urgent: "bg-on-surface text-on-primary",
+  Medium: "border border-on-surface text-on-surface",
+  Low: "border border-outline text-on-surface-variant",
+  Normal: "border border-outline text-on-surface-variant",
 };
-const AVATAR = ["bg-blue-100 text-blue-700", "bg-emerald-100 text-emerald-700", "bg-purple-100 text-purple-700", "bg-teal-100 text-teal-700", "bg-amber-100 text-amber-700", "bg-rose-100 text-rose-700"];
-function hash(s: string) {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return h;
-}
+
 function initials(name: string) {
   return (
     String(name || "")
@@ -37,7 +33,7 @@ function uniq(vals: any[]) {
   return [...new Set(vals.map((v) => String(v || "").trim()).filter(Boolean))].sort();
 }
 
-export function TaskDirectory({ data, source, title = "Enterprise Task Directory" }: { data: any; source?: "Checklist" | "Task List"; title?: string }) {
+export function TaskDirectory({ data, source, title = "Active Task Directory" }: { data: any; source?: "Checklist" | "Task List"; title?: string }) {
   const all = React.useMemo(() => {
     const t = unifyTasks(data);
     return source ? t.filter((x) => x.source === source) : t;
@@ -73,26 +69,26 @@ export function TaskDirectory({ data, source, title = "Enterprise Task Directory
 
   return (
     <div className="glass-card overflow-hidden">
-      <div className="flex flex-col justify-between gap-4 border-b border-border bg-surface-container-lowest p-5 md:flex-row md:items-center">
+      <div className="flex flex-col justify-between gap-4 border-b-2 border-on-surface bg-surface-container-low p-5 md:flex-row md:items-center">
         <div>
-          <h3 className="text-headline-sm font-semibold text-on-surface">{title}</h3>
-          <p className="text-label-sm text-on-surface-variant">{rows.length} tasks</p>
+          <h3 className="font-headline-md text-headline-md uppercase tracking-tight text-on-surface">{title}</h3>
+          <p className="font-mono text-data-mono uppercase text-on-surface-variant">{rows.length} Entries • System Live</p>
         </div>
         <div className="relative">
-          <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-outline" />
+          <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-on-surface-variant" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search tasks…"
-            className="w-full rounded-lg border border-border bg-surface-container-low py-2 pl-10 pr-4 text-body-sm outline-none focus:border-primary sm:w-60"
+            placeholder="QUERY DATABASE"
+            className="w-full border-2 border-on-surface bg-surface-container-lowest py-2 pl-10 pr-4 font-mono text-data-mono uppercase outline-none placeholder:text-on-surface-variant focus:bg-surface-container-low sm:w-64"
           />
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2.5 border-b border-border px-5 py-3">
-        <span className="flex items-center gap-1.5 text-label-md font-semibold text-on-surface-variant">
-          <Icon name="filter_alt" className="text-[18px] text-outline" /> Filters
+      <div className="flex flex-wrap items-center gap-2.5 border-b-2 border-on-surface px-5 py-3">
+        <span className="flex items-center gap-1.5 font-label-sm text-label-sm uppercase text-on-surface">
+          <Icon name="filter_alt" className="text-[18px]" /> Filter
         </span>
         <FilterSelect value={dept} onChange={setDept} options={depts} allLabel="All Departments" />
         <FilterSelect value={status} onChange={setStatus} options={["Completed", "Late", "Pending"]} allLabel="All Statuses" />
@@ -105,7 +101,7 @@ export function TaskDirectory({ data, source, title = "Enterprise Task Directory
               setStatus("All");
               setPriority("All");
             }}
-            className="ml-auto text-label-md font-semibold text-primary hover:underline"
+            className="ml-auto font-label-sm text-label-sm font-bold uppercase text-error hover:underline"
           >
             Clear All
           </button>
@@ -115,41 +111,50 @@ export function TaskDirectory({ data, source, title = "Enterprise Task Directory
       <div className="overflow-x-auto">
         <table className="w-full min-w-[980px] border-collapse text-left">
           <thead>
-            <tr className="border-b border-border bg-surface-container-low/80">
-              {["Task ID", "Task", "Doer", "Department", source === "Task List" ? "Priority" : "Frequency", "Due Date", "Actual", "Status"].map((h) => (
-                <th key={h} className="px-4 py-3 text-label-md font-semibold uppercase tracking-wider text-on-surface-variant">
+            <tr className="border-b-2 border-on-surface bg-surface-container">
+              {["Task ID", "Description", "Doer", "Department", source === "Task List" ? "Priority" : "Frequency", "Due", "Actual", "Status"].map((h, i) => (
+                <th
+                  key={h}
+                  className={cn(
+                    "border-r border-outline-variant px-4 py-3 font-label-sm text-label-sm uppercase text-on-surface last:border-r-0",
+                    (h === "Priority" || h === "Status") && "text-center",
+                    i === 0 && "w-28"
+                  )}
+                >
                   {h}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody>
             {pageRows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-body-sm text-on-surface-variant">
-                  Koi task nahi mila.
+                <td colSpan={8} className="px-4 py-12 text-center font-mono text-data-mono uppercase text-on-surface-variant">
+                  No matching records.
                 </td>
               </tr>
             ) : (
               pageRows.map((t) => (
-                <tr key={t.id} className="table-row-hover group">
-                  <td className="px-4 py-3 text-body-sm font-medium text-on-surface-variant">{t.id}</td>
-                  <td className="max-w-[260px] truncate px-4 py-3 text-body-sm font-medium text-on-surface group-hover:text-primary" title={t.task}>
+                <tr key={t.id} className="table-row-hover group border-b border-outline-variant">
+                  <td className="border-r border-outline-variant px-4 py-3 font-mono text-data-mono text-on-surface-variant">{t.id}</td>
+                  <td className="max-w-[260px] truncate border-r border-outline-variant px-4 py-3 text-body-md font-medium text-on-surface group-hover:underline" title={t.task}>
                     {t.task}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="border-r border-outline-variant px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <span className={cn("grid h-6 w-6 place-items-center rounded-full text-label-sm font-bold", AVATAR[hash(String(t.doer)) % AVATAR.length])}>
+                      <span className="grid h-7 w-7 shrink-0 place-items-center border border-on-surface bg-surface-container font-mono text-[10px] font-bold text-on-surface">
                         {initials(t.doer)}
                       </span>
-                      <span className="whitespace-nowrap text-body-sm text-on-surface">{t.doer}</span>
+                      <span className="whitespace-nowrap font-label-sm text-label-sm uppercase text-on-surface">{t.doer}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-body-sm text-on-surface-variant">{t.department || "—"}</td>
-                  <td className="px-4 py-3 text-body-sm text-on-surface-variant">
+                  <td className="border-r border-outline-variant px-4 py-3 font-mono text-data-mono uppercase text-on-surface-variant">{t.department || "—"}</td>
+                  <td className="border-r border-outline-variant px-4 py-3 text-center font-mono text-data-mono uppercase text-on-surface-variant">
                     {source === "Task List" ? (
                       t.priority ? (
-                        <span className={cn("rounded px-2 py-1 text-xs font-semibold", PRIORITY_STYLE[t.priority] || "bg-surface-container text-on-surface-variant")}>{t.priority}</span>
+                        <span className={cn("inline-block px-2 py-0.5 font-label-sm text-label-sm uppercase", PRIORITY_STYLE[t.priority] || "border border-outline text-on-surface-variant")}>
+                          {t.priority}
+                        </span>
                       ) : (
                         "—"
                       )
@@ -157,10 +162,10 @@ export function TaskDirectory({ data, source, title = "Enterprise Task Directory
                       t.frequency || "—"
                     )}
                   </td>
-                  <td className="px-4 py-3 text-body-sm text-on-surface-variant">{fmtDate(t.due) || "—"}</td>
-                  <td className="px-4 py-3 text-body-sm text-on-surface-variant">{fmtDate(t.actual) || "—"}</td>
-                  <td className="px-4 py-3">
-                    <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-label-sm font-medium", STATUS_STYLE[t.status])}>{t.status}</span>
+                  <td className="border-r border-outline-variant px-4 py-3 font-mono text-data-mono text-on-surface-variant">{fmtDate(t.due) || "—"}</td>
+                  <td className="border-r border-outline-variant px-4 py-3 font-mono text-data-mono text-on-surface-variant">{fmtDate(t.actual) || "—"}</td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={cn("inline-block px-3 py-1 font-label-sm text-label-sm uppercase", STATUS_STYLE[t.status])}>{t.status}</span>
                   </td>
                 </tr>
               ))
@@ -170,28 +175,28 @@ export function TaskDirectory({ data, source, title = "Enterprise Task Directory
       </div>
 
       {/* Pagination */}
-      <div className="flex flex-col items-center justify-between gap-4 border-t border-border bg-surface-container-lowest p-4 sm:flex-row">
-        <span className="text-body-sm text-on-surface-variant">
+      <div className="flex flex-col items-center justify-between gap-4 border-t-2 border-on-surface bg-surface-container-low p-4 sm:flex-row">
+        <span className="font-mono text-data-mono uppercase text-on-surface-variant">
           Showing {rows.length === 0 ? 0 : start + 1}–{Math.min(start + perPage, rows.length)} of {rows.length}
         </span>
         <div className="flex items-center gap-2">
           <select
             value={perPage}
             onChange={(e) => setPerPage(Number(e.target.value))}
-            className="rounded border border-border bg-surface-container-lowest px-2 py-1 text-sm outline-none focus:border-primary"
+            className="border-2 border-on-surface bg-surface-container-lowest px-2 py-1 font-mono text-data-mono uppercase outline-none"
           >
             {[10, 25, 50].map((n) => (
               <option key={n} value={n}>
-                {n} per page
+                {n} / page
               </option>
             ))}
           </select>
-          <div className="flex gap-1">
+          <div className="flex">
             <PageBtn disabled={clampedPage <= 1} onClick={() => setPage(clampedPage - 1)}>
               Prev
             </PageBtn>
-            <span className="grid place-items-center rounded bg-primary px-3 text-sm font-medium text-white">{clampedPage}</span>
-            <span className="grid place-items-center px-1 text-sm text-on-surface-variant">/ {totalPages}</span>
+            <span className="grid place-items-center border-y-2 border-on-surface bg-on-surface px-3 font-mono text-data-mono font-bold text-on-primary">{clampedPage}</span>
+            <span className="grid place-items-center border-y-2 border-on-surface px-2 font-mono text-data-mono text-on-surface-variant">/ {totalPages}</span>
             <PageBtn disabled={clampedPage >= totalPages} onClick={() => setPage(clampedPage + 1)}>
               Next
             </PageBtn>
@@ -207,7 +212,7 @@ function FilterSelect({ value, onChange, options, allLabel }: { value: string; o
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="rounded-lg border border-border bg-surface-container-low px-3 py-1.5 text-body-sm text-on-surface outline-none focus:border-primary"
+      className="border-2 border-on-surface bg-surface-container-lowest px-3 py-1.5 font-label-sm text-label-sm uppercase text-on-surface outline-none focus:bg-surface-container-low"
     >
       <option value="All">{allLabel}</option>
       {options.map((o) => (
@@ -224,7 +229,7 @@ function PageBtn({ children, disabled, onClick }: { children: React.ReactNode; d
     <button
       onClick={onClick}
       disabled={disabled}
-      className="rounded border border-border px-3 py-1 text-sm text-on-surface-variant transition-colors hover:bg-surface-container-low disabled:opacity-50"
+      className="border-2 border-on-surface px-3 py-1 font-label-sm text-label-sm uppercase text-on-surface transition-colors hover:bg-on-surface hover:text-on-primary disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-on-surface"
     >
       {children}
     </button>
