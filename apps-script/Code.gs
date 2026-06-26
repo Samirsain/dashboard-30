@@ -28,6 +28,11 @@ var SHEET_IDS = {
 // Doers spelt differently across sheets are merged to one canonical name.
 var DOER_ALIAS = { SANDEP: "SANDEEP", "SAHIL SIR": "SAHIL" };
 
+// Ex-staff — dropped from the output entirely (canonical UPPERCASE names).
+// "SAHIL" also covers "SAHIL SIR" via DOER_ALIAS.
+var EXCLUDED_DOERS = { LAXMI: true, KIRTI: true, SAHIL: true };
+function isExcludedDoer(name) { return !!EXCLUDED_DOERS[canonical(name)]; }
+
 var WEEK_START = 0; // 0 = Sunday
 
 // ---- Entry point -----------------------------------------------------------
@@ -39,6 +44,12 @@ function doGet(e) {
     var checklist = readChecklist(doerMap);
     var delegation = readDelegation(doerMap);
     var fms = readFms(doerMap);
+
+    // Drop ex-staff from rows and the doer list.
+    checklist = checklist.filter(function (r) { return !isExcludedDoer(r.doer); });
+    delegation = delegation.filter(function (r) { return !isExcludedDoer(r.doer); });
+    fms = fms.filter(function (r) { return !isExcludedDoer(r.doer); });
+    Object.keys(doerMap).forEach(function (k) { if (isExcludedDoer(k)) delete doerMap[k]; });
 
     // Recurring checklists are pre-expanded months ahead; keep only up to the
     // end of the current week so future blank rows don't flood the view.

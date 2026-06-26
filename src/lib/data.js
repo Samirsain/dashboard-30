@@ -4,15 +4,36 @@
 // This makes older weeks and the "All weeks" view instant (no re-fetch).
 // =============================================================================
 
-import { APPS_SCRIPT_URL, USE_SAMPLE_DATA_FALLBACK } from "./config.js";
+import { APPS_SCRIPT_URL, USE_SAMPLE_DATA_FALLBACK, EXCLUDED_DOERS } from "./config.js";
 import { getAllSampleData } from "./sample-data.js";
 
 export const ALL_WEEKS = { key: "all", label: "All weeks", from: "", to: "" };
 
+// Ex-staff hidden everywhere (case-insensitive). Applied to live + sample data.
+const EXCLUDED = new Set((EXCLUDED_DOERS || []).map((s) => String(s).trim().toUpperCase()));
+const isExcluded = (name) => EXCLUDED.has(String(name ?? "").trim().toUpperCase());
+
+function dropExcludedDoers(data) {
+  if (!data) return data;
+  const doers = (data.doers || []).filter((d) => !isExcluded(d.doer));
+  const checklist = (data.checklist || []).filter((r) => !isExcluded(r.doer));
+  const delegation = (data.delegation || []).filter((r) => !isExcluded(r.doer));
+  const fms = (data.fms || []).filter((r) => !isExcluded(r.doer));
+  // Keep only departments still referenced by a remaining doer or task row.
+  const used = new Set();
+  for (const d of doers) used.add(String(d.department ?? "").trim());
+  for (const rows of [checklist, delegation, fms]) for (const r of rows) used.add(String(r.department ?? "").trim());
+  const departments = (data.departments || []).filter((d) => used.has(String(d.department ?? "").trim()));
+  return { ...data, doers, checklist, delegation, fms, departments };
+}
+
+// withDataQuality(dropExcludedDoers(...)) — exclude ex-staff, then flag unknowns.
+const prepare = (data) => withDataQuality(dropExcludedDoers(data));
+
 // Fetch everything once. Returns { data, source, error }.
 export async function loadData() {
   if (!APPS_SCRIPT_URL) {
-    return { data: withDataQuality(getAllSampleData()), source: "sample", error: null };
+    return { data: prepare(getAllSampleData()), source: "sample", error: null };
   }
   try {
     const res = await fetch(`${APPS_SCRIPT_URL}?week=all`, { method: "GET", redirect: "follow" });
@@ -21,11 +42,11 @@ export async function loadData() {
     if (payload && payload.error) {
       return { data: null, source: "live", error: { message: payload.error, missingHeaders: payload.missingHeaders || [] } };
     }
-    return { data: withDataQuality(normalize(payload)), source: "live", error: null };
+    return { data: prepare(normalize(payload)), source: "live", error: null };
   } catch (err) {
     if (USE_SAMPLE_DATA_FALLBACK) {
       return {
-        data: withDataQuality(getAllSampleData()),
+        data: prepare(getAllSampleData()),
         source: "sample",
         error: { message: `Live data unavailable (${err.message}); showing sample data.` },
       };

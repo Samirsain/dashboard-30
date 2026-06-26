@@ -17,6 +17,11 @@
 export const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwBIiyG9au2CbiIfyaYTqTpktMj9_e_maQiA3BSYA_fNLUFnnRPWjO0UlUsJfDrca-s/exec";
 export const USE_SAMPLE_DATA_FALLBACK = true;
 
+// Doers who have left the team — hidden everywhere (dashboard + scoring).
+// Canonical UPPERCASE names; matching is case-insensitive. "SAHIL" also covers
+// "SAHIL SIR" via the alias map. Add/remove a name here to update the whole app.
+export const EXCLUDED_DOERS = ["LAXMI", "KIRTI", "SAHIL"];
+
 export const BRAND = {
   name: "ThirtyMilestones",
   tagline: "MIS Dashboard",
