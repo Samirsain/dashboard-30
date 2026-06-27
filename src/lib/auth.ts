@@ -30,21 +30,21 @@ const VALID_ROLES: Role[] = ["admin", "staff"];
 type UserEntry = { role: Role; doerName: string | null; userHash: string; passHash: string };
 
 const USERS: UserEntry[] = [
+  // ── Admin ─────────────────────────────────────────────────────────────────
   {
     role: "admin",
-    doerName: null, // admin sees everything
+    doerName: null, // admin sees all data
     userHash: "b2704bfccee884b6863c95646c1d8761a238236beda3b84bcbfd3842dd2f8f7d",
     passHash: "f78a4ec5830c27cdb3dc454bba42c2dc217906f7f5d5d6b9ce9f6497463c0514",
   },
-  {
-    role: "staff",
-    doerName: null, // PC30 — set to their exact Sheet name once known, e.g. "PC" or "Priya C"
-    userHash: "96b97a8570c7cb5e3c9b2d5818150591c83e592c316c4ce134101674562aa7f7",
-    passHash: "12576ac61d0e971413d1e1979b8407f1b3c7409a5ba73eef1a5ed14228091d5c",
-  },
-  // ── Add more staff below ──────────────────────────────────────────────────
-  // { role: "staff", doerName: "Rahul Sharma", userHash: "...", passHash: "..." },
-  // { role: "staff", doerName: "Priya Singh",  userHash: "...", passHash: "..." },
+  // ── Staff — username: NAME30 / password: NAME@30 ──────────────────────────
+  { role: "staff", doerName: "SAMIR",   userHash: "6f07561bbb2e3565b7bc139f0dca7b767c708434625c667d16a6d91c80e05918", passHash: "a688bc402668207ba4c1f05c3ca7438fbe9b8b52bdca0f7b66dd3f8759115312" },
+  { role: "staff", doerName: "PRIYA",   userHash: "95553bd009986bc0b7515032b46084c608c5b925ed1dbaac1144f5bb8e553d81", passHash: "0b85fd02b9ec0d83fa86b5c4df82e136ad5ddb1b34db639b6e884519f48dd2cf" },
+  { role: "staff", doerName: "SHIKHA",  userHash: "a1031f751ce2113a5bbd0acf811848d189083652d1538a7504997690c5adeccb",  passHash: "73c981c0e8bb0abff41e52604eec13d2d89c80488178b8238d2a594ac9243af2" },
+  { role: "staff", doerName: "SANDEEP", userHash: "2810a67427bb87500077167f731fe1a8fcbcbac47d4289a94fbd0777bae0743b", passHash: "61e551a4eb699f40e96c1b5e6d93cbc58c5db0514b7b5a95a526210afed0f64c" },
+  { role: "staff", doerName: "DEEPAK",  userHash: "91366fa822af36f7aa75180d0de211a979f9846f96696e780110bbdf5dd60be1", passHash: "420f96fe22d82d66e8a6c173210bf9c9cf5edeaac4d93b42abd4cfd6129838ec" },
+  { role: "staff", doerName: "DRIVER",  userHash: "57e44fd38b84310bce5c940669e64ea24553769b4859c13fbb83e12ade62be03", passHash: "ea6d91849148f52f2503c87f00960800f692dad82c7777bc5d4887c7cd205bb7" },
+  { role: "staff", doerName: "PC",      userHash: "96b97a8570c7cb5e3c9b2d5818150591c83e592c316c4ce134101674562aa7f7", passHash: "12576ac61d0e971413d1e1979b8407f1b3c7409a5ba73eef1a5ed14228091d5c" },
 ];
 
 async function sha256(text: string): Promise<string> {
