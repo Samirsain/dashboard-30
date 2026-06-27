@@ -1,5 +1,7 @@
 import { Icon } from "./Icon";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import logoSvg from "@/assets/logo.svg";
+import { BRAND } from "@/lib/config";
 
 export function Topbar({
   sectionLabel,
@@ -17,8 +19,10 @@ export function Topbar({
   onLogout?: () => void;
 }) {
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between gap-4 border-b-2 border-on-surface bg-surface px-4 sm:px-6">
-      <div className="flex min-w-0 items-center gap-2 font-label-sm text-label-sm uppercase">
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between gap-2 border-b-2 border-on-surface bg-surface px-4 sm:gap-4 sm:px-6">
+      {/* Logo on mobile (sidebar is hidden there); breadcrumb on md+ */}
+      <img src={logoSvg} alt={BRAND.name} className="h-7 w-auto shrink-0 md:hidden" />
+      <div className="hidden min-w-0 items-center gap-2 font-label-sm text-label-sm uppercase md:flex">
         <span className="text-on-surface-variant">Overview</span>
         <span className="text-outline">/</span>
         <span className="truncate border-b-2 border-on-surface pb-0.5 font-bold text-on-surface">{sectionLabel}</span>
@@ -26,7 +30,7 @@ export function Topbar({
 
       <div className="flex items-center gap-2 sm:gap-3">
         <Select value={weekKey} onValueChange={onWeekChange}>
-          <SelectTrigger className="h-9 w-[11rem] rounded-none border-2 border-on-surface bg-surface-container-lowest font-mono text-data-mono uppercase">
+          <SelectTrigger className="h-9 w-[8.5rem] rounded-none border-2 border-on-surface bg-surface-container-lowest font-mono text-data-mono uppercase sm:w-[11rem]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

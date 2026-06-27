@@ -115,30 +115,31 @@ export function AdminSidebar({ onLogout }: { onLogout: () => void }) {
   );
 }
 
-// Mobile section tabs (sidebar is hidden on small screens).
+// Mobile section tabs (sidebar is hidden on small screens). Equal-width grid so
+// every option is visible at once — no horizontal scrolling.
 export function MobileSectionTabs({ active, onSelect, showAdmin }: { active: string; onSelect: (id: string) => void; showAdmin?: boolean }) {
   return (
-    <div className="scroll-slim flex gap-0 overflow-x-auto border-b-2 border-on-surface bg-surface md:hidden">
+    <div className="grid auto-cols-fr grid-flow-col border-b-2 border-on-surface bg-surface md:hidden">
       {SECTIONS.map((s) => (
         <button
           key={s.id}
           onClick={() => onSelect(s.id)}
           className={cn(
-            "flex items-center gap-1.5 whitespace-nowrap border-r border-on-surface px-3 py-2.5 font-label-sm text-label-sm uppercase transition-colors",
+            "flex flex-col items-center justify-center gap-1 border-r border-on-surface px-1 py-2 font-label-sm text-[10px] uppercase leading-none transition-colors",
             active === s.id ? "bg-on-surface text-on-primary" : "text-on-surface-variant hover:bg-surface-container"
           )}
         >
-          <Icon name={s.icon} className="text-[18px]" />
-          {s.label}
+          <Icon name={s.icon} className="text-[20px]" />
+          <span className="w-full truncate text-center">{s.label}</span>
         </button>
       ))}
       {showAdmin && (
         <a
           href="/admin"
-          className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2.5 font-label-sm text-label-sm uppercase text-on-surface-variant"
+          className="flex flex-col items-center justify-center gap-1 px-1 py-2 font-label-sm text-[10px] uppercase leading-none text-on-surface-variant"
         >
-          <Icon name="admin_panel_settings" className="text-[18px]" />
-          Admin
+          <Icon name="admin_panel_settings" className="text-[20px]" />
+          <span className="w-full truncate text-center">Admin</span>
         </a>
       )}
     </div>
