@@ -279,15 +279,17 @@ export function TaskDirectory({
                             <Icon name={busyId === t.id ? "progress_activity" : "check"} className={cn("text-[14px]", busyId === t.id && "animate-spin")} />
                             {busyId === t.id ? "…" : "Done"}
                           </button>
-                          <button
-                            onClick={() => setRevising(t)}
-                            disabled={busyId === t.id}
-                            className="inline-flex items-center gap-1 whitespace-nowrap border-2 border-on-surface bg-transparent px-2 py-0.5 font-label-sm text-label-sm uppercase text-on-surface transition-colors hover:bg-on-surface hover:text-on-primary disabled:opacity-50"
-                            title="Reschedule this task"
-                          >
-                            <Icon name="event_repeat" className="text-[14px]" />
-                            Revise
-                          </button>
+                          {t.source === "Task List" && (
+                            <button
+                              onClick={() => setRevising(t)}
+                              disabled={busyId === t.id}
+                              className="inline-flex items-center gap-1 whitespace-nowrap border-2 border-on-surface bg-transparent px-2 py-0.5 font-label-sm text-label-sm uppercase text-on-surface transition-colors hover:bg-on-surface hover:text-on-primary disabled:opacity-50"
+                              title="Reschedule this task"
+                            >
+                              <Icon name="event_repeat" className="text-[14px]" />
+                              Revise
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
