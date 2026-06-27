@@ -111,7 +111,7 @@ export function TaskDirectory({
 
   return (
     <div className="glass-card overflow-hidden">
-      <div className="flex flex-col justify-between gap-4 border-b-2 border-on-surface bg-surface-container-low p-5 md:flex-row md:items-center">
+      <div className="flex flex-col justify-between gap-3 border-b-2 border-on-surface bg-surface-container-low px-4 py-4 sm:gap-4 sm:px-5 md:flex-row md:items-center">
         <div>
           <h3 className="font-headline-md text-headline-md uppercase tracking-tight text-on-surface">{title}</h3>
           <p className="font-mono text-data-mono uppercase text-on-surface-variant">
@@ -124,14 +124,14 @@ export function TaskDirectory({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="QUERY DATABASE"
-            className="w-full border-2 border-on-surface bg-surface-container-lowest py-2 pl-10 pr-4 font-mono text-data-mono uppercase outline-none placeholder:text-on-surface-variant focus:bg-surface-container-low sm:w-64"
+            className="w-full border-2 border-on-surface bg-surface-container-lowest py-2 pl-10 pr-4 font-mono text-data-mono uppercase outline-none placeholder:text-on-surface-variant focus:bg-surface-container-low md:w-56"
           />
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2.5 border-b-2 border-on-surface px-5 py-3">
-        <span className="flex items-center gap-1.5 font-label-sm text-label-sm uppercase text-on-surface">
+      <div className="flex flex-wrap items-center gap-2 border-b-2 border-on-surface px-4 py-3 sm:px-5">
+        <span className="flex shrink-0 items-center gap-1.5 font-label-sm text-label-sm uppercase text-on-surface">
           <Icon name="filter_alt" className="text-[18px]" /> Filter
         </span>
         {showSystem && systems.length > 1 && (
@@ -151,7 +151,7 @@ export function TaskDirectory({
             }}
             className="ml-auto font-label-sm text-label-sm font-bold uppercase text-error hover:underline"
           >
-            Clear All
+            Clear
           </button>
         )}
       </div>
@@ -184,7 +184,7 @@ export function TaskDirectory({
               pageRows.map((t) => (
                 <tr key={t.id} className="table-row-hover group border-b border-outline-variant">
                   <td className="hidden whitespace-nowrap border-r border-outline-variant px-3 py-3 font-mono text-data-mono text-on-surface-variant 2xl:table-cell">{t.id}</td>
-                  <td className="max-w-[140px] truncate border-r border-outline-variant px-3 py-3 text-body-md font-medium text-on-surface group-hover:underline sm:max-w-[240px] lg:max-w-[320px]" title={t.task}>
+                  <td className="border-r border-outline-variant px-3 py-3 text-body-md font-medium text-on-surface group-hover:underline">
                     {t.task}
                   </td>
                   {showSystem && (
@@ -227,7 +227,7 @@ export function TaskDirectory({
       </div>
 
       {/* Pagination */}
-      <div className="flex flex-col items-center justify-between gap-4 border-t-2 border-on-surface bg-surface-container-low p-4 sm:flex-row">
+      <div className="flex flex-col items-center justify-between gap-3 border-t-2 border-on-surface bg-surface-container-low px-4 py-3 sm:flex-row sm:px-5">
         <span className="font-mono text-data-mono uppercase text-on-surface-variant">
           Showing {rows.length === 0 ? 0 : start + 1}–{Math.min(start + perPage, rows.length)} of {rows.length}
         </span>

@@ -8,12 +8,12 @@ export function Overview({ data }: { data: any }) {
 
       <KpiCards data={data} />
 
+      <TaskDirectory data={data} todayOnly title="Today Follow List" />
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <DeptPerformance data={data} className="lg:col-span-7" />
         <StatusDonut data={data} className="lg:col-span-5" />
       </div>
-
-      <TaskDirectory data={data} todayOnly title="Today Follow List" />
     </div>
   );
 }
