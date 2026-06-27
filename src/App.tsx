@@ -90,12 +90,13 @@ function PublicApp({ role, doerName, onLogout }: { role: Role; doerName: string 
   const viewData = React.useMemo(() => filterByWeek(staffData, week), [staffData, week]);
   const sectionLabel = SECTIONS.find((s) => s.id === section)?.label || "Dashboard";
 
+  const refresh = () => setReloadToken((t) => t + 1);
   let body: React.ReactNode = null;
   if (loading) body = <LoadingState />;
-  else if (error && !data) body = <ErrorState error={error} onRetry={() => setReloadToken((t) => t + 1)} />;
-  else if (section === "dashboard") body = <Overview data={viewData} />;
-  else if (section === "checklist") body = <TaskDirectory data={viewData} source="Checklist" title="Checklist" />;
-  else if (section === "tasklist") body = <TaskDirectory data={viewData} source="Task List" title="Task List" />;
+  else if (error && !data) body = <ErrorState error={error} onRetry={refresh} />;
+  else if (section === "dashboard") body = <Overview data={viewData} onChanged={refresh} />;
+  else if (section === "checklist") body = <TaskDirectory data={viewData} source="Checklist" title="Checklist" onChanged={refresh} />;
+  else if (section === "tasklist") body = <TaskDirectory data={viewData} source="Task List" title="Task List" onChanged={refresh} />;
   else if (section === "workflow") body = <ComingSoon title="Workflow coming soon" note="Workflow sheet abhi connect nahi hui hai. Uska Google Sheet share kar do — yahi Done/Pending tracking ke saath aa jayegi." />;
 
   return (

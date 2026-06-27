@@ -95,48 +95,128 @@ function doPost(e) {
       return json({ ok: false, error: "Unauthorized" });
     }
 
-    var system = String(body.system || "tasklist").toLowerCase();
-    var task = trim(body.task);
-    var doer = trim(body.doer);
-    if (!task) return json({ ok: false, error: "Task description is required." });
-    if (!doer) return json({ ok: false, error: "Please choose who the task is for." });
-
-    var id = trim(body.taskId) || genId();
-    var iso = body.date ? toISODate(body.date) : toISODate(new Date());
-    var dateVal = isoToDate(iso); // real Date so the sheet stores a date cell
-
-    if (system === "checklist") {
-      var cs = openOrNull(SHEET_IDS.checklist);
-      if (!cs) return json({ ok: false, error: "Checklist sheet not configured." });
-      appendByHeaders(cs, ["Task ID", "Planned", "Actual", "Status", "Task"], {
-        "Task ID": id,
-        "Name": doer,
-        "Department": trim(body.department),
-        "Freq": freqCode(body.frequency),
-        "Task": task,
-        "Planned": dateVal,
-        "Actual": "",
-        "Status": "Pending",
-      });
-    } else {
-      var ds = openOrNull(SHEET_IDS.delegation);
-      if (!ds) return json({ ok: false, error: "Task List sheet not configured." });
-      appendByHeaders(ds, ["Task ID", "Total Revisions", "Status", "First Date"], {
-        "Task ID": id,
-        "Name": doer,
-        "Task": task,
-        "First Date": dateVal,
-        "Total Revisions": 0,
-        "Latest Revision": "",
-        "Status": "Pending",
-        "Priority": trim(body.priority),
-      });
-    }
-
-    return json({ ok: true, taskId: id });
+    var action = String(body.action || "add").toLowerCase();
+    if (action === "complete") return completeTask(body);
+    return addTaskRow(body);
   } catch (err) {
     return json({ ok: false, error: "Server error: " + (err && err.message ? err.message : err) });
   }
+}
+
+// Append a brand-new task row (Status = Pending).
+function addTaskRow(body) {
+  var system = String(body.system || "tasklist").toLowerCase();
+  var task = trim(body.task);
+  var doer = trim(body.doer);
+  if (!task) return json({ ok: false, error: "Task description is required." });
+  if (!doer) return json({ ok: false, error: "Please choose who the task is for." });
+
+  var id = trim(body.taskId) || genId();
+  var iso = body.date ? toISODate(body.date) : toISODate(new Date());
+  var dateVal = isoToDate(iso); // real Date so the sheet stores a date cell
+
+  if (system === "checklist") {
+    var cs = openOrNull(SHEET_IDS.checklist);
+    if (!cs) return json({ ok: false, error: "Checklist sheet not configured." });
+    appendByHeaders(cs, ["Task ID", "Planned", "Actual", "Status", "Task"], {
+      "Task ID": id,
+      "Name": doer,
+      "Department": trim(body.department),
+      "Freq": freqCode(body.frequency),
+      "Task": task,
+      "Planned": dateVal,
+      "Actual": "",
+      "Status": "Pending",
+    });
+  } else {
+    var ds = openOrNull(SHEET_IDS.delegation);
+    if (!ds) return json({ ok: false, error: "Task List sheet not configured." });
+    appendByHeaders(ds, ["Task ID", "Total Revisions", "Status", "First Date"], {
+      "Task ID": id,
+      "Name": doer,
+      "Task": task,
+      "First Date": dateVal,
+      "Total Revisions": 0,
+      "Latest Revision": "",
+      "Status": "Pending",
+      "Priority": trim(body.priority),
+    });
+  }
+
+  return json({ ok: true, taskId: id });
+}
+
+// Mark an existing task complete. Finds the row by Task ID; if that's missing
+// (some checklist rows have no ID), falls back to matching Name + Task + date.
+// Writes the proper "done" values back to the master sheet.
+function completeTask(body) {
+  var system = String(body.system || "tasklist").toLowerCase();
+  var matcher = {
+    taskId: trim(body.taskId),
+    doer: canonical(body.doer),
+    task: trim(body.task),
+    dateVal: body.date ? toISODate(body.date) : "",
+  };
+  var doneDate = isoToDate(toISODate(new Date()));
+
+  var ss, headers, setVals;
+  if (system === "checklist") {
+    ss = openOrNull(SHEET_IDS.checklist);
+    headers = ["Task ID", "Planned", "Actual", "Status", "Task"];
+    matcher.dateField = "Planned";
+    setVals = { "Status": "Done", "Actual": doneDate };
+  } else {
+    ss = openOrNull(SHEET_IDS.delegation);
+    headers = ["Task ID", "Total Revisions", "Status", "First Date"];
+    matcher.dateField = "First Date";
+    setVals = { "Status": "Completed", "Latest Revision": doneDate };
+  }
+  if (!ss) return json({ ok: false, error: "Sheet not configured." });
+
+  var ok = updateRow(ss, headers, matcher, setVals);
+  return ok ? json({ ok: true }) : json({ ok: false, error: "Task row not found to mark done." });
+}
+
+// Find a row (by Task ID, else by Name+Task+date) and set the given columns.
+function updateRow(ss, requiredHeaders, matcher, valuesByHeader) {
+  var sheets = ss.getSheets();
+  for (var s = 0; s < sheets.length; s++) {
+    var sheet = sheets[s];
+    var lastRow = sheet.getLastRow();
+    var lastCol = sheet.getLastColumn();
+    if (lastRow < 2 || lastCol < 1) continue;
+    var values = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+    var hIdx = findHeaderRow(values, requiredHeaders);
+    if (hIdx === -1) continue;
+    var headers = values[hIdx].map(trim);
+    var idCol = headers.indexOf("Task ID");
+    var nameCol = headers.indexOf("Name");
+    var taskCol = headers.indexOf("Task");
+    var dateCol = headers.indexOf(matcher.dateField);
+
+    var foundRow = -1;
+    if (matcher.taskId && idCol !== -1) {
+      for (var r = hIdx + 1; r < values.length; r++) {
+        if (trim(values[r][idCol]) === matcher.taskId) { foundRow = r; break; }
+      }
+    }
+    if (foundRow === -1 && matcher.doer && nameCol !== -1 && taskCol !== -1) {
+      for (var r2 = hIdx + 1; r2 < values.length; r2++) {
+        var nameOk = canonical(values[r2][nameCol]) === matcher.doer;
+        var taskOk = trim(values[r2][taskCol]).toUpperCase() === matcher.task.toUpperCase();
+        var dateOk = !matcher.dateVal || (dateCol !== -1 && toISODate(values[r2][dateCol]) === matcher.dateVal);
+        if (nameOk && taskOk && dateOk) { foundRow = r2; break; }
+      }
+    }
+    if (foundRow === -1) continue;
+
+    for (var c = 0; c < headers.length; c++) {
+      var h = headers[c];
+      if (h && valuesByHeader.hasOwnProperty(h)) sheet.getRange(foundRow + 1, c + 1).setValue(valuesByHeader[h]);
+    }
+    return true;
+  }
+  return false;
 }
 
 // Append a row to the tab that has requiredHeaders, placing each value under the
@@ -208,6 +288,7 @@ function readChecklist(doerMap) {
     var doer = canonical(r["Name"]);
     var status = String(r["Status"]).trim() === "Done" || trim(r["Actual"]) ? "Done" : "Pending";
     return {
+      taskId: trim(r["Task ID"]),
       task: trim(r["Task"]),
       doer: doer,
       department: trim(r["Department"]) || deptOf(doerMap, doer),

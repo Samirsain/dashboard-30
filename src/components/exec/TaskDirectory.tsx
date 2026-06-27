@@ -3,6 +3,7 @@ import { Icon } from "./Icon";
 import { cn } from "@/lib/utils";
 import { fmtDate } from "@/lib/format";
 import { unifyTasks, todayISO } from "@/lib/analytics";
+import { completeTask } from "@/lib/data";
 
 const STATUS_STYLE: Record<string, string> = {
   Completed: "bg-primary-container text-on-primary border-2 border-primary-container",
@@ -58,11 +59,13 @@ export function TaskDirectory({
   source,
   title = "Active Task Directory",
   todayOnly = false,
+  onChanged,
 }: {
   data: any;
   source?: "Checklist" | "Task List";
   title?: string;
   todayOnly?: boolean;
+  onChanged?: () => void;
 }) {
   const all = React.useMemo(() => {
     let t = unifyTasks(data);
@@ -85,6 +88,23 @@ export function TaskDirectory({
   const [system, setSystem] = React.useState("All");
   const [perPage, setPerPage] = React.useState(10);
   const [page, setPage] = React.useState(1);
+  const [busyId, setBusyId] = React.useState<string | null>(null);
+  const [actionError, setActionError] = React.useState("");
+
+  async function markDone(t: any) {
+    if (busyId) return;
+    if (!window.confirm(`Mark this task as DONE?\n\n${t.task}`)) return;
+    setBusyId(t.id);
+    setActionError("");
+    try {
+      await completeTask(t);
+      onChanged && onChanged();
+    } catch (e: any) {
+      setActionError(e?.message || "Could not mark the task done. Try again.");
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   const depts = React.useMemo(() => uniq(all.map((t) => t.department)), [all]);
   const systems = React.useMemo(() => uniq(all.map((t) => t.source)), [all]);
@@ -156,6 +176,13 @@ export function TaskDirectory({
         )}
       </div>
 
+      {actionError && (
+        <div className="flex items-center gap-2 border-b-2 border-error bg-error/5 px-5 py-2 font-label-sm text-label-sm uppercase text-error">
+          <Icon name="error" className="text-[16px]" />
+          {actionError}
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="w-full table-auto border-collapse text-left">
           <thead>
@@ -217,7 +244,20 @@ export function TaskDirectory({
                   <td className={cn("whitespace-nowrap border-r border-outline-variant px-3 py-3 font-mono text-data-mono text-on-surface-variant", todayOnly ? "hidden" : "hidden xl:table-cell")}>{fmtDate(t.due) || "—"}</td>
                   <td className="hidden whitespace-nowrap border-r border-outline-variant px-3 py-3 font-mono text-data-mono text-on-surface-variant lg:table-cell">{fmtDate(t.actual) || "—"}</td>
                   <td className="px-3 py-3 text-center">
-                    <span className={cn("inline-block whitespace-nowrap px-2.5 py-1 font-label-sm text-label-sm uppercase", STATUS_STYLE[t.status])}>{t.status}</span>
+                    <div className="flex flex-col items-center gap-1.5">
+                      <span className={cn("inline-block whitespace-nowrap px-2.5 py-1 font-label-sm text-label-sm uppercase", STATUS_STYLE[t.status])}>{t.status}</span>
+                      {t.status === "Pending" && onChanged && (
+                        <button
+                          onClick={() => markDone(t)}
+                          disabled={busyId === t.id}
+                          className="inline-flex items-center gap-1 whitespace-nowrap border-2 border-primary-container bg-primary-container px-2 py-0.5 font-label-sm text-label-sm uppercase text-on-primary transition-opacity hover:opacity-80 disabled:opacity-50"
+                          title="Mark this task done"
+                        >
+                          <Icon name={busyId === t.id ? "progress_activity" : "check"} className={cn("text-[14px]", busyId === t.id && "animate-spin")} />
+                          {busyId === t.id ? "Saving" : "Done"}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
