@@ -1,8 +1,8 @@
 import * as React from "react";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
-import { loadData, weekOptions, filterByWeek } from "@/lib/data";
+import { loadData, weekOptions, filterByWeek, filterByDoer } from "@/lib/data";
 import { Login } from "@/components/Login";
-import { isAuthed, currentRole, logout, type Role } from "@/lib/auth";
+import { isAuthed, currentRole, currentDoerName, logout, type Role } from "@/lib/auth";
 import { Sidebar, AdminSidebar, MobileSectionTabs, SECTIONS } from "@/components/exec/Sidebar";
 import { Topbar } from "@/components/exec/Topbar";
 import { Overview } from "@/components/exec/Overview";
@@ -73,15 +73,17 @@ function ComingSoon({ title, note }: { title: string; note: string }) {
 }
 
 // ---- Public Executive dashboard (/) ----------------------------------------
-function PublicApp({ role, onLogout }: { role: Role; onLogout: () => void }) {
+function PublicApp({ role, doerName, onLogout }: { role: Role; doerName: string | null; onLogout: () => void }) {
   const [section, setSection] = React.useState<string>("dashboard");
   const [week, setWeek] = React.useState<string>("all");
   const [reloadToken, setReloadToken] = React.useState(0);
   const { loading, data, source, error } = useAllData(reloadToken);
   const isAdmin = role === "admin";
 
-  const weeks = weekOptions(data);
-  const viewData = React.useMemo(() => filterByWeek(data, week), [data, week]);
+  // When a staff member is logged in, scope the data to their own tasks only.
+  const staffData = React.useMemo(() => filterByDoer(data, doerName), [data, doerName]);
+  const weeks = weekOptions(staffData);
+  const viewData = React.useMemo(() => filterByWeek(staffData, week), [staffData, week]);
   const sectionLabel = SECTIONS.find((s) => s.id === section)?.label || "Dashboard";
 
   let body: React.ReactNode = null;
@@ -152,13 +154,13 @@ export default function App() {
   if (!authed) return <Login onSuccess={() => setAuthed(true)} />;
 
   const role = currentRole() ?? "staff";
+  const doerName = currentDoerName();
   const onLogout = () => {
     logout();
     setAuthed(false);
   };
 
-  // Only the admin can open the Scoring panel; staff (PC30) is sent to the
-  // normal dashboard instead.
+  // Only the admin can open the Scoring panel; staff is sent to the dashboard.
   if (onAdminRoute()) {
     if (role !== "admin") {
       try {
@@ -166,9 +168,9 @@ export default function App() {
       } catch {
         /* ignore */
       }
-      return <PublicApp role={role} onLogout={onLogout} />;
+      return <PublicApp role={role} doerName={doerName} onLogout={onLogout} />;
     }
     return <AdminPanel onLogout={onLogout} />;
   }
-  return <PublicApp role={role} onLogout={onLogout} />;
+  return <PublicApp role={role} doerName={doerName} onLogout={onLogout} />;
 }

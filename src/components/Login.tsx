@@ -16,9 +16,9 @@ export function Login({ onSuccess }: { onSuccess: () => void }) {
     if (busy) return;
     setBusy(true);
     setError("");
-    const role = await verifyCredentials(username, password);
-    if (role) {
-      setSession(role);
+    const session = await verifyCredentials(username, password);
+    if (session) {
+      setSession(session);
       onSuccess();
     } else {
       setError("Invalid username or password. Try again.");

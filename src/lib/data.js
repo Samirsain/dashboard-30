@@ -71,6 +71,21 @@ export function weekOptions(data) {
   return [ALL_WEEKS, ...((data && data.availableWeeks) || [])];
 }
 
+// Client-side doer filter. When a staff member is logged in, only show their tasks.
+// doerName must match the "Doer" column value in the sheet (case-insensitive).
+// Pass null/undefined to return all data (admin or unmapped staff).
+export function filterByDoer(data, doerName) {
+  if (!data || !doerName) return data;
+  const needle = String(doerName).trim().toUpperCase();
+  const match = (r) => String(r.doer || "").trim().toUpperCase() === needle;
+  return {
+    ...data,
+    checklist: (data.checklist || []).filter(match),
+    delegation: (data.delegation || []).filter(match),
+    fms: (data.fms || []).filter(match),
+  };
+}
+
 // Client-side week filter. "all" (or unknown) returns everything.
 export function filterByWeek(data, weekKey) {
   if (!data) return data;
