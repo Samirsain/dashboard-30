@@ -197,7 +197,7 @@ export function TaskDirectory({
                       <span className="grid h-7 w-7 shrink-0 place-items-center border border-on-surface bg-surface-container font-mono text-[10px] font-bold text-on-surface">
                         {initials(t.doer)}
                       </span>
-                      <span className="hidden max-w-[7rem] truncate font-label-sm text-label-sm uppercase text-on-surface md:inline" title={t.doer}>{t.doer}</span>
+                      <span className="font-label-sm text-label-sm uppercase text-on-surface">{t.doer}</span>
                     </div>
                   </td>
                   <td className="hidden whitespace-nowrap border-r border-outline-variant px-3 py-3 font-mono text-data-mono uppercase text-on-surface-variant md:table-cell">{t.department || "—"}</td>
