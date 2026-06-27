@@ -8,7 +8,7 @@ export function Overview({ data }: { data: any }) {
 
       <KpiCards data={data} />
 
-      <TaskDirectory data={data} todayOnly title="Today Follow List" />
+      <TaskDirectory data={data} todayOnly title="Today's Followup" />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <DeptPerformance data={data} className="lg:col-span-7" />

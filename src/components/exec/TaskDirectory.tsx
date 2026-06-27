@@ -75,7 +75,7 @@ export function TaskDirectory({
   }, [data, source, todayOnly]);
 
   // Show the "System" column only in the mixed view (no single source picked),
-  // e.g. the Today Follow List — so you can see which system each task is from.
+  // e.g. Today's Followup — so you can see which system each task is from.
   const showSystem = !source;
 
   const [search, setSearch] = React.useState("");
