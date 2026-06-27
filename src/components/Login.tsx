@@ -94,7 +94,7 @@ export function Login({ onSuccess }: { onSuccess: () => void }) {
         </div>
 
         <p className="mt-4 border-l-4 border-on-surface px-3 font-label-sm text-label-sm uppercase text-on-surface-variant">
-          Authorised staff only. Admin sees scoring; staff sees the dashboard.
+          Authorised staff only.
         </p>
       </div>
     </div>
