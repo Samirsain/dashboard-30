@@ -68,7 +68,20 @@ export function doerSummaries(data) {
         doer: key,
         department: department || "",
         checklist: { total: 0, done: 0, late: 0 },
-        delegation: { total: 0, done: 0, late: 0, green: 0, yellow: 0, red: 0 },
+        delegation: {
+          total: 0,
+          done: 0,
+          late: 0,
+          green: 0,
+          yellow: 0,
+          red: 0,
+          revisions: 0,
+          completedGreen: 0,
+          completedYellow: 0,
+          completedRed: 0,
+          pendingClean: 0,
+          pendingRevised: 0
+        },
         fms: { total: 0, done: 0, late: 0 },
       });
     }
@@ -98,9 +111,22 @@ export function doerSummaries(data) {
   for (const r of data.delegation || []) {
     const rec = ensure(r.doer, r.department).delegation;
     rec.total += 1;
-    if (isDelegationDone(r)) rec.done += 1;
-    // "Late" stays a clean subset of Done: completed, but it needed revisions/rework.
-    if (isDelegationDone(r) && delegationReworked(r)) rec.late += 1;
+    
+    const done = isDelegationDone(r);
+    const revs = delegationRevisions(r);
+    rec.revisions = (rec.revisions || 0) + revs;
+
+    if (done) {
+      rec.done += 1;
+      if (revs === 0) rec.completedGreen += 1;
+      else if (revs === 1) rec.completedYellow += 1;
+      else rec.completedRed += 1;
+      if (revs > 0) rec.late += 1;
+    } else {
+      if (revs === 0) rec.pendingClean += 1;
+      else rec.pendingRevised += 1;
+    }
+
     const c = delegationColour(r);
     if (c === COLOUR.RED) rec.red += 1;
     else if (c === COLOUR.YELLOW) rec.yellow += 1;
@@ -116,6 +142,21 @@ export function doerSummaries(data) {
     const total = checklist.total + delegation.total + fms.total;
     const done = checklist.done + delegation.done + fms.done;
     const late = checklist.late + delegation.late + fms.late;
+
+    // Quality-adjusted score calculation:
+    // - Checklist On-Time = 1.0, Checklist Late = 0.5, Pending = 0
+    // - Delegation completed with 0 revisions (completedGreen) = 1.0
+    // - Delegation completed with 1 revision (completedYellow) = 0.5
+    // - Delegation completed with 2+ revisions (completedRed) = 0.0
+    // - Pending = 0.0
+    // - FMS On-Time = 1.0, FMS Late = 0.5, Pending = 0
+    const checklistPoints = (checklist.done - checklist.late) * 1.0 + checklist.late * 0.5;
+    const delegationPoints = (delegation.completedGreen || 0) * 1.0 + (delegation.completedYellow || 0) * 0.5;
+    const fmsPoints = (fms.done - fms.late) * 1.0 + fms.late * 0.5;
+
+    const points = checklistPoints + delegationPoints + fmsPoints;
+    const qualityPct = total ? Math.round((points / total) * 100) : null;
+
     return {
       ...rec,
       checklist,
@@ -125,7 +166,7 @@ export function doerSummaries(data) {
       done,
       late,
       pending: total - done,
-      pct: pct(done, total),
+      pct: qualityPct,
       checklistPct: pct(checklist.done, checklist.total),
       delegationPct: pct(delegation.done, delegation.total),
       fmsPct: pct(fms.done, fms.total),
@@ -155,6 +196,8 @@ export function orgTotals(data) {
   let dTotal = 0;
   let green = 0;
   let red = 0;
+  let totalRevisions = 0;
+
   for (const s of summaries) {
     total += s.total;
     done += s.done;
@@ -164,17 +207,30 @@ export function orgTotals(data) {
     dTotal += s.delegation.total;
     green += s.delegation.green;
     red += s.delegation.red;
+    totalRevisions += s.delegation.revisions || 0;
   }
+
+  // Quality-adjusted overall score
+  let overallPoints = 0;
+  for (const s of summaries) {
+    const checklistPoints = (s.checklist.done - s.checklist.late) * 1.0 + s.checklist.late * 0.5;
+    const delegationPoints = (s.delegation.completedGreen || 0) * 1.0 + (s.delegation.completedYellow || 0) * 0.5;
+    const fmsPoints = (s.fms.done - s.fms.late) * 1.0 + s.fms.late * 0.5;
+    overallPoints += checklistPoints + delegationPoints + fmsPoints;
+  }
+  const overallPct = total ? Math.round((overallPoints / total) * 100) : 0;
+
   return {
     total,
     done,
     late,
     pending: total - done,
-    pct: pct(done, total),
+    pct: overallPct,
     checklistDonePct: pct(cDone, cTotal),
     delegationGreenPct: pct(green, dTotal),
     redCount: red,
     doerCount: summaries.filter((s) => s.total > 0).length,
+    totalRevisions,
   };
 }
 

@@ -8,19 +8,31 @@ function initials(name: string) {
 }
 
 // Dense numeric cell: bold black for Done, red for Late, gray for Pend; empty = faded dot.
-function Cell({ value, tone }: { value: number; tone: "done" | "late" | "pend" }) {
-  if (!value) return <span className="font-mono text-data-mono text-on-surface-variant/30">·</span>;
+function Cell({ value, subValue, tone }: { value: number; subValue?: string | number; tone: "done" | "late" | "pend" }) {
+  if (!value && !subValue) return <span className="font-mono text-data-mono text-on-surface-variant/30">·</span>;
   const cls = tone === "late" ? "text-error" : tone === "pend" ? "text-on-surface-variant" : "text-on-surface";
-  return <span className={cn("font-mono text-data-mono font-bold", cls)}>{value}</span>;
+  return (
+    <span className={cn("font-mono text-data-mono font-bold", cls)}>
+      {value || 0}
+      {subValue ? <span className="text-[10px] opacity-70 font-normal ml-0.5">({subValue})</span> : null}
+    </span>
+  );
 }
 
-function Stat({ label, value, danger, striped }: { label: string; value: string | number; danger?: boolean; striped?: boolean }) {
+function Stat({ label, value, subText, danger, striped }: { label: string; value: string | number; subText?: string; danger?: boolean; striped?: boolean }) {
   return (
     <div className="glass-card relative flex h-36 flex-col justify-between overflow-hidden p-5">
       <span className={cn("font-label-sm text-label-sm uppercase", danger ? "text-error" : "text-on-surface-variant")}>{label}</span>
-      <span className={cn("font-mono text-headline-xl font-extrabold tracking-tighter tabular-nums", danger ? "text-error" : "text-on-surface")}>
-        {value}
-      </span>
+      <div>
+        <span className={cn("font-mono text-headline-xl font-extrabold tracking-tighter tabular-nums", danger ? "text-error" : "text-on-surface")}>
+          {value}
+        </span>
+        {subText && (
+          <span className="block font-mono text-xs text-on-surface-variant mt-1">
+            {subText}
+          </span>
+        )}
+      </div>
       {striped && (
         <div
           className="pointer-events-none absolute inset-0 opacity-10"
@@ -58,7 +70,7 @@ export function Scorecard({ data }: { data: any }) {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat label="Overall Score" value={pctText(totals.pct)} />
         <Stat label="Tasks Done" value={totals.done} />
-        <Stat label="Late Items" value={totals.late} />
+        <Stat label="Late / Reworked" value={totals.late} subText={`${totals.totalRevisions || 0} Total Revisions`} />
         <Stat label="Red Flags" value={totals.redCount} danger striped />
       </div>
 
@@ -80,7 +92,7 @@ export function Scorecard({ data }: { data: any }) {
               </tr>
               <tr className="border-b-2 border-on-surface bg-surface-container">
                 <Sub divide>Done</Sub><Sub>Late</Sub><Sub>Pend</Sub>
-                <Sub divide>Done</Sub><Sub>Late</Sub><Sub>Pend</Sub>
+                <Sub divide>Done</Sub><Sub title="Completed tasks with revisions (Total Revisions)">Late (Revs)</Sub><Sub>Pend</Sub>
                 <Sub divide>Done</Sub><Sub>Late</Sub><Sub>Pend</Sub>
               </tr>
             </thead>
@@ -112,7 +124,13 @@ export function Scorecard({ data }: { data: any }) {
                     <td className="px-2 py-3 text-center"><Cell value={r.checklist.late} tone="late" /></td>
                     <td className="px-2 py-3 text-center"><Cell value={r.checklist.pending} tone="pend" /></td>
                     <td className="border-l-2 border-on-surface px-2 py-3 text-center"><Cell value={r.delegation.done} tone="done" /></td>
-                    <td className="px-2 py-3 text-center"><Cell value={r.delegation.late} tone="late" /></td>
+                    <td className="px-2 py-3 text-center">
+                      <Cell 
+                        value={r.delegation.late} 
+                        subValue={r.delegation.revisions ? `${r.delegation.revisions}r` : undefined} 
+                        tone="late" 
+                      />
+                    </td>
                     <td className="px-2 py-3 text-center"><Cell value={r.delegation.pending} tone="pend" /></td>
                     <td className="border-l-2 border-on-surface px-2 py-3 text-center"><Cell value={r.fms.done} tone="done" /></td>
                     <td className="px-2 py-3 text-center"><Cell value={r.fms.late} tone="late" /></td>
@@ -136,7 +154,7 @@ export function Scorecard({ data }: { data: any }) {
       </div>
 
       <p className="border-l-4 border-on-surface px-3 py-1 font-mono text-data-mono uppercase text-on-surface-variant">
-        Score = Done % across all systems. Late = completed late / reworked. Rows under 50% flagged red.
+        Score = Quality-adjusted completion % (Clean completed = 100%, Checklist Late / 1 Revision = 50%, 2+ Revisions or Pending = 0%). Revisions count shown as (Nr) under Late (Revs).
       </p>
     </div>
   );
