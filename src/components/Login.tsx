@@ -31,7 +31,6 @@ export function Login({ onSuccess }: { onSuccess: () => void }) {
       <div className="w-full max-w-sm">
         <div className="mb-6">
           <img src={logoSvg} alt={BRAND.name} className="h-12 w-auto" />
-          <p className="mt-1.5 font-label-sm text-label-sm uppercase text-on-surface-variant">Enterprise RE MIS</p>
         </div>
 
         <div className="glass-card">

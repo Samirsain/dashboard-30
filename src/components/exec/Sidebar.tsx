@@ -50,11 +50,10 @@ function Item({
   );
 }
 
-function Brand({ subtitle }: { subtitle: string }) {
+function Brand() {
   return (
     <div className="border-b-2 border-on-surface px-5 py-4">
       <img src={logoSvg} alt={BRAND.name} className="h-10 w-auto" />
-      <p className="mt-1.5 font-label-sm text-label-sm uppercase text-on-surface-variant">{subtitle}</p>
     </div>
   );
 }
@@ -72,7 +71,7 @@ export function Sidebar({
 }) {
   return (
     <nav className="sticky top-0 z-20 hidden h-screen w-64 shrink-0 flex-col border-r-2 border-on-surface bg-surface md:flex">
-      <Brand subtitle="Enterprise RE MIS" />
+      <Brand />
       <div className="flex-1 overflow-y-auto py-3">
         {SECTIONS.map((s) => (
           <Item key={s.id} icon={s.icon} label={s.label} active={active === s.id} onClick={() => onSelect(s.id)} />
@@ -98,7 +97,7 @@ export function Sidebar({
 export function AdminSidebar({ onLogout }: { onLogout: () => void }) {
   return (
     <nav className="sticky top-0 z-20 hidden h-screen w-64 shrink-0 flex-col border-r-2 border-on-surface bg-surface md:flex">
-      <Brand subtitle="Admin Portal" />
+      <Brand />
       <div className="flex-1 py-3">
         <Item icon="leaderboard" label="Scoring" active />
         <Item icon="dashboard" label="Public Dashboard" href="/" />
