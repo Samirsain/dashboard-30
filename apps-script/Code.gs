@@ -80,6 +80,104 @@ function doGet(e) {
   }
 }
 
+// ---- Write: add a task (doPost) --------------------------------------------
+// The dashboard's "Add Task" form POSTs JSON here. We append one row to the
+// correct sheet/tab, mapping values to columns by their header name (so column
+// order or extra columns don't matter). A shared token blocks casual abuse.
+var WRITE_TOKEN = "TM30-WRITE"; // must match WRITE_TOKEN in src/lib/config.js
+
+function doPost(e) {
+  try {
+    var body = {};
+    if (e && e.postData && e.postData.contents) body = JSON.parse(e.postData.contents);
+
+    if (WRITE_TOKEN && String(body.token) !== WRITE_TOKEN) {
+      return json({ ok: false, error: "Unauthorized" });
+    }
+
+    var system = String(body.system || "tasklist").toLowerCase();
+    var task = trim(body.task);
+    var doer = trim(body.doer);
+    if (!task) return json({ ok: false, error: "Task description is required." });
+    if (!doer) return json({ ok: false, error: "Please choose who the task is for." });
+
+    var id = trim(body.taskId) || genId();
+    var iso = body.date ? toISODate(body.date) : toISODate(new Date());
+    var dateVal = isoToDate(iso); // real Date so the sheet stores a date cell
+
+    if (system === "checklist") {
+      var cs = openOrNull(SHEET_IDS.checklist);
+      if (!cs) return json({ ok: false, error: "Checklist sheet not configured." });
+      appendByHeaders(cs, ["Task ID", "Planned", "Actual", "Status", "Task"], {
+        "Task ID": id,
+        "Name": doer,
+        "Department": trim(body.department),
+        "Freq": freqCode(body.frequency),
+        "Task": task,
+        "Planned": dateVal,
+        "Actual": "",
+        "Status": "Pending",
+      });
+    } else {
+      var ds = openOrNull(SHEET_IDS.delegation);
+      if (!ds) return json({ ok: false, error: "Task List sheet not configured." });
+      appendByHeaders(ds, ["Task ID", "Total Revisions", "Status", "First Date"], {
+        "Task ID": id,
+        "Name": doer,
+        "Task": task,
+        "First Date": dateVal,
+        "Total Revisions": 0,
+        "Latest Revision": "",
+        "Status": "Pending",
+        "Priority": trim(body.priority),
+      });
+    }
+
+    return json({ ok: true, taskId: id });
+  } catch (err) {
+    return json({ ok: false, error: "Server error: " + (err && err.message ? err.message : err) });
+  }
+}
+
+// Append a row to the tab that has requiredHeaders, placing each value under the
+// column whose header matches its key (unmapped columns stay blank).
+function appendByHeaders(ss, requiredHeaders, valuesByHeader) {
+  var sheets = ss.getSheets();
+  for (var s = 0; s < sheets.length; s++) {
+    var sheet = sheets[s];
+    var lastRow = sheet.getLastRow();
+    var lastCol = sheet.getLastColumn();
+    if (lastRow < 1 || lastCol < 1) continue;
+    var head = sheet.getRange(1, 1, Math.min(lastRow, 8), lastCol).getValues();
+    var headerRowIdx = findHeaderRow(head, requiredHeaders);
+    if (headerRowIdx === -1) continue;
+    var headers = head[headerRowIdx].map(trim);
+    var row = [];
+    for (var c = 0; c < lastCol; c++) {
+      var h = headers[c];
+      row.push(h && valuesByHeader.hasOwnProperty(h) ? valuesByHeader[h] : "");
+    }
+    sheet.getRange(lastRow + 1, 1, 1, lastCol).setValues([row]);
+    return true;
+  }
+  throw new Error('No tab has headers: ' + requiredHeaders.join(", "));
+}
+
+function genId() { return "t" + Math.random().toString(36).slice(2, 9); }
+
+function freqCode(v) {
+  var s = trim(v).toUpperCase();
+  if (s === "DAILY" || s === "D") return "D";
+  if (s === "WEEKLY" || s === "W") return "W";
+  if (s === "MONTHLY" || s === "M") return "M";
+  return ""; // One-time / blank
+}
+
+function isoToDate(iso) {
+  var m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date();
+}
+
 // Weeks (Sunday-start) spanning the data, newest first — drives the selector.
 function buildWeeks(checklist, delegation) {
   var dates = [];

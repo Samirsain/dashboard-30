@@ -8,6 +8,7 @@ import { Topbar } from "@/components/exec/Topbar";
 import { Overview } from "@/components/exec/Overview";
 import { Scorecard } from "@/components/exec/Scorecard";
 import { TaskDirectory } from "@/components/exec/TaskDirectory";
+import { AddTaskModal } from "@/components/exec/AddTaskModal";
 import { Icon } from "@/components/exec/Icon";
 
 function onAdminRoute(): boolean {
@@ -77,8 +78,11 @@ function PublicApp({ role, doerName, onLogout }: { role: Role; doerName: string 
   const [section, setSection] = React.useState<string>("dashboard");
   const [week, setWeek] = React.useState<string>("all");
   const [reloadToken, setReloadToken] = React.useState(0);
+  const [showAdd, setShowAdd] = React.useState(false);
   const { loading, data, source, error } = useAllData(reloadToken);
   const isAdmin = role === "admin";
+  // Add Task is available to admin and the PC (coordinator) account.
+  const canAdd = isAdmin || (doerName || "").trim().toUpperCase() === "PC";
 
   // When a staff member is logged in, scope the data to their own tasks only.
   const staffData = React.useMemo(() => filterByDoer(data, doerName), [data, doerName]);
@@ -98,7 +102,15 @@ function PublicApp({ role, doerName, onLogout }: { role: Role; doerName: string 
     <div className="flex h-screen overflow-hidden bg-surface text-on-surface antialiased">
       <Sidebar active={section} onSelect={setSection} showAdmin={isAdmin} onLogout={onLogout} />
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-        <Topbar sectionLabel={sectionLabel} weeks={weeks} weekKey={week} onWeekChange={setWeek} source={source} onLogout={onLogout} />
+        <Topbar
+          sectionLabel={sectionLabel}
+          weeks={weeks}
+          weekKey={week}
+          onWeekChange={setWeek}
+          source={source}
+          onLogout={onLogout}
+          onAddTask={canAdd ? () => setShowAdd(true) : undefined}
+        />
         <MobileSectionTabs active={section} onSelect={setSection} showAdmin={isAdmin} />
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-24 sm:p-6">
           <div className="mx-auto min-w-0 max-w-[1440px]">
@@ -109,6 +121,13 @@ function PublicApp({ role, doerName, onLogout }: { role: Role; doerName: string 
           </div>
         </main>
       </div>
+      {showAdd && (
+        <AddTaskModal
+          doers={data?.doers || []}
+          onClose={() => setShowAdd(false)}
+          onAdded={() => setReloadToken((t) => t + 1)}
+        />
+      )}
     </div>
   );
 }
@@ -117,6 +136,7 @@ function PublicApp({ role, doerName, onLogout }: { role: Role; doerName: string 
 function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [week, setWeek] = React.useState<string>("all");
   const [reloadToken, setReloadToken] = React.useState(0);
+  const [showAdd, setShowAdd] = React.useState(false);
   const { loading, data, source, error } = useAllData(reloadToken);
 
   const weeks = weekOptions(data);
@@ -126,7 +146,15 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     <div className="flex h-screen overflow-hidden bg-surface text-on-surface antialiased">
       <AdminSidebar onLogout={onLogout} />
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-        <Topbar sectionLabel="Scoring" weeks={weeks} weekKey={week} onWeekChange={setWeek} source={source} onLogout={onLogout} />
+        <Topbar
+          sectionLabel="Scoring"
+          weeks={weeks}
+          weekKey={week}
+          onWeekChange={setWeek}
+          source={source}
+          onLogout={onLogout}
+          onAddTask={() => setShowAdd(true)}
+        />
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-24 sm:p-6">
           <div className="mx-auto min-w-0 max-w-[1440px]">
             {loading ? (
@@ -144,6 +172,13 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
           </div>
         </main>
       </div>
+      {showAdd && (
+        <AddTaskModal
+          doers={data?.doers || []}
+          onClose={() => setShowAdd(false)}
+          onAdded={() => setReloadToken((t) => t + 1)}
+        />
+      )}
     </div>
   );
 }

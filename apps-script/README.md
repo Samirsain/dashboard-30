@@ -44,6 +44,29 @@ You should get JSON with `doers`, `checklist`, `delegation`. Week param:
 `?week=YYYY-MM-DD` (the **Sunday** that starts the week) or
 `?from=YYYY-MM-DD&to=YYYY-MM-DD`; omit to get the current week.
 
+## Add Task (write) — `doPost`
+
+The dashboard's **Add Task** button (admin + PC only) POSTs JSON here and the
+script appends one row to the right sheet/tab, mapping values to columns by
+header name:
+
+```jsonc
+{ "token": "TM30-WRITE", "system": "tasklist",   // or "checklist"
+  "task": "…", "doer": "SAMIR", "priority": "High", "date": "2026-06-27" }
+```
+
+- `token` must equal `WRITE_TOKEN` in both `Code.gs` and
+  [`src/lib/config.js`](../src/lib/config.js) — change both if you rotate it.
+- New rows are written with **Status = Pending**, `Total Revisions = 0`, a
+  generated `Task ID`, and the date as a real date cell.
+- `system: "tasklist"` → TASKLIST sheet; `system: "checklist"` → CHECKLIST
+  `Master` tab (also writes Department + Freq).
+
+> **After pulling this update you MUST redeploy** so the live URL gains
+> `doPost`: **Manage deployments → edit (pencil) → Version: New version →
+> Deploy**. The `/exec` URL stays the same. Until you redeploy, the button will
+> show an error because the old deployment has no `doPost`.
+
 ## Adding FMS later
 
 Set `SHEET_IDS.fms` to the FMS sheet's ID and fill in the column mapping inside

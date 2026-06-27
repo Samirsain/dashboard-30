@@ -4,7 +4,7 @@
 // This makes older weeks and the "All weeks" view instant (no re-fetch).
 // =============================================================================
 
-import { APPS_SCRIPT_URL, USE_SAMPLE_DATA_FALLBACK, EXCLUDED_DOERS } from "./config.js";
+import { APPS_SCRIPT_URL, USE_SAMPLE_DATA_FALLBACK, EXCLUDED_DOERS, WRITE_TOKEN } from "./config.js";
 import { getAllSampleData } from "./sample-data.js";
 
 export const ALL_WEEKS = { key: "all", label: "All weeks", from: "", to: "" };
@@ -53,6 +53,33 @@ export async function loadData() {
     }
     return { data: null, source: "live", error: { message: `Could not reach data source: ${err.message}` } };
   }
+}
+
+// Add a task by POSTing to the Apps Script doPost handler. Uses a "simple"
+// text/plain request so the browser skips the CORS preflight (Apps Script can't
+// answer preflight) — same cross-origin path the GET already uses successfully.
+// payload: { system: "tasklist"|"checklist", task, doer, priority?, frequency?, department?, date? }
+export async function addTask(payload) {
+  if (!APPS_SCRIPT_URL) {
+    return { ok: false, error: "Sample mode — no live sheet connected to write to." };
+  }
+  const body = JSON.stringify({ token: WRITE_TOKEN, ...payload });
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    redirect: "follow",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body,
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  let out;
+  try {
+    out = JSON.parse(text);
+  } catch {
+    out = { ok: true }; // unreadable (opaque) response — assume the write landed
+  }
+  if (out && out.ok === false) throw new Error(out.error || "Could not add the task.");
+  return out || { ok: true };
 }
 
 function normalize(payload) {

@@ -18,6 +18,11 @@
 export const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwBIiyG9au2CbiIfyaYTqTpktMj9_e_maQiA3BSYA_fNLUFnnRPWjO0UlUsJfDrca-s/exec";
 export const USE_SAMPLE_DATA_FALLBACK = true;
 
+// Shared secret for the "Add Task" write endpoint (doPost in Code.gs). Must match
+// WRITE_TOKEN in apps-script/Code.gs. Basic abuse guard only — same client-side
+// posture as the login gate (not bank-grade, but blocks casual writes).
+export const WRITE_TOKEN = "TM30-WRITE";
+
 // Doers who have left the team — hidden everywhere (dashboard + scoring).
 // Canonical UPPERCASE names; matching is case-insensitive. "SAHIL" also covers
 // "SAHIL SIR" via the alias map. Add/remove a name here to update the whole app.
