@@ -2,7 +2,7 @@ import * as React from "react";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { loadData, weekOptions, filterByWeek, filterByDoer } from "@/lib/data";
 import { Login } from "@/components/Login";
-import { isAuthed, currentRole, currentDoerName, logout, type Role } from "@/lib/auth";
+import { isAuthed, currentRole, currentDoerName, currentCanAdd, logout, type Role } from "@/lib/auth";
 import { Sidebar, AdminSidebar, MobileSectionTabs, SECTIONS } from "@/components/exec/Sidebar";
 import { Topbar } from "@/components/exec/Topbar";
 import { Overview } from "@/components/exec/Overview";
@@ -74,15 +74,13 @@ function ComingSoon({ title, note }: { title: string; note: string }) {
 }
 
 // ---- Public Executive dashboard (/) ----------------------------------------
-function PublicApp({ role, doerName, onLogout }: { role: Role; doerName: string | null; onLogout: () => void }) {
+function PublicApp({ role, doerName, canAdd, onLogout }: { role: Role; doerName: string | null; canAdd: boolean; onLogout: () => void }) {
   const [section, setSection] = React.useState<string>("dashboard");
   const [week, setWeek] = React.useState<string>("all");
   const [reloadToken, setReloadToken] = React.useState(0);
   const [showAdd, setShowAdd] = React.useState(false);
   const { loading, data, source, error } = useAllData(reloadToken);
   const isAdmin = role === "admin";
-  // Add Task is available to admin and the PC (coordinator) account.
-  const canAdd = isAdmin || (doerName || "").trim().toUpperCase() === "PC";
 
   // When a staff member is logged in, scope the data to their own tasks only.
   const staffData = React.useMemo(() => filterByDoer(data, doerName), [data, doerName]);
@@ -191,12 +189,13 @@ export default function App() {
 
   const role = currentRole() ?? "staff";
   const doerName = currentDoerName();
+  const canAdd = currentCanAdd();
   const onLogout = () => {
     logout();
     setAuthed(false);
   };
 
-  // Only the admin can open the Scoring panel; staff is sent to the dashboard.
+  // Only the admin can open the Scoring panel; everyone else → the dashboard.
   if (onAdminRoute()) {
     if (role !== "admin") {
       try {
@@ -204,9 +203,9 @@ export default function App() {
       } catch {
         /* ignore */
       }
-      return <PublicApp role={role} doerName={doerName} onLogout={onLogout} />;
+      return <PublicApp role={role} doerName={doerName} canAdd={canAdd} onLogout={onLogout} />;
     }
     return <AdminPanel onLogout={onLogout} />;
   }
-  return <PublicApp role={role} doerName={doerName} onLogout={onLogout} />;
+  return <PublicApp role={role} doerName={doerName} canAdd={canAdd} onLogout={onLogout} />;
 }
