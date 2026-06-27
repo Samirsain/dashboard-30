@@ -13,10 +13,10 @@ function addDaysISO(iso: string, n: number) {
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  Completed: "bg-primary-container text-on-primary border-2 border-primary-container",
-  Late: "bg-error text-on-error border-2 border-error",
-  Pending: "bg-transparent text-on-surface border-2 border-on-surface",
-  "Week Shifted": "bg-surface-container border-2 border-on-surface text-on-surface",
+  Completed: "bg-primary-container text-on-primary border border-primary-container",
+  Late: "bg-error text-on-error border border-error",
+  Pending: "bg-transparent text-on-surface border border-on-surface",
+  "Week Shifted": "bg-surface-container border border-on-surface text-on-surface",
 };
 
 // Tasks that can still be actioned (Done / Revise)
@@ -223,7 +223,7 @@ export function TaskDirectory({
               </th>
               <th className={cn("border-r border-outline-variant px-3 py-3 font-label-sm text-label-sm uppercase text-on-surface", todayOnly ? "hidden" : "hidden xl:table-cell")}>Due</th>
               <th className="hidden border-r border-outline-variant px-3 py-3 font-label-sm text-label-sm uppercase text-on-surface lg:table-cell">Actual</th>
-              <th className="px-3 py-3 text-center font-label-sm text-label-sm uppercase text-on-surface">Status</th>
+              <th className="px-3 py-3 text-center font-label-sm text-label-sm uppercase text-on-surface w-36 min-w-[130px]">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -269,29 +269,27 @@ export function TaskDirectory({
                   </td>
                   <td className={cn("whitespace-nowrap border-r border-outline-variant px-3 py-3 font-mono text-data-mono text-on-surface-variant", todayOnly ? "hidden" : "hidden xl:table-cell")}>{fmtDate(t.due) || "—"}</td>
                   <td className="hidden whitespace-nowrap border-r border-outline-variant px-3 py-3 font-mono text-data-mono text-on-surface-variant lg:table-cell">{fmtDate(t.actual) || "—"}</td>
-                  <td className="px-3 py-3 text-center">
+                  <td className="px-3 py-3 text-center w-36 min-w-[130px]">
                     <div className="flex flex-col items-center gap-1.5">
-                      <span className={cn("inline-block whitespace-nowrap px-2.5 py-1 font-label-sm text-label-sm uppercase", STATUS_STYLE[t.status] || "border border-on-surface text-on-surface")}>{t.status}</span>
+                      <span className={cn("inline-block whitespace-nowrap px-2.5 py-0.5 font-label-sm text-label-sm uppercase", STATUS_STYLE[t.status] || "border border-on-surface text-on-surface")}>{t.status}</span>
                       {isActionable(t.status) && onChanged && (
-                        <div className="flex flex-wrap items-center justify-center gap-1">
+                        <div className="flex items-center justify-center gap-1.5 mt-0.5">
                           <button
                             onClick={() => markDone(t)}
                             disabled={busyId === t.id}
-                            className="inline-flex items-center gap-1 whitespace-nowrap border-2 border-primary-container bg-primary-container px-2 py-0.5 font-label-sm text-label-sm uppercase text-on-primary transition-opacity hover:opacity-80 disabled:opacity-50"
+                            className="h-7 w-7 inline-flex items-center justify-center border border-on-surface bg-white text-on-surface hover:bg-on-surface hover:text-on-primary transition-colors disabled:opacity-50"
                             title="Mark this task done"
                           >
                             <Icon name={busyId === t.id ? "progress_activity" : "check"} className={cn("text-[14px]", busyId === t.id && "animate-spin")} />
-                            {busyId === t.id ? "…" : "Done"}
                           </button>
                           {t.source === "Task List" && (
                             <button
                               onClick={() => setRevising(t)}
                               disabled={busyId === t.id}
-                              className="inline-flex items-center gap-1 whitespace-nowrap border-2 border-on-surface bg-transparent px-2 py-0.5 font-label-sm text-label-sm uppercase text-on-surface transition-colors hover:bg-on-surface hover:text-on-primary disabled:opacity-50"
+                              className="h-7 w-7 inline-flex items-center justify-center border border-on-surface bg-white text-on-surface hover:bg-on-surface hover:text-on-primary transition-colors disabled:opacity-50"
                               title="Reschedule this task"
                             >
                               <Icon name="event_repeat" className="text-[14px]" />
-                              Revise
                             </button>
                           )}
                         </div>
