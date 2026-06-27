@@ -46,7 +46,9 @@ export function unifyTasks(data) {
       priority: r.priority || "",
       frequency: "",
       created: r.firstDate || "",
-      due: r.firstDate || "",
+      // A pending task that was revised shows under its latest (revised) date so
+      // it moves forward in Today's Followup; done tasks keep their original due.
+      due: (done ? r.firstDate : r.latestRevision || r.firstDate) || "",
       actual: done ? r.latestRevision || "" : "",
       status,
       red: delegationColour(r) === "Red",

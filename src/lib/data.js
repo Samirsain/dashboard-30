@@ -117,6 +117,41 @@ export async function completeTask(task) {
   return out || { ok: true };
 }
 
+// Reschedule a pending task to a new date (newDateISO = "YYYY-MM-DD").
+// Task List → revision count +1, Latest Revision = new date; Checklist → Planned moves.
+export async function reviseTask(task, newDateISO) {
+  if (!APPS_SCRIPT_URL) {
+    return { ok: false, error: "Sample mode — no live sheet connected to write to." };
+  }
+  const generated = /^(CL|TL)-\d+$/.test(String(task.id || ""));
+  const body = JSON.stringify({
+    token: WRITE_TOKEN,
+    action: "revise",
+    system: task.source === "Checklist" ? "checklist" : "tasklist",
+    taskId: generated ? "" : task.id,
+    doer: task.doer,
+    task: task.task,
+    date: task.due || task.created || "",
+    newDate: newDateISO,
+  });
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    redirect: "follow",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body,
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  let out;
+  try {
+    out = JSON.parse(text);
+  } catch {
+    out = { ok: true };
+  }
+  if (out && out.ok === false) throw new Error(out.error || "Could not revise the task.");
+  return out || { ok: true };
+}
+
 function normalize(payload) {
   return {
     doers: payload.doers || [],

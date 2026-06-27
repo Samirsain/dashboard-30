@@ -97,6 +97,7 @@ function doPost(e) {
 
     var action = String(body.action || "add").toLowerCase();
     if (action === "complete") return completeTask(body);
+    if (action === "revise") return reviseTask(body);
     return addTaskRow(body);
   } catch (err) {
     return json({ ok: false, error: "Server error: " + (err && err.message ? err.message : err) });
@@ -177,8 +178,45 @@ function completeTask(body) {
   return ok ? json({ ok: true }) : json({ ok: false, error: "Task row not found to mark done." });
 }
 
+// Reschedule a pending task to a new date. Task List → bumps "Latest Revision"
+// to the new date and increments "Total Revisions"; Checklist → moves "Planned".
+// Status stays as-is (still pending).
+function reviseTask(body) {
+  var system = String(body.system || "tasklist").toLowerCase();
+  var newIso = body.newDate ? toISODate(body.newDate) : "";
+  if (!newIso) return json({ ok: false, error: "New date is required to revise." });
+  var newDateVal = isoToDate(newIso);
+
+  var matcher = {
+    taskId: trim(body.taskId),
+    doer: canonical(body.doer),
+    task: trim(body.task),
+    dateVal: body.date ? toISODate(body.date) : "",
+  };
+
+  var ss, headers, setVals, incHeaders;
+  if (system === "checklist") {
+    ss = openOrNull(SHEET_IDS.checklist);
+    headers = ["Task ID", "Planned", "Actual", "Status", "Task"];
+    matcher.dateField = "Planned";
+    setVals = { "Planned": newDateVal };
+    incHeaders = [];
+  } else {
+    ss = openOrNull(SHEET_IDS.delegation);
+    headers = ["Task ID", "Total Revisions", "Status", "First Date"];
+    matcher.dateField = "First Date";
+    setVals = { "Latest Revision": newDateVal };
+    incHeaders = ["Total Revisions"];
+  }
+  if (!ss) return json({ ok: false, error: "Sheet not configured." });
+
+  var ok = updateRow(ss, headers, matcher, setVals, incHeaders);
+  return ok ? json({ ok: true }) : json({ ok: false, error: "Task row not found to revise." });
+}
+
 // Find a row (by Task ID, else by Name+Task+date) and set the given columns.
-function updateRow(ss, requiredHeaders, matcher, valuesByHeader) {
+// Headers listed in incrementHeaders get their numeric value bumped by 1.
+function updateRow(ss, requiredHeaders, matcher, valuesByHeader, incrementHeaders) {
   var sheets = ss.getSheets();
   for (var s = 0; s < sheets.length; s++) {
     var sheet = sheets[s];
@@ -212,7 +250,13 @@ function updateRow(ss, requiredHeaders, matcher, valuesByHeader) {
 
     for (var c = 0; c < headers.length; c++) {
       var h = headers[c];
-      if (h && valuesByHeader.hasOwnProperty(h)) sheet.getRange(foundRow + 1, c + 1).setValue(valuesByHeader[h]);
+      if (!h) continue;
+      if (valuesByHeader.hasOwnProperty(h)) {
+        sheet.getRange(foundRow + 1, c + 1).setValue(valuesByHeader[h]);
+      }
+      if (incrementHeaders && incrementHeaders.indexOf(h) !== -1) {
+        sheet.getRange(foundRow + 1, c + 1).setValue(toInt(values[foundRow][c]) + 1);
+      }
     }
     return true;
   }

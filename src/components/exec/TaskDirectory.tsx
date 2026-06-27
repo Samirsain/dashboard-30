@@ -3,7 +3,14 @@ import { Icon } from "./Icon";
 import { cn } from "@/lib/utils";
 import { fmtDate } from "@/lib/format";
 import { unifyTasks, todayISO } from "@/lib/analytics";
-import { completeTask } from "@/lib/data";
+import { completeTask, reviseTask } from "@/lib/data";
+
+// Add n days to an ISO date string ("YYYY-MM-DD"), returning ISO.
+function addDaysISO(iso: string, n: number) {
+  const [y, m, d] = String(iso || todayISO()).split("-").map(Number);
+  const dt = new Date(y, (m || 1) - 1, (d || 1) + n);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+}
 
 const STATUS_STYLE: Record<string, string> = {
   Completed: "bg-primary-container text-on-primary border-2 border-primary-container",
@@ -90,6 +97,7 @@ export function TaskDirectory({
   const [page, setPage] = React.useState(1);
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState("");
+  const [revising, setRevising] = React.useState<any | null>(null);
 
   async function markDone(t: any) {
     if (busyId) return;
@@ -101,6 +109,20 @@ export function TaskDirectory({
       onChanged && onChanged();
     } catch (e: any) {
       setActionError(e?.message || "Could not mark the task done. Try again.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function doRevise(t: any, newDate: string) {
+    setBusyId(t.id);
+    setActionError("");
+    try {
+      await reviseTask(t, newDate);
+      setRevising(null);
+      onChanged && onChanged();
+    } catch (e: any) {
+      setActionError(e?.message || "Could not revise the task. Try again.");
     } finally {
       setBusyId(null);
     }
@@ -247,15 +269,26 @@ export function TaskDirectory({
                     <div className="flex flex-col items-center gap-1.5">
                       <span className={cn("inline-block whitespace-nowrap px-2.5 py-1 font-label-sm text-label-sm uppercase", STATUS_STYLE[t.status])}>{t.status}</span>
                       {t.status === "Pending" && onChanged && (
-                        <button
-                          onClick={() => markDone(t)}
-                          disabled={busyId === t.id}
-                          className="inline-flex items-center gap-1 whitespace-nowrap border-2 border-primary-container bg-primary-container px-2 py-0.5 font-label-sm text-label-sm uppercase text-on-primary transition-opacity hover:opacity-80 disabled:opacity-50"
-                          title="Mark this task done"
-                        >
-                          <Icon name={busyId === t.id ? "progress_activity" : "check"} className={cn("text-[14px]", busyId === t.id && "animate-spin")} />
-                          {busyId === t.id ? "Saving" : "Done"}
-                        </button>
+                        <div className="flex flex-wrap items-center justify-center gap-1">
+                          <button
+                            onClick={() => markDone(t)}
+                            disabled={busyId === t.id}
+                            className="inline-flex items-center gap-1 whitespace-nowrap border-2 border-primary-container bg-primary-container px-2 py-0.5 font-label-sm text-label-sm uppercase text-on-primary transition-opacity hover:opacity-80 disabled:opacity-50"
+                            title="Mark this task done"
+                          >
+                            <Icon name={busyId === t.id ? "progress_activity" : "check"} className={cn("text-[14px]", busyId === t.id && "animate-spin")} />
+                            {busyId === t.id ? "…" : "Done"}
+                          </button>
+                          <button
+                            onClick={() => setRevising(t)}
+                            disabled={busyId === t.id}
+                            className="inline-flex items-center gap-1 whitespace-nowrap border-2 border-on-surface bg-transparent px-2 py-0.5 font-label-sm text-label-sm uppercase text-on-surface transition-colors hover:bg-on-surface hover:text-on-primary disabled:opacity-50"
+                            title="Reschedule this task"
+                          >
+                            <Icon name="event_repeat" className="text-[14px]" />
+                            Revise
+                          </button>
+                        </div>
                       )}
                     </div>
                   </td>
@@ -292,6 +325,121 @@ export function TaskDirectory({
             <PageBtn disabled={clampedPage >= totalPages} onClick={() => setPage(clampedPage + 1)}>
               Next
             </PageBtn>
+          </div>
+        </div>
+      </div>
+
+      {revising && (
+        <ReviseModal
+          task={revising}
+          busy={busyId === revising.id}
+          onClose={() => setRevising(null)}
+          onConfirm={(newDate) => doRevise(revising, newDate)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Small date-picker modal for rescheduling a pending task.
+function ReviseModal({
+  task,
+  busy,
+  onClose,
+  onConfirm,
+}: {
+  task: any;
+  busy: boolean;
+  onClose: () => void;
+  onConfirm: (newDate: string) => void;
+}) {
+  const base = String(task.due || task.created || todayISO());
+  const [date, setDate] = React.useState(addDaysISO(base, 1));
+
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const quick = [
+    { label: "Tomorrow", iso: addDaysISO(base, 1) },
+    { label: "+2 Days", iso: addDaysISO(base, 2) },
+    { label: "Next Week", iso: addDaysISO(base, 7) },
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-on-surface/40 p-0 sm:items-center sm:p-4"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="glass-card w-full max-w-md">
+        <div className="flex items-center justify-between gap-3 border-b-2 border-on-surface bg-surface-container-low px-5 py-4">
+          <div className="flex items-center gap-2">
+            <Icon name="event_repeat" className="text-[22px] text-on-surface" />
+            <h3 className="font-headline-md text-headline-md uppercase tracking-tight text-on-surface">Revise Date</h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="grid h-8 w-8 place-items-center border-2 border-on-surface text-on-surface transition-colors hover:bg-on-surface hover:text-on-primary"
+            aria-label="Close"
+          >
+            <Icon name="close" className="text-[18px]" />
+          </button>
+        </div>
+
+        <div className="space-y-4 p-5">
+          <p className="border-l-4 border-on-surface pl-3 text-body-md font-medium text-on-surface" title={task.task}>
+            {task.task}
+          </p>
+          <p className="font-mono text-data-mono uppercase text-on-surface-variant">
+            Current date: {fmtDate(base) || "—"}
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            {quick.map((q) => (
+              <button
+                key={q.label}
+                type="button"
+                onClick={() => setDate(q.iso)}
+                className={cn(
+                  "border-2 px-3 py-1.5 font-label-sm text-label-sm uppercase transition-colors",
+                  date === q.iso ? "border-on-surface bg-on-surface text-on-primary" : "border-on-surface bg-surface-container-lowest text-on-surface hover:bg-surface-container"
+                )}
+              >
+                {q.label}
+              </button>
+            ))}
+          </div>
+
+          <label className="block">
+            <span className="mb-1.5 block font-label-sm text-label-sm uppercase text-on-surface-variant">Or pick a date</span>
+            <input
+              type="date"
+              value={date}
+              min={todayISO()}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full border-2 border-on-surface bg-surface-container-lowest px-3 py-2.5 font-mono text-data-mono uppercase text-on-surface outline-none focus:bg-surface-container-low"
+            />
+          </label>
+
+          <div className="flex items-center justify-end gap-2 border-t-2 border-on-surface pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="border-2 border-on-surface px-4 py-2.5 font-label-sm text-label-sm uppercase text-on-surface transition-colors hover:bg-surface-container"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={busy || !date}
+              onClick={() => onConfirm(date)}
+              className="inline-flex items-center gap-2 border-2 border-on-surface bg-on-surface px-5 py-2.5 font-label-sm text-label-sm uppercase text-on-primary transition-colors hover:bg-surface hover:text-on-surface disabled:opacity-50"
+            >
+              <Icon name={busy ? "progress_activity" : "event_available"} className={cn("text-[18px]", busy && "animate-spin")} />
+              {busy ? "Saving…" : "Shift Task"}
+            </button>
           </div>
         </div>
       </div>

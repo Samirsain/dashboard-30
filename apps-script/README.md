@@ -73,6 +73,18 @@ The row is located by **Task ID** (or, if a checklist row has none, by
 `Name`+`Task`+date). It then sets **Status = Done** + `Actual` (checklist) /
 **Status = Completed** + `Latest Revision` (tasklist) to today's date.
 
+**Revise** (reschedule a pending task) uses `action: "revise"` with a `newDate`:
+
+```jsonc
+{ "token": "TM30-WRITE", "action": "revise", "system": "tasklist",
+  "taskId": "abc123", "doer": "SAMIR", "task": "…",
+  "date": "2026-06-27", "newDate": "2026-06-28" }
+```
+
+Task List → `Latest Revision` = newDate and **Total Revisions +1** (still
+Pending); Checklist → `Planned` moves to newDate. The dashboard then shows the
+task under its new date.
+
 > **After pulling this update you MUST redeploy** so the live URL gains
 > `doPost`: **Manage deployments → edit (pencil) → Version: New version →
 > Deploy**. The `/exec` URL stays the same. Until you redeploy, the button will
