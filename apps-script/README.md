@@ -61,6 +61,9 @@ header name:
   generated `Task ID`, and the date as a real date cell.
 - `system: "tasklist"` → TASKLIST sheet; `system: "checklist"` → CHECKLIST
   `Master` tab (also writes Department + Freq).
+- The doer's **phone Number, Email and Department** are looked up from the Doer
+  Lists and written automatically (only into columns that exist), so the
+  existing Task List tool's reminders also fire on dashboard-added tasks.
 
 **Mark Done** uses the same endpoint with `action: "complete"`:
 

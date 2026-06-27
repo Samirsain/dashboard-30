@@ -116,13 +116,21 @@ function addTaskRow(body) {
   var iso = body.date ? toISODate(body.date) : toISODate(new Date());
   var dateVal = isoToDate(iso); // real Date so the sheet stores a date cell
 
+  // Pull the doer's phone + email from the Doer List so the existing Task List
+  // tool's reminders fire on dashboard-added tasks too (columns filled only if
+  // the target tab actually has "Number" / "Email").
+  var contact = lookupDoerContact(doer);
+
   if (system === "checklist") {
     var cs = openOrNull(SHEET_IDS.checklist);
     if (!cs) return json({ ok: false, error: "Checklist sheet not configured." });
     appendByHeaders(cs, ["Task ID", "Planned", "Actual", "Status", "Task"], {
       "Task ID": id,
       "Name": doer,
-      "Department": trim(body.department),
+      "Number": contact.number,
+      "Email": contact.email,
+      "Email Address": contact.email,
+      "Department": trim(body.department) || contact.department,
       "Freq": freqCode(body.frequency),
       "Task": task,
       "Planned": dateVal,
@@ -135,6 +143,9 @@ function addTaskRow(body) {
     appendByHeaders(ds, ["Task ID", "Total Revisions", "Status", "First Date"], {
       "Task ID": id,
       "Name": doer,
+      "Number": contact.number,
+      "Email": contact.email,
+      "Email Address": contact.email,
       "Task": task,
       "First Date": dateVal,
       "Total Revisions": 0,
@@ -145,6 +156,40 @@ function addTaskRow(body) {
   }
 
   return json({ ok: true, taskId: id });
+}
+
+// Look up a doer's phone number, email and department from the Doer Lists.
+// TASKLIST Doer List has Name+Number(+Email); CHECKLIST has Name+Department+Email.
+function lookupDoerContact(doerName) {
+  var out = { number: "", email: "", department: "" };
+  var canon = canonical(doerName);
+  if (!canon) return out;
+
+  // Phone + email come from the TASKLIST Doer List (Name + Number).
+  var ds = openOrNull(SHEET_IDS.delegation);
+  if (ds) {
+    var rows = tryReadTable(ds, ["Name", "Number"]);
+    for (var i = 0; i < rows.length; i++) {
+      if (canonical(rows[i]["Name"]) === canon) {
+        out.number = trim(rows[i]["Number"]);
+        out.email = trim(rows[i]["Email"]) || trim(rows[i]["Email Address"]);
+        break;
+      }
+    }
+  }
+  // Department (and a fallback email) come from the CHECKLIST Doer List.
+  var cs = openOrNull(SHEET_IDS.checklist);
+  if (cs) {
+    var rows2 = tryReadTable(cs, ["Name", "Email Address"]);
+    for (var j = 0; j < rows2.length; j++) {
+      if (canonical(rows2[j]["Name"]) === canon) {
+        out.department = trim(rows2[j]["Department"]);
+        if (!out.email) out.email = trim(rows2[j]["Email Address"]) || trim(rows2[j]["Email"]);
+        break;
+      }
+    }
+  }
+  return out;
 }
 
 // Mark an existing task complete. Finds the row by Task ID; if that's missing
