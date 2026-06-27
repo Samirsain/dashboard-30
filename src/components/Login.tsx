@@ -2,6 +2,7 @@ import * as React from "react";
 import { Lock, User, Loader2, Eye, EyeOff } from "lucide-react";
 import { BRAND } from "@/lib/config";
 import { verifyCredentials, setSession } from "@/lib/auth";
+import logoSvg from "@/assets/logo.svg";
 
 export function Login({ onSuccess }: { onSuccess: () => void }) {
   const [username, setUsername] = React.useState("");
@@ -28,14 +29,9 @@ export function Login({ onSuccess }: { onSuccess: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface px-4 py-8">
       <div className="w-full max-w-sm">
-        <div className="mb-6 flex items-center gap-3">
-          <span className="grid h-12 w-12 shrink-0 place-items-center border-2 border-on-surface bg-on-surface font-mono text-lg font-bold text-on-primary">
-            30
-          </span>
-          <div className="leading-tight">
-            <h1 className="font-headline-md text-headline-md font-bold uppercase tracking-tighter text-on-surface">{BRAND.name}</h1>
-            <p className="font-label-sm text-label-sm uppercase text-on-surface-variant">Enterprise RE MIS</p>
-          </div>
+        <div className="mb-6">
+          <img src={logoSvg} alt={BRAND.name} className="h-12 w-auto" />
+          <p className="mt-1.5 font-label-sm text-label-sm uppercase text-on-surface-variant">Enterprise RE MIS</p>
         </div>
 
         <div className="glass-card">

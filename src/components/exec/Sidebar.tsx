@@ -1,6 +1,7 @@
 import { Icon } from "./Icon";
 import { BRAND } from "@/lib/config";
 import { cn } from "@/lib/utils";
+import logoSvg from "@/assets/logo.svg";
 
 export type Section = { id: string; label: string; icon: string };
 
@@ -51,18 +52,9 @@ function Item({
 
 function Brand({ subtitle }: { subtitle: string }) {
   return (
-    <div className="border-b-2 border-on-surface p-5">
-      <div className="flex items-center gap-2.5">
-        <span className="grid h-9 w-9 shrink-0 place-items-center border-2 border-on-surface bg-on-surface font-mono text-sm font-bold text-on-primary">
-          30
-        </span>
-        <div className="min-w-0 leading-tight">
-          <h1 className="truncate text-[15px] font-bold uppercase leading-none tracking-tight text-on-surface" title={BRAND.name}>
-            {BRAND.name}
-          </h1>
-          <p className="mt-1 truncate font-label-sm text-label-sm uppercase text-on-surface-variant">{subtitle}</p>
-        </div>
-      </div>
+    <div className="border-b-2 border-on-surface px-5 py-4">
+      <img src={logoSvg} alt={BRAND.name} className="h-10 w-auto" />
+      <p className="mt-1.5 font-label-sm text-label-sm uppercase text-on-surface-variant">{subtitle}</p>
     </div>
   );
 }
