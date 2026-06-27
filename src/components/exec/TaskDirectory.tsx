@@ -16,7 +16,11 @@ const STATUS_STYLE: Record<string, string> = {
   Completed: "bg-primary-container text-on-primary border-2 border-primary-container",
   Late: "bg-error text-on-error border-2 border-error",
   Pending: "bg-transparent text-on-surface border-2 border-on-surface",
+  "Week Shifted": "bg-surface-container border-2 border-on-surface text-on-surface",
 };
+
+// Tasks that can still be actioned (Done / Revise)
+const isActionable = (status: string) => status === "Pending" || status === "Late" || status === "Week Shifted";
 const PRIORITY_STYLE: Record<string, string> = {
   High: "bg-on-surface text-on-primary",
   Urgent: "bg-on-surface text-on-primary",
@@ -267,8 +271,8 @@ export function TaskDirectory({
                   <td className="hidden whitespace-nowrap border-r border-outline-variant px-3 py-3 font-mono text-data-mono text-on-surface-variant lg:table-cell">{fmtDate(t.actual) || "—"}</td>
                   <td className="px-3 py-3 text-center">
                     <div className="flex flex-col items-center gap-1.5">
-                      <span className={cn("inline-block whitespace-nowrap px-2.5 py-1 font-label-sm text-label-sm uppercase", STATUS_STYLE[t.status])}>{t.status}</span>
-                      {t.status === "Pending" && onChanged && (
+                      <span className={cn("inline-block whitespace-nowrap px-2.5 py-1 font-label-sm text-label-sm uppercase", STATUS_STYLE[t.status] || "border border-on-surface text-on-surface")}>{t.status}</span>
+                      {isActionable(t.status) && onChanged && (
                         <div className="flex flex-wrap items-center justify-center gap-1">
                           <button
                             onClick={() => markDone(t)}

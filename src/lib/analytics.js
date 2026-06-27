@@ -52,9 +52,42 @@ export function unifyTasks(data) {
       actual: done ? r.latestRevision || "" : "",
       status,
       red: delegationColour(r) === "Red",
+      revisions: r.revisions || 0,
+      latestRevision: r.latestRevision || "",
     });
   });
-  return out;
+
+  // ---- Deduplicate Task List rows ------------------------------------------
+  // When a task gets revised, a NEW row is added to the sheet each time.
+  // So the same task+doer can appear 3-4 times. We keep only the LATEST row
+  // per unique (doer + normalised task) pair. "Latest" = highest firstDate.
+  // This eliminates the confusion of the same task looking like it was added
+  // multiple times.
+  const taskListRows = out.filter((t) => t.source === "Task List");
+  const otherRows = out.filter((t) => t.source !== "Task List");
+
+  const taskKey = (t) =>
+    `${String(t.doer || "").trim().toUpperCase()}||${String(t.task || "").trim().toUpperCase()}`;
+
+  // Group by key; within each group keep only the latest firstDate row.
+  const latestByKey = new Map();
+  for (const t of taskListRows) {
+    const key = taskKey(t);
+    const existing = latestByKey.get(key);
+    if (!existing) {
+      latestByKey.set(key, t);
+    } else {
+      // Prefer the row with the LATEST created (firstDate) — that is the most
+      // recent entry added to the sheet when the task was revised/re-added.
+      const existingDate = String(existing.created || "");
+      const newDate = String(t.created || "");
+      if (newDate > existingDate) {
+        latestByKey.set(key, t);
+      }
+    }
+  }
+
+  return [...otherRows, ...latestByKey.values()];
 }
 
 const isDone = (t) => t.status === "Completed" || t.status === "Late";
