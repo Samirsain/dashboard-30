@@ -50,8 +50,19 @@ function SysHead({ label }: { label: string }) {
     </th>
   );
 }
-function Sub({ children, divide }: { children: React.ReactNode; divide?: boolean }) {
-  return <th className={cn("px-2 py-2 text-center font-label-sm text-label-sm uppercase text-on-surface-variant", divide && "border-l-2 border-on-surface")}>{children}</th>;
+function Sub({ children, divide, title }: { children: React.ReactNode; divide?: boolean; title?: string }) {
+  return (
+    <th
+      title={title}
+      className={cn(
+        "px-2 py-2 text-center font-label-sm text-label-sm uppercase text-on-surface-variant",
+        title && "cursor-help underline decoration-dotted decoration-outline-variant/60",
+        divide && "border-l-2 border-on-surface"
+      )}
+    >
+      {children}
+    </th>
+  );
 }
 
 export function Scorecard({ data }: { data: any }) {
