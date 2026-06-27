@@ -15,7 +15,7 @@
 // =============================================================================
 
 // Apps Script Web App URL (doGet). Blank → bundled sample data.
-export const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwBIiyG9au2CbiIfyaYTqTpktMj9_e_maQiA3BSYA_fNLUFnnRPWjO0UlUsJfDrca-s/exec";
+export const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzeX8Bv4Yi3jP2QUF5DoOAx9HoQ2HFPu401qtouLx-IIoYmvD6eIvULjV95sog34EcQ/exec";
 export const USE_SAMPLE_DATA_FALLBACK = true;
 
 // Shared secret for the "Add Task" write endpoint (doPost in Code.gs). Must match
