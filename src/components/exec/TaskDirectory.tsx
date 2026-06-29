@@ -78,6 +78,9 @@ export function TaskDirectory({
   todayOnly?: boolean;
   onChanged?: () => void;
 }) {
+  const [optimisticDone, setOptimisticDone] = React.useState<Set<string>>(new Set());
+  React.useEffect(() => setOptimisticDone(new Set()), [data]);
+
   const all = React.useMemo(() => {
     let t = unifyTasks(data);
     if (source) t = t.filter((x) => x.source === source);
@@ -105,9 +108,6 @@ export function TaskDirectory({
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState("");
   const [revising, setRevising] = React.useState<any | null>(null);
-  const [optimisticDone, setOptimisticDone] = React.useState<Set<string>>(new Set());
-
-  React.useEffect(() => setOptimisticDone(new Set()), [data]);
 
   async function markDone(t: any) {
     if (busyId) return;
