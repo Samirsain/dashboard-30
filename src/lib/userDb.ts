@@ -101,11 +101,11 @@ const DEFAULT_DEFS: Array<{
 }> = [
   { username: "admin",   password: "TM@Admin30", role: "admin",    doerName: null, canAdd: true  },
   { username: "pc",      password: "TM@PC30",    role: "pc",       doerName: null, canAdd: true  },
-  { username: "tmemp01", password: "TM@Emp01",   role: "employee", doerName: null, canAdd: false },
-  { username: "tmemp02", password: "TM@Emp02",   role: "employee", doerName: null, canAdd: false },
-  { username: "tmemp03", password: "TM@Emp03",   role: "employee", doerName: null, canAdd: false },
-  { username: "tmemp04", password: "TM@Emp04",   role: "employee", doerName: null, canAdd: false },
-  { username: "tmemp05", password: "TM@Emp05",   role: "employee", doerName: null, canAdd: false },
+  { username: "tmemp01", password: "TM@Priyanrani30", role: "employee", doerName: "PRIYA RANI", canAdd: false },
+  { username: "tmemp02", password: "TM@Deepakboyat30", role: "employee", doerName: "DEEPAK BOYAT", canAdd: false },
+  { username: "tmemp03", password: "TM@Shikhakashyap30", role: "employee", doerName: "SHIKHA KASHYAP", canAdd: false },
+  { username: "tmemp04", password: "TM@Samir30", role: "employee", doerName: "SAMIR", canAdd: false },
+  { username: "tmemp05", password: "TM@Sandeeepsamra30", role: "employee", doerName: "SANDEEP SAMRA", canAdd: false },
 ];
 
 /**
@@ -116,7 +116,20 @@ export async function initDefaultUsers(): Promise<void> {
   const existing = readAll();
   const existingUsernames = new Set(existing.map((u) => u.username));
   const toCreate = DEFAULT_DEFS.filter((d) => !existingUsernames.has(d.username));
-  if (toCreate.length === 0) return;
+
+  let needsUpdate = false;
+  const patched = existing.map((u) => {
+    if (u.doerName === null) {
+      const def = DEFAULT_DEFS.find((d) => d.username === u.username);
+      if (def && def.doerName) {
+        needsUpdate = true;
+        return { ...u, doerName: def.doerName };
+      }
+    }
+    return u;
+  });
+
+  if (toCreate.length === 0 && !needsUpdate) return;
 
   const created: UserRecord[] = await Promise.all(
     toCreate.map(async (def) => {
@@ -136,7 +149,7 @@ export async function initDefaultUsers(): Promise<void> {
     })
   );
 
-  writeAll([...existing, ...created]);
+  writeAll([...patched, ...created]);
 }
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
