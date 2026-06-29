@@ -125,10 +125,7 @@ export function Scorecard({ data }: { data: any }) {
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2.5">
                         <span className="grid h-8 w-8 shrink-0 place-items-center border-2 border-on-surface bg-surface-container-lowest font-mono text-data-mono font-bold uppercase text-on-surface">{initials(r.doer)[0]}</span>
-                        <div className="leading-tight">
-                          <div className="text-body-md font-bold text-on-surface">{r.doer}</div>
-                          <div className="font-label-sm text-label-sm uppercase text-on-surface-variant">{r.department || "—"}</div>
-                        </div>
+                        <div className="font-bold text-body-md text-on-surface">{r.doer}</div>
                       </div>
                     </td>
                     <td className="border-l-2 border-on-surface px-2 py-3 text-center"><Cell value={r.checklist.done} tone="done" /></td>

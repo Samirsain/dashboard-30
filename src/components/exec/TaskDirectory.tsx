@@ -22,10 +22,7 @@ const STATUS_STYLE: Record<string, string> = {
 // Tasks that can still be actioned (Done / Revise)
 const isActionable = (status: string) => status === "Pending" || status === "Week Shifted";
 const PRIORITY_STYLE: Record<string, string> = {
-  High: "bg-on-surface text-on-primary",
-  Urgent: "bg-on-surface text-on-primary",
-  Medium: "border border-on-surface text-on-surface",
-  Low: "border border-outline text-on-surface-variant",
+  Urgent: "bg-error text-on-error font-bold shadow-sm",
   Normal: "border border-outline text-on-surface-variant",
 };
 
@@ -223,7 +220,7 @@ export function TaskDirectory({
           )}
           <FilterSelect value={dept} onChange={setDept} options={depts} allLabel="All Departments" className="flex-1 sm:flex-none min-w-[130px]" />
           <FilterSelect value={status} onChange={setStatus} options={["Completed", "Pending"]} allLabel="All Statuses" className="flex-1 sm:flex-none min-w-[130px]" />
-          {hasPriority && <FilterSelect value={priority} onChange={setPriority} options={["High", "Medium", "Low"]} allLabel="All Priorities" className="flex-1 sm:flex-none min-w-[130px]" />}
+          {hasPriority && <FilterSelect value={priority} onChange={setPriority} options={["Normal", "Urgent"]} allLabel="All Priorities" className="flex-1 sm:flex-none min-w-[130px]" />}
         </div>
         
         {(search || dept !== "All" || status !== "All" || priority !== "All" || system !== "All") && (
@@ -275,7 +272,7 @@ export function TaskDirectory({
               </tr>
             ) : (
               pageRows.map((t) => (
-                <tr key={t.id} className="table-row-hover group border-b border-outline-variant">
+                <tr key={t.id} className={cn("table-row-hover group border-b border-outline-variant", t.priority === "Urgent" && "bg-error/5 border-l-2 border-l-error")}>
                   <td className="hidden whitespace-nowrap border-r border-outline-variant px-3 py-3 font-mono text-data-mono text-on-surface-variant 2xl:table-cell">{t.id}</td>
                   <td className="border-r border-outline-variant px-3 py-3 text-body-md font-medium text-on-surface group-hover:underline">
                     {t.task}
@@ -311,28 +308,30 @@ export function TaskDirectory({
                   <td className="hidden whitespace-nowrap border-r border-outline-variant px-3 py-3 font-mono text-data-mono text-on-surface-variant lg:table-cell">{fmtDate(t.actual) || "—"}</td>
                   <td className="px-3 py-3 text-center w-36 min-w-[130px]">
                     <div className="flex flex-col items-center gap-1.5">
-                      <span className={cn("inline-block whitespace-nowrap px-2.5 py-0.5 font-label-sm text-label-sm uppercase", STATUS_STYLE[t.status === "Late" ? "Completed" : t.status] || "border border-on-surface text-on-surface")}>{t.status === "Late" ? "Completed" : t.status}</span>
-                      {isActionable(t.status) && onChanged && (
-                        <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                      {isActionable(t.status) && onChanged ? (
+                        <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => markDone(t)}
                             disabled={busyId === t.id}
-                            className="h-7 w-7 inline-flex items-center justify-center border border-on-surface bg-white text-on-surface hover:bg-on-surface hover:text-on-primary transition-colors disabled:opacity-50"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 border-2 border-on-surface bg-on-surface text-on-primary font-label-sm text-label-sm uppercase hover:bg-surface hover:text-on-surface transition-colors disabled:opacity-50"
                             title="Mark this task done"
                           >
-                            <Icon name={busyId === t.id ? "progress_activity" : "check"} className={cn("text-[14px]", busyId === t.id && "animate-spin")} />
+                            {busyId === t.id ? <Icon name="progress_activity" className="text-[12px] animate-spin" /> : null}
+                            Done
                           </button>
                           {t.source === "Task List" && (
                             <button
                               onClick={() => setRevising(t)}
                               disabled={busyId === t.id}
-                              className="h-7 w-7 inline-flex items-center justify-center border border-on-surface bg-white text-on-surface hover:bg-on-surface hover:text-on-primary transition-colors disabled:opacity-50"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 border-2 border-on-surface text-on-surface font-label-sm text-label-sm uppercase hover:bg-on-surface hover:text-on-primary transition-colors disabled:opacity-50"
                               title="Reschedule this task"
                             >
-                              <Icon name="event_repeat" className="text-[14px]" />
+                              Revise
                             </button>
                           )}
                         </div>
+                      ) : (
+                        <span className={cn("inline-block whitespace-nowrap px-2.5 py-0.5 font-label-sm text-label-sm uppercase", STATUS_STYLE[t.status === "Late" ? "Completed" : t.status] || "border border-on-surface text-on-surface")}>{t.status === "Late" ? "Completed" : t.status}</span>
                       )}
                     </div>
                   </td>
