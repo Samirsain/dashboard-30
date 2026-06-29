@@ -32,7 +32,7 @@ export interface UserRecord {
   lastLogin?: string;
 }
 
-const DB_KEY = "tm-mis-users-v3";
+const DB_KEY = "tm-mis-users-v4";
 const PBKDF2_ITERATIONS = 100_000;
 
 // ── Crypto helpers ──────────────────────────────────────────────────────────
@@ -101,11 +101,11 @@ const DEFAULT_DEFS: Array<{
 }> = [
   { username: "THIRTYMILESTONES", password: "SAHIL@30", role: "admin",    doerName: null, canAdd: true  },
   { username: "PC",               password: "PC@30",    role: "pc",       doerName: null, canAdd: true  },
-  { username: "TM01",             password: "TM@01",    role: "employee", doerName: "PRIYA RANI", canAdd: false },
-  { username: "TM02",             password: "TM@02",    role: "employee", doerName: "SHIKHA KASHYAP", canAdd: false },
-  { username: "TM03",             password: "TM@03",    role: "employee", doerName: "DEEPAK BOYAT", canAdd: false },
+  { username: "TM01",             password: "TM@01",    role: "employee", doerName: "PRIYA", canAdd: false },
+  { username: "TM02",             password: "TM@02",    role: "employee", doerName: "SHIKHA", canAdd: false },
+  { username: "TM03",             password: "TM@03",    role: "employee", doerName: "DEEPAK", canAdd: false },
   { username: "TM04",             password: "TM@04",    role: "employee", doerName: "SAMIR", canAdd: false },
-  { username: "TM05",             password: "TM@05",    role: "employee", doerName: "SANDEEP SAMRA", canAdd: false },
+  { username: "TM05",             password: "TM@05",    role: "employee", doerName: "SANDEEP", canAdd: false },
 ];
 
 /**
