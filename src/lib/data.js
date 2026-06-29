@@ -55,6 +55,23 @@ export async function loadData() {
   }
 }
 
+// Lightweight fetch: returns just the doer names for login verification.
+export async function fetchDoerNames() {
+  if (!APPS_SCRIPT_URL) {
+    const sample = getAllSampleData();
+    return (sample.doers || []).map((d) => String(d.doer || "").trim()).filter(Boolean);
+  }
+  try {
+    const res = await fetch(`${APPS_SCRIPT_URL}?week=all&_t=${Date.now()}`, { method: "GET", redirect: "follow" });
+    if (!res.ok) return [];
+    const payload = await res.json();
+    if (payload && payload.error) return [];
+    return (payload.doers || []).map((d) => String(d.doer || "").trim()).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 // Add a task by POSTing to the Apps Script doPost handler. Uses a "simple"
 // text/plain request so the browser skips the CORS preflight (Apps Script can't
 // answer preflight) — same cross-origin path the GET already uses successfully.

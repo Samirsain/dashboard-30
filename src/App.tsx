@@ -181,6 +181,11 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
           onAdded={() => setReloadToken((t) => t + 1)}
         />
       )}
+      {showAddDoer && (
+        <AddDoerModal
+          onClose={() => { setShowAddDoer(false); setReloadToken((t) => t + 1); }}
+        />
+      )}
     </div>
   );
 }

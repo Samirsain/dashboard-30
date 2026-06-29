@@ -2,6 +2,7 @@ import * as React from "react";
 import { Lock, User, Loader2, Eye, EyeOff } from "lucide-react";
 import { BRAND } from "@/lib/config";
 import { verifyCredentials, setSession } from "@/lib/auth";
+import { fetchDoerNames } from "@/lib/data";
 import logoSvg from "@/assets/logo.svg";
 
 export function Login({ onSuccess }: { onSuccess: () => void }) {
@@ -16,7 +17,9 @@ export function Login({ onSuccess }: { onSuccess: () => void }) {
     if (busy) return;
     setBusy(true);
     setError("");
-    const session = await verifyCredentials(username, password);
+    // Fetch live doer names from the sheet so dynamic staff auth works
+    const doerNames = await fetchDoerNames();
+    const session = await verifyCredentials(username, password, doerNames);
     if (session) {
       setSession(session);
       onSuccess();

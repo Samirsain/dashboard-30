@@ -11,6 +11,7 @@ export function Topbar({
   source,
   onLogout,
   onAddTask,
+  onAddDoer,
 }: {
   sectionLabel: string;
   weeks: { key: string; label: string }[];
@@ -19,6 +20,7 @@ export function Topbar({
   source: string;
   onLogout?: () => void;
   onAddTask?: () => void;
+  onAddDoer?: () => void;
 }) {
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between gap-2 border-b-2 border-on-surface bg-surface px-4 sm:gap-4 sm:px-6">
@@ -39,6 +41,16 @@ export function Topbar({
           >
             <Icon name="add" className="text-[18px]" />
             <span className="hidden sm:inline">Add Task</span>
+          </button>
+        )}
+        {onAddDoer && (
+          <button
+            onClick={onAddDoer}
+            className="inline-flex h-9 items-center gap-1.5 border-2 border-on-surface px-2.5 font-label-sm text-label-sm uppercase text-on-surface transition-colors hover:bg-on-surface hover:text-on-primary sm:px-3"
+            title="Add a doer"
+          >
+            <Icon name="person_add" className="text-[18px]" />
+            <span className="hidden sm:inline">Add Doer</span>
           </button>
         )}
         <Select value={weekKey} onValueChange={onWeekChange}>
