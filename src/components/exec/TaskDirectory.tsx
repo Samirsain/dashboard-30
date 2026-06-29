@@ -20,7 +20,7 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 // Tasks that can still be actioned (Done / Revise)
-const isActionable = (status: string) => status === "Pending" || status === "Late" || status === "Week Shifted";
+const isActionable = (status: string) => status === "Pending" || status === "Week Shifted";
 const PRIORITY_STYLE: Record<string, string> = {
   High: "bg-on-surface text-on-primary",
   Urgent: "bg-on-surface text-on-primary",
@@ -85,8 +85,11 @@ export function TaskDirectory({
       const today = todayISO();
       t = t.filter((x) => String(x.due || x.created || "").trim() === today);
     }
+    if (optimisticDone.size > 0) {
+      t = t.map((x) => optimisticDone.has(x.id) ? { ...x, status: "Completed", actual: todayISO() } : x);
+    }
     return t;
-  }, [data, source, todayOnly]);
+  }, [data, source, todayOnly, optimisticDone]);
 
   // Show the "System" column only in the mixed view (no single source picked),
   // e.g. Today's Followup — so you can see which system each task is from.
@@ -102,16 +105,25 @@ export function TaskDirectory({
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState("");
   const [revising, setRevising] = React.useState<any | null>(null);
+  const [optimisticDone, setOptimisticDone] = React.useState<Set<string>>(new Set());
+
+  React.useEffect(() => setOptimisticDone(new Set()), [data]);
 
   async function markDone(t: any) {
     if (busyId) return;
     if (!window.confirm(`Mark this task as DONE?\n\n${t.task}`)) return;
     setBusyId(t.id);
+    setOptimisticDone((prev) => new Set(prev).add(t.id));
     setActionError("");
     try {
       await completeTask(t);
       onChanged && onChanged();
     } catch (e: any) {
+      setOptimisticDone((prev) => {
+        const next = new Set(prev);
+        next.delete(t.id);
+        return next;
+      });
       setActionError(e?.message || "Could not mark the task done. Try again.");
     } finally {
       setBusyId(null);
@@ -141,7 +153,7 @@ export function TaskDirectory({
     return all.filter(
       (t) =>
         (dept === "All" || t.department === dept) &&
-        (status === "All" || t.status === status) &&
+        (status === "All" || t.status === status || (status === "Completed" && t.status === "Late")) &&
         (priority === "All" || t.priority === priority) &&
         (system === "All" || t.source === system) &&
         (!q || `${t.task} ${t.doer} ${t.id}`.toLowerCase().includes(q))
@@ -184,7 +196,7 @@ export function TaskDirectory({
           <FilterSelect value={system} onChange={setSystem} options={["Checklist", "Task List", "Workflow"]} allLabel="All Systems" />
         )}
         <FilterSelect value={dept} onChange={setDept} options={depts} allLabel="All Departments" />
-        <FilterSelect value={status} onChange={setStatus} options={["Completed", "Late", "Pending"]} allLabel="All Statuses" />
+        <FilterSelect value={status} onChange={setStatus} options={["Completed", "Pending"]} allLabel="All Statuses" />
         {hasPriority && <FilterSelect value={priority} onChange={setPriority} options={["High", "Medium", "Low"]} allLabel="All Priorities" />}
         {(search || dept !== "All" || status !== "All" || priority !== "All" || system !== "All") && (
           <button
@@ -271,7 +283,7 @@ export function TaskDirectory({
                   <td className="hidden whitespace-nowrap border-r border-outline-variant px-3 py-3 font-mono text-data-mono text-on-surface-variant lg:table-cell">{fmtDate(t.actual) || "—"}</td>
                   <td className="px-3 py-3 text-center w-36 min-w-[130px]">
                     <div className="flex flex-col items-center gap-1.5">
-                      <span className={cn("inline-block whitespace-nowrap px-2.5 py-0.5 font-label-sm text-label-sm uppercase", STATUS_STYLE[t.status] || "border border-on-surface text-on-surface")}>{t.status}</span>
+                      <span className={cn("inline-block whitespace-nowrap px-2.5 py-0.5 font-label-sm text-label-sm uppercase", STATUS_STYLE[t.status === "Late" ? "Completed" : t.status] || "border border-on-surface text-on-surface")}>{t.status === "Late" ? "Completed" : t.status}</span>
                       {isActionable(t.status) && onChanged && (
                         <div className="flex items-center justify-center gap-1.5 mt-0.5">
                           <button

@@ -36,7 +36,7 @@ export async function loadData() {
     return { data: prepare(getAllSampleData()), source: "sample", error: null };
   }
   try {
-    const res = await fetch(`${APPS_SCRIPT_URL}?week=all`, { method: "GET", redirect: "follow" });
+    const res = await fetch(`${APPS_SCRIPT_URL}?week=all&_t=${Date.now()}`, { method: "GET", redirect: "follow" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const payload = await res.json();
     if (payload && payload.error) {

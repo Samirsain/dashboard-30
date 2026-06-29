@@ -24,7 +24,7 @@ function useAllData(reloadToken: number): LoadState {
   const [state, setState] = React.useState<LoadState>({ loading: true, data: null, source: "sample", error: null });
   React.useEffect(() => {
     let alive = true;
-    setState((s) => ({ ...s, loading: true }));
+    setState((s) => ({ ...s, loading: s.data === null }));
     loadData().then((res: any) => {
       if (alive) setState({ loading: false, data: res.data, source: res.source, error: res.error });
     });
