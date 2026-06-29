@@ -99,13 +99,13 @@ const DEFAULT_DEFS: Array<{
   doerName: string | null;
   canAdd: boolean;
 }> = [
-  { username: "admin",   password: "TM@Admin30", role: "admin",    doerName: null, canAdd: true  },
-  { username: "pc",      password: "TM@PC30",    role: "pc",       doerName: null, canAdd: true  },
-  { username: "tmemp01", password: "TM@Priyanrani30", role: "employee", doerName: "PRIYA RANI", canAdd: false },
-  { username: "tmemp02", password: "TM@Deepakboyat30", role: "employee", doerName: "DEEPAK BOYAT", canAdd: false },
-  { username: "tmemp03", password: "TM@Shikhakashyap30", role: "employee", doerName: "SHIKHA KASHYAP", canAdd: false },
-  { username: "tmemp04", password: "TM@Samir30", role: "employee", doerName: "SAMIR", canAdd: false },
-  { username: "tmemp05", password: "TM@Sandeeepsamra30", role: "employee", doerName: "SANDEEP SAMRA", canAdd: false },
+  { username: "THIRTYMILESTONES", password: "SAHIL@30", role: "admin",    doerName: null, canAdd: true  },
+  { username: "PC",               password: "PC@30",    role: "pc",       doerName: null, canAdd: true  },
+  { username: "TM01",             password: "TM@01",    role: "employee", doerName: "PRIYA RANI", canAdd: false },
+  { username: "TM02",             password: "TM@02",    role: "employee", doerName: "SHIKHA KASHYAP", canAdd: false },
+  { username: "TM03",             password: "TM@03",    role: "employee", doerName: "DEEPAK BOYAT", canAdd: false },
+  { username: "TM04",             password: "TM@04",    role: "employee", doerName: "SAMIR", canAdd: false },
+  { username: "TM05",             password: "TM@05",    role: "employee", doerName: "SANDEEP SAMRA", canAdd: false },
 ];
 
 /**
@@ -143,7 +143,7 @@ export async function initDefaultUsers(): Promise<void> {
         role: def.role,
         doerName: def.doerName,
         canAdd: def.canAdd,
-        forcePasswordChange: true, // everyone must change on first login
+        forcePasswordChange: false, // disabled per user request
         createdAt: new Date().toISOString(),
       };
     })
@@ -209,7 +209,7 @@ export async function resetPasswordToDefault(userId: string): Promise<{ newPassw
 
   const salt = generateSalt();
   const passwordHash = await hashPassword(defaultPassword, salt);
-  const updated = users.map((u) => u.id === userId ? { ...u, passwordHash, salt, forcePasswordChange: true } : u);
+  const updated = users.map((u) => u.id === userId ? { ...u, passwordHash, salt, forcePasswordChange: false } : u);
   writeAll(updated);
   return { newPassword: defaultPassword };
 }
@@ -226,22 +226,21 @@ export function getUserById(id: string): UserRecord | null {
 
 /**
  * Create a new employee account when admin adds a doer.
- * Username is auto-incremented: tmemp06, tmemp07, etc.
- * Default password: TM@{Name}30 (force change on first login).
+ * Username is auto-incremented: TM06, TM07, etc.
+ * Default password: TM@06 etc. (no force change).
  */
 export async function createDoerAccount(doerName: string): Promise<{ user: UserRecord; password: string }> {
   const users = readAll();
 
-  // Find next tmemp number
+  // Find next TM number
   const nums = users
     .map((u) => u.username)
-    .filter((un) => /^tmemp\d+$/.test(un))
-    .map((un) => parseInt(un.replace("tmemp", ""), 10));
+    .filter((un) => /^TM\d+$/i.test(un))
+    .map((un) => parseInt(un.toUpperCase().replace("TM", ""), 10));
   const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
-  const username = `tmemp${String(next).padStart(2, "0")}`;
-
-  const name = doerName.charAt(0).toUpperCase() + doerName.slice(1).toLowerCase();
-  const password = `TM@${name}30`;
+  const numStr = String(next).padStart(2, "0");
+  const username = `TM${numStr}`;
+  const password = `TM@${numStr}`;
   const salt = generateSalt();
   const passwordHash = await hashPassword(password, salt);
 
@@ -253,7 +252,7 @@ export async function createDoerAccount(doerName: string): Promise<{ user: UserR
     role: "employee",
     doerName: doerName.toUpperCase(),
     canAdd: false,
-    forcePasswordChange: true,
+    forcePasswordChange: false,
     createdAt: new Date().toISOString(),
   };
 
