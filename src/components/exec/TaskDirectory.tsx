@@ -150,7 +150,7 @@ export function TaskDirectory({
 
   const rows = React.useMemo(() => {
     const q = search.trim().toLowerCase();
-    return all.filter(
+    const filtered = all.filter(
       (t) =>
         (dept === "All" || t.department === dept) &&
         (status === "All" || t.status === status || (status === "Completed" && t.status === "Late")) &&
@@ -158,6 +158,14 @@ export function TaskDirectory({
         (system === "All" || t.source === system) &&
         (!q || `${t.task} ${t.doer} ${t.id}`.toLowerCase().includes(q))
     );
+    
+    return filtered.sort((a, b) => {
+      const aDone = a.status === "Completed" || a.status === "Late";
+      const bDone = b.status === "Completed" || b.status === "Late";
+      if (aDone && !bDone) return 1;
+      if (!aDone && bDone) return -1;
+      return 0;
+    });
   }, [all, search, dept, status, priority, system]);
 
   React.useEffect(() => setPage(1), [search, dept, status, priority, system, perPage, source]);
