@@ -32,7 +32,7 @@ export interface UserRecord {
   lastLogin?: string;
 }
 
-const DB_KEY = "tm-mis-users-v2";
+const DB_KEY = "tm-mis-users-v3";
 const PBKDF2_ITERATIONS = 100_000;
 
 // ── Crypto helpers ──────────────────────────────────────────────────────────
