@@ -19,6 +19,8 @@ function Field({ as, className, ...props }: any) {
 export function AddDoerModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = React.useState("");
   const [dept, setDept] = React.useState("MIS");
+  const [mobile, setMobile] = React.useState("");
+  const [email, setEmail] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState("");
   const [done, setDone] = React.useState<{ name: string; username: string; password: string } | null>(null);
@@ -34,15 +36,20 @@ export function AddDoerModal({ onClose }: { onClose: () => void }) {
     e.preventDefault();
     const n = name.trim().toUpperCase();
     if (!n) return setError("Doer ka naam daalo.");
-    if (!/^[A-Z]+$/.test(n)) return setError("Sirf English letters use karo (koi space/number nahi).");
+    if (!/^[A-Z ]+$/.test(n)) return setError("Sirf English letters use karo.");
     setBusy(true);
     setError("");
     try {
-      await addDoer({ name: n, department: dept });
+      await addDoer({
+        name: n,
+        department: dept,
+        mobile: mobile.trim(),
+        email: email.trim().toLowerCase(),
+      });
       setDone({
         name: n,
-        username: `${n}30`,
-        password: `${n}@30`,
+        username: `${n.replace(/\s+/g, "")}30`,
+        password: `${n.replace(/\s+/g, "")}@30`,
       });
     } catch (err: any) {
       setError(err?.message || "Doer add nahi hua. Dobara try karo.");
@@ -121,7 +128,7 @@ export function AddDoerModal({ onClose }: { onClose: () => void }) {
 
             <div className="flex justify-end gap-2 border-t-2 border-on-surface pt-4">
               <button
-                onClick={() => { setDone(null); setName(""); setDept("MIS"); }}
+                onClick={() => { setDone(null); setName(""); setDept("MIS"); setMobile(""); setEmail(""); }}
                 className="border-2 border-on-surface px-4 py-2.5 font-label-sm text-label-sm uppercase text-on-surface hover:bg-surface-container transition-colors"
               >
                 Add Another
@@ -136,23 +143,18 @@ export function AddDoerModal({ onClose }: { onClose: () => void }) {
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4 p-5">
+            {/* Name */}
             <label className="block">
-              <Label>Doer Name (sirf English letters)</Label>
+              <Label>Doer Name</Label>
               <Field
                 value={name}
                 onChange={(e: any) => setName(e.target.value)}
                 placeholder="e.g. RAHUL"
                 autoFocus
               />
-              {name.trim() && (
-                <p className="mt-1.5 font-mono text-data-mono uppercase text-on-surface-variant">
-                  Auto credentials → <span className="text-on-surface font-bold">{name.trim().toUpperCase()}30</span>
-                  {" / "}
-                  <span className="text-on-surface font-bold">{name.trim().toUpperCase()}@30</span>
-                </p>
-              )}
             </label>
 
+            {/* Department */}
             <label className="block">
               <Label>Department</Label>
               <Field as="select" value={dept} onChange={(e: any) => setDept(e.target.value)}>
@@ -161,6 +163,38 @@ export function AddDoerModal({ onClose }: { onClose: () => void }) {
                 ))}
               </Field>
             </label>
+
+            {/* Mobile */}
+            <label className="block">
+              <Label>Mobile Number</Label>
+              <Field
+                type="tel"
+                value={mobile}
+                onChange={(e: any) => setMobile(e.target.value)}
+                placeholder="e.g. 9876543210"
+              />
+            </label>
+
+            {/* Email */}
+            <label className="block">
+              <Label>Email</Label>
+              <Field
+                type="email"
+                value={email}
+                onChange={(e: any) => setEmail(e.target.value)}
+                placeholder="e.g. rahul@example.com"
+                className="!normal-case"
+              />
+            </label>
+
+            {/* Auto credentials preview */}
+            {name.trim() && (
+              <div className="border-l-4 border-on-surface pl-3 font-mono text-data-mono uppercase text-on-surface-variant">
+                Auto Login → <span className="text-on-surface font-bold">{name.trim().toUpperCase().replace(/\s+/g, "")}30</span>
+                {" / "}
+                <span className="text-on-surface font-bold">{name.trim().toUpperCase().replace(/\s+/g, "")}@30</span>
+              </div>
+            )}
 
             {error && (
               <div className="border-2 border-error bg-error/5 px-3 py-2 font-label-sm text-label-sm uppercase text-error">

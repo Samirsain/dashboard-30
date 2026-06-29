@@ -80,6 +80,7 @@ function PublicApp({ role, doerName, canAdd, onLogout }: { role: Role; doerName:
   const [week, setWeek] = React.useState<string>("all");
   const [reloadToken, setReloadToken] = React.useState(0);
   const [showAdd, setShowAdd] = React.useState(false);
+  const [showAddDoer, setShowAddDoer] = React.useState(false);
   const { loading, data, source, error } = useAllData(reloadToken);
   const isAdmin = role === "admin";
 
@@ -110,6 +111,7 @@ function PublicApp({ role, doerName, canAdd, onLogout }: { role: Role; doerName:
           source={source}
           onLogout={onLogout}
           onAddTask={canAdd ? () => setShowAdd(true) : undefined}
+          onAddDoer={isAdmin ? () => setShowAddDoer(true) : undefined}
         />
         <MobileSectionTabs active={section} onSelect={setSection} showAdmin={isAdmin} />
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-24 sm:p-6">
@@ -126,6 +128,11 @@ function PublicApp({ role, doerName, canAdd, onLogout }: { role: Role; doerName:
           doers={data?.doers || []}
           onClose={() => setShowAdd(false)}
           onAdded={() => setReloadToken((t) => t + 1)}
+        />
+      )}
+      {showAddDoer && (
+        <AddDoerModal
+          onClose={() => { setShowAddDoer(false); setReloadToken((t) => t + 1); }}
         />
       )}
     </div>
