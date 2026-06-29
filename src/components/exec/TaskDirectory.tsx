@@ -260,7 +260,7 @@ export function TaskDirectory({
               </th>
               <th className={cn("border-r border-outline-variant px-3 py-3 font-label-sm text-label-sm uppercase text-on-surface", todayOnly ? "hidden" : "hidden xl:table-cell")}>Due</th>
               <th className="hidden border-r border-outline-variant px-3 py-3 font-label-sm text-label-sm uppercase text-on-surface lg:table-cell">Actual</th>
-              <th className="px-3 py-3 text-center font-label-sm text-label-sm uppercase text-on-surface w-36 min-w-[130px]">Status</th>
+              <th className="px-2 py-3 text-center font-label-sm text-label-sm uppercase text-on-surface w-20 min-w-[80px]">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -306,32 +306,32 @@ export function TaskDirectory({
                   </td>
                   <td className={cn("whitespace-nowrap border-r border-outline-variant px-3 py-3 font-mono text-data-mono text-on-surface-variant", todayOnly ? "hidden" : "hidden xl:table-cell")}>{fmtDate(t.due) || "—"}</td>
                   <td className="hidden whitespace-nowrap border-r border-outline-variant px-3 py-3 font-mono text-data-mono text-on-surface-variant lg:table-cell">{fmtDate(t.actual) || "—"}</td>
-                  <td className="px-3 py-3 text-center w-36 min-w-[130px]">
-                    <div className="flex flex-col items-center gap-1.5">
+                  <td className="px-2 py-2 text-center w-20 min-w-[80px]">
+                    <div className="flex flex-col items-stretch gap-1">
                       {isActionable(t.status) && onChanged ? (
-                        <div className="flex items-center justify-center gap-2">
+                        <>
                           <button
                             onClick={() => markDone(t)}
                             disabled={busyId === t.id}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 border-2 border-on-surface bg-on-surface text-on-primary font-label-sm text-label-sm uppercase hover:bg-surface hover:text-on-surface transition-colors disabled:opacity-50"
+                            className="inline-flex items-center justify-center gap-1 px-2 py-1 border-2 border-on-surface bg-on-surface text-on-primary font-label-sm text-label-sm uppercase hover:bg-surface hover:text-on-surface transition-colors disabled:opacity-50 w-full"
                             title="Mark this task done"
                           >
-                            {busyId === t.id ? <Icon name="progress_activity" className="text-[12px] animate-spin" /> : null}
+                            {busyId === t.id ? <Icon name="progress_activity" className="text-[11px] animate-spin" /> : null}
                             Done
                           </button>
                           {t.source === "Task List" && (
                             <button
                               onClick={() => setRevising(t)}
                               disabled={busyId === t.id}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 border-2 border-on-surface text-on-surface font-label-sm text-label-sm uppercase hover:bg-on-surface hover:text-on-primary transition-colors disabled:opacity-50"
+                              className="inline-flex items-center justify-center gap-1 px-2 py-1 border-2 border-on-surface text-on-surface font-label-sm text-label-sm uppercase hover:bg-on-surface hover:text-on-primary transition-colors disabled:opacity-50 w-full"
                               title="Reschedule this task"
                             >
                               Revise
                             </button>
                           )}
-                        </div>
+                        </>
                       ) : (
-                        <span className={cn("inline-block whitespace-nowrap px-2.5 py-0.5 font-label-sm text-label-sm uppercase", STATUS_STYLE[t.status === "Late" ? "Completed" : t.status] || "border border-on-surface text-on-surface")}>{t.status === "Late" ? "Completed" : t.status}</span>
+                        <span className={cn("inline-block whitespace-nowrap px-2 py-0.5 font-label-sm text-label-sm uppercase text-center", STATUS_STYLE[t.status === "Late" ? "Completed" : t.status] || "border border-on-surface text-on-surface")}>{t.status === "Late" ? "Completed" : t.status}</span>
                       )}
                     </div>
                   </td>

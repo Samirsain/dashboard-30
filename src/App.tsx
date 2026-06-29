@@ -9,6 +9,7 @@ import { Overview } from "@/components/exec/Overview";
 import { Scorecard } from "@/components/exec/Scorecard";
 import { TaskDirectory } from "@/components/exec/TaskDirectory";
 import { AddTaskModal } from "@/components/exec/AddTaskModal";
+import { AddDoerModal } from "@/components/exec/AddDoerModal";
 import { Icon } from "@/components/exec/Icon";
 
 function onAdminRoute(): boolean {
@@ -136,6 +137,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [week, setWeek] = React.useState<string>("all");
   const [reloadToken, setReloadToken] = React.useState(0);
   const [showAdd, setShowAdd] = React.useState(false);
+  const [showAddDoer, setShowAddDoer] = React.useState(false);
   const { loading, data, source, error } = useAllData(reloadToken);
 
   const weeks = weekOptions(data);
@@ -153,6 +155,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
           source={source}
           onLogout={onLogout}
           onAddTask={() => setShowAdd(true)}
+          onAddDoer={() => setShowAddDoer(true)}
         />
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-24 sm:p-6">
           <div className="mx-auto min-w-0 max-w-[1440px]">
