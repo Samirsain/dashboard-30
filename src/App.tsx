@@ -113,6 +113,7 @@ function PublicApp({ role, doerName, canAdd, onLogout }: { role: Role; doerName:
           onLogout={onLogout}
           onAddTask={canAdd ? () => setShowAdd(true) : undefined}
           onAddDoer={isAdmin ? () => setShowAddDoer(true) : undefined}
+          loggedInName={doerName || role}
         />
         <MobileSectionTabs active={section} onSelect={setSection} showAdmin={isAdmin} />
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-24 sm:p-6">
@@ -165,6 +166,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
           onLogout={onLogout}
           onAddTask={() => setShowAdd(true)}
           onAddDoer={() => setShowAddDoer(true)}
+          loggedInName="ADMIN"
         />
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-24 sm:p-6">
           <div className="mx-auto min-w-0 max-w-[1440px]">

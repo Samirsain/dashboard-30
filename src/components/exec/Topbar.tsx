@@ -12,6 +12,7 @@ export function Topbar({
   onLogout,
   onAddTask,
   onAddDoer,
+  loggedInName,
 }: {
   sectionLabel: string;
   weeks: { key: string; label: string }[];
@@ -21,6 +22,7 @@ export function Topbar({
   onLogout?: () => void;
   onAddTask?: () => void;
   onAddDoer?: () => void;
+  loggedInName?: string | null;
 }) {
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between gap-2 border-b-2 border-on-surface bg-surface px-4 sm:gap-4 sm:px-6">
@@ -76,6 +78,15 @@ export function Topbar({
           <span className="h-1.5 w-1.5 rounded-full bg-current" />
           {source === "sample" ? "Sample" : "Live"}
         </span>
+        {loggedInName && (
+          <div
+            className="hidden items-center gap-1.5 border-2 border-on-surface bg-surface-container-low px-2.5 py-1.5 font-label-sm text-label-sm font-semibold uppercase text-on-surface sm:inline-flex"
+            title="Logged in as"
+          >
+            <Icon name="person" className="text-[16px]" />
+            {loggedInName}
+          </div>
+        )}
         {onLogout && (
           <button
             onClick={onLogout}
