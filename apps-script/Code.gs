@@ -23,6 +23,7 @@ var SHEET_IDS = {
   delegation: "18oRnMXPB8A18rQxIcQr4iAPA2yTGrkebJXsNOBPSRkQ", // TASKLIST
   checklist: "1_KqWP8imc199iwjJ_ZOZc0tQeb-XkfSukgrSsEV_-ls", // CHECKLIST
   fms: "", // add the FMS sheet ID later
+  doers: "1v0rd9bLwj_-z9r5TzlNl1bsIYjfE-BtooRpAtyhndBc", // DOERS LIST sheet
 };
 
 // Doers spelt differently across sheets are merged to one canonical name.
@@ -98,6 +99,8 @@ function doPost(e) {
     var action = String(body.action || "add").toLowerCase();
     if (action === "complete") return completeTask(body);
     if (action === "revise") return reviseTask(body);
+    if (action === "adddoer") return addDoerRow(body);
+    if (action === "removedoer") return removeDoerRow(body);
     return addTaskRow(body);
   } catch (err) {
     return json({ ok: false, error: "Server error: " + (err && err.message ? err.message : err) });
@@ -156,6 +159,65 @@ function addTaskRow(body) {
   }
 
   return json({ ok: true, taskId: id });
+}
+
+// Add a new doer to the Doers sheet.
+// body: { name, department, mobile, email, username, password }
+function addDoerRow(body) {
+  var ds = openOrNull(SHEET_IDS.doers);
+  if (!ds) return json({ ok: false, error: "Doers sheet not configured." });
+  var name = trim(body.name);
+  if (!name) return json({ ok: false, error: "Doer name is required." });
+  try {
+    appendByHeaders(ds, ["NAME"], {
+      "NAME": name,
+      "DEPARTMENT": trim(body.department),
+      "MOBILE NO": trim(body.mobile),
+      "EMAIL ID": trim(body.email),
+      "USER ID": trim(body.username),
+      "PASSWORD": trim(body.password),
+    });
+    return json({ ok: true });
+  } catch (err) {
+    // If tab has no headers yet, create them first
+    var sheets = ds.getSheets();
+    var sheet = sheets[0];
+    sheet.appendRow(["NAME", "DEPARTMENT", "EMAIL ID", "MOBILE NO", "USER ID", "PASSWORD"]);
+    sheet.appendRow([name, trim(body.department), trim(body.email), trim(body.mobile), trim(body.username), trim(body.password)]);
+    return json({ ok: true });
+  }
+}
+
+// Remove a doer row from the Doers sheet (by NAME match).
+// body: { name }
+function removeDoerRow(body) {
+  var ds = openOrNull(SHEET_IDS.doers);
+  if (!ds) return json({ ok: false, error: "Doers sheet not configured." });
+  var name = canonical(body.name);
+  if (!name) return json({ ok: false, error: "Doer name is required." });
+  var sheets = ds.getSheets();
+  for (var s = 0; s < sheets.length; s++) {
+    var sheet = sheets[s];
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) continue;
+    var values = sheet.getRange(1, 1, lastRow, sheet.getLastColumn()).getValues();
+    var headerIdx = -1;
+    // find header row that has NAME column
+    for (var i = 0; i < Math.min(values.length, 8); i++) {
+      var hdrs = values[i].map(trim);
+      if (hdrs.indexOf("NAME") !== -1 || hdrs.indexOf("Name") !== -1) { headerIdx = i; break; }
+    }
+    if (headerIdx === -1) continue;
+    var headers = values[headerIdx].map(trim);
+    var nameCol = headers.indexOf("NAME") !== -1 ? headers.indexOf("NAME") : headers.indexOf("Name");
+    for (var r = lastRow - 1; r > headerIdx; r--) {
+      if (canonical(values[r][nameCol]) === name) {
+        sheet.deleteRow(r + 1);
+        return json({ ok: true });
+      }
+    }
+  }
+  return json({ ok: false, error: "Doer not found in sheet." });
 }
 
 // Look up a doer's phone number, email and department from the Doer Lists.
