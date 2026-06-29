@@ -2,6 +2,7 @@ import * as React from "react";
 import { Icon } from "./Icon";
 import { cn } from "@/lib/utils";
 import { addDoer, removeDoer } from "@/lib/data";
+import { createDoerAccount, getAllUsers, removeUserByDoerName, resetPasswordToDefault, type UserRecord } from "@/lib/userDb";
 
 type Tab = "add" | "manage";
 
@@ -38,13 +39,31 @@ export function AddDoerModal({
   // Manage state
   const [removing, setRemoving] = React.useState<string | null>(null);
   const [removeError, setRemoveError] = React.useState("");
-  const [doers, setDoers] = React.useState(existingDoers);
+  const [resetResult, setResetResult] = React.useState<{ username: string; newPass: string } | null>(null);
+  const [dbUsers, setDbUsers] = React.useState<UserRecord[]>(() => getAllUsers());
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  // Determine next username and password preview
+  const nextUsername = React.useMemo(() => {
+    const nums = dbUsers
+      .map((u) => u.username)
+      .filter((un) => /^tmemp\d+$/.test(un))
+      .map((un) => parseInt(un.replace("tmemp", ""), 10));
+    const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
+    return `tmemp${String(next).padStart(2, "0")}`;
+  }, [dbUsers]);
+
+  const passwordPreview = React.useMemo(() => {
+    const trimmed = name.trim();
+    if (!trimmed) return "";
+    const cap = trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+    return `TM@${cap.replace(/\s+/g, "")}30`;
+  }, [name]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -54,9 +73,21 @@ export function AddDoerModal({
     setBusy(true);
     setError("");
     try {
-      await addDoer({ name: n, department: dept.trim(), mobile: mobile.trim(), email: email.trim().toLowerCase() });
-      setDone({ name: n, username: `${n.replace(/\s+/g, "")}30`, password: `${n.replace(/\s+/g, "")}@30` });
-      setDoers((prev) => [...prev, { doer: n, department: dept.trim() }]);
+      // 1. Create user account locally with PBKDF2 hash in userDb
+      const account = await createDoerAccount(n);
+
+      // 2. Save to Google Sheet (with username + plaintext password so admin can reference)
+      await addDoer({
+        name: n,
+        department: dept.trim(),
+        mobile: mobile.trim(),
+        email: email.trim().toLowerCase(),
+        username: account.user.username,
+        password: account.password, // default password — user must change on first login
+      });
+
+      setDone({ name: n, username: account.user.username, password: account.password });
+      setDbUsers(getAllUsers());
     } catch (err: any) {
       setError(err?.message || "Doer add nahi hua. Dobara try karo.");
     } finally {
@@ -64,17 +95,33 @@ export function AddDoerModal({
     }
   }
 
-  async function handleRemove(doerName: string) {
-    if (!window.confirm(`Remove "${doerName}" from doers list?`)) return;
-    setRemoving(doerName);
+  async function handleRemove(user: UserRecord) {
+    if (!window.confirm(`Remove user "${user.username}" (${user.doerName || "PC"})?`)) return;
+    setRemoving(user.id);
     setRemoveError("");
     try {
-      await removeDoer({ name: doerName });
-      setDoers((prev) => prev.filter((d) => d.doer !== doerName));
+      // If it's linked to a Google Sheets doer, remove from Google Sheets too
+      if (user.doerName) {
+        await removeDoer({ name: user.doerName });
+        removeUserByDoerName(user.doerName);
+      }
+      setDbUsers(getAllUsers());
     } catch (err: any) {
       setRemoveError(err?.message || "Remove nahi hua. Dobara try karo.");
     } finally {
       setRemoving(null);
+    }
+  }
+
+  async function handleReset(user: UserRecord) {
+    if (!window.confirm(`Reset password for "${user.username}" back to default?`)) return;
+    setResetResult(null);
+    const res = await resetPasswordToDefault(user.id);
+    if (res) {
+      setResetResult({ username: user.username, newPass: res.newPassword });
+      setDbUsers(getAllUsers());
+    } else {
+      setRemoveError("Password reset failed.");
     }
   }
 
@@ -86,7 +133,13 @@ export function AddDoerModal({
     });
   }
 
-  const doerList = [...new Set(doers.map((d) => String(d.doer || "").trim()).filter(Boolean))].sort();
+  function copyResetPassword() {
+    if (!resetResult) return;
+    navigator.clipboard.writeText(resetResult.newPass).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
+  }
 
   return (
     <div
@@ -98,7 +151,7 @@ export function AddDoerModal({
         <div className="flex items-center justify-between gap-3 border-b-2 border-on-surface bg-surface-container-low px-5 py-4">
           <div className="flex items-center gap-2">
             <Icon name="manage_accounts" className="text-[22px] text-on-surface" />
-            <h3 className="font-headline-md text-headline-md uppercase tracking-tight text-on-surface">Manage Doers</h3>
+            <h3 className="font-headline-md text-headline-md uppercase tracking-tight text-on-surface">Manage Doers & Users</h3>
           </div>
           <button onClick={onClose} className="grid h-8 w-8 place-items-center border-2 border-on-surface text-on-surface transition-colors hover:bg-on-surface hover:text-on-primary" aria-label="Close">
             <Icon name="close" className="text-[18px]" />
@@ -110,13 +163,13 @@ export function AddDoerModal({
           {(["add", "manage"] as Tab[]).map((t) => (
             <button
               key={t}
-              onClick={() => { setTab(t); setDone(null); setError(""); setRemoveError(""); }}
+              onClick={() => { setTab(t); setDone(null); setError(""); setRemoveError(""); setResetResult(null); }}
               className={cn(
                 "py-2.5 font-label-sm text-label-sm uppercase transition-colors",
                 tab === t ? "bg-on-surface text-on-primary" : "text-on-surface-variant hover:bg-surface-container"
               )}
             >
-              {t === "add" ? "Add Doer" : `Manage (${doerList.length})`}
+              {t === "add" ? "Add Doer" : `Manage Users (${dbUsers.length - 1})`}
             </button>
           ))}
         </div>
@@ -133,7 +186,7 @@ export function AddDoerModal({
                 <p className="font-mono text-data-mono uppercase text-on-surface-variant">{done.name} ab login kar sakta hai</p>
               </div>
               <div className="border-2 border-on-surface bg-surface-container-low p-4 space-y-3">
-                <p className="font-label-sm text-label-sm uppercase text-on-surface-variant">Login Credentials — yeh doer ko share karo</p>
+                <p className="font-label-sm text-label-sm uppercase text-on-surface-variant">Login Credentials — doer ko share karein</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p className="font-label-sm text-label-sm uppercase text-on-surface-variant mb-1">Username</p>
@@ -168,12 +221,12 @@ export function AddDoerModal({
           ) : (
             <form onSubmit={submit} className="space-y-4 p-5">
               <label className="block">
-                <Label>Doer Name</Label>
+                <Label>Doer Name (sirf alphabets)</Label>
                 <Field value={name} onChange={(e: any) => setName(e.target.value)} placeholder="e.g. RAHUL" autoFocus />
               </label>
 
               <label className="block">
-                <Label>Department (kuch bhi likhein)</Label>
+                <Label>Department</Label>
                 <Field value={dept} onChange={(e: any) => setDept(e.target.value)} placeholder="e.g. Sales, Finance, HR..." />
               </label>
 
@@ -189,10 +242,10 @@ export function AddDoerModal({
               </div>
 
               {name.trim() && (
-                <div className="border-l-4 border-on-surface pl-3 font-mono text-data-mono uppercase text-on-surface-variant text-[11px]">
-                  Auto Login → <span className="text-on-surface font-bold">{name.trim().toUpperCase().replace(/\s+/g, "")}30</span>
-                  {" / "}
-                  <span className="text-on-surface font-bold">{name.trim().toUpperCase().replace(/\s+/g, "")}@30</span>
+                <div className="border-l-4 border-on-surface pl-3 font-mono text-data-mono uppercase text-on-surface-variant text-[11px] space-y-1">
+                  <div>Auto Username: <span className="text-on-surface font-bold">{nextUsername}</span></div>
+                  <div>Auto Password: <span className="text-on-surface font-bold">{passwordPreview}</span></div>
+                  <div className="text-[10px] text-error font-medium">Note: User must change password on first login.</div>
                 </div>
               )}
 
@@ -212,40 +265,71 @@ export function AddDoerModal({
         {/* MANAGE TAB */}
         {tab === "manage" && (
           <div className="p-5 space-y-3">
-            {removeError && <div className="border-2 border-error bg-error/5 px-3 py-2 font-label-sm text-label-sm uppercase text-error">{removeError}</div>}
-            {doerList.length === 0 ? (
-              <div className="py-10 text-center font-mono text-data-mono uppercase text-on-surface-variant">Koi doer nahi hai</div>
-            ) : (
-              <div className="divide-y divide-outline-variant border-2 border-on-surface">
-                {doerList.map((d) => {
-                  const info = doers.find((x) => x.doer === d);
-                  return (
-                    <div key={d} className="flex items-center justify-between gap-3 px-4 py-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="grid h-8 w-8 shrink-0 place-items-center border-2 border-on-surface bg-surface-container-lowest font-mono text-data-mono font-bold uppercase text-on-surface">
-                          {d[0]}
-                        </span>
-                        <div className="min-w-0">
-                          <div className="font-label-sm text-label-sm font-bold uppercase text-on-surface truncate">{d}</div>
-                          {info?.department && (
-                            <div className="font-mono text-[10px] uppercase text-on-surface-variant">{info.department}</div>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleRemove(d)}
-                        disabled={removing === d}
-                        className="shrink-0 inline-flex items-center gap-1 border-2 border-error px-2.5 py-1 font-label-sm text-label-sm uppercase text-error hover:bg-error hover:text-on-error transition-colors disabled:opacity-50"
-                      >
-                        <Icon name={removing === d ? "progress_activity" : "person_remove"} className={cn("text-[14px]", removing === d && "animate-spin")} />
-                        {removing === d ? "…" : "Remove"}
-                      </button>
-                    </div>
-                  );
-                })}
+            {resetResult && (
+              <div className="border-2 border-primary-container bg-primary-container/10 p-3 space-y-2">
+                <div className="font-label-sm text-label-sm uppercase text-primary-container font-bold">Password Reset Successful</div>
+                <div className="font-mono text-xs text-on-surface">
+                  Username: <span className="font-bold">{resetResult.username}</span><br />
+                  New Password: <span className="font-bold">{resetResult.newPass}</span>
+                </div>
+                <button
+                  onClick={copyResetPassword}
+                  className="w-full flex items-center justify-center gap-1.5 border border-on-surface px-2 py-1 font-label-sm text-[11px] uppercase transition-colors hover:bg-on-surface hover:text-on-primary"
+                >
+                  <Icon name={copied ? "check" : "content_copy"} className="text-[12px]" />
+                  {copied ? "Copied Password" : "Copy Password"}
+                </button>
               </div>
             )}
-            <div className="flex justify-end pt-2">
+
+            {removeError && <div className="border-2 border-error bg-error/5 px-3 py-2 font-label-sm text-label-sm uppercase text-error">{removeError}</div>}
+            
+            {dbUsers.filter(u => u.role !== "admin").length === 0 ? (
+              <div className="py-10 text-center font-mono text-data-mono uppercase text-on-surface-variant">Koi users nahi hai</div>
+            ) : (
+              <div className="max-h-[350px] overflow-y-auto divide-y divide-outline-variant border-2 border-on-surface">
+                {dbUsers
+                  .filter((u) => u.role !== "admin")
+                  .map((u) => {
+                    const matchedSheetsDoer = existingDoers.find((x) => x.doer.toUpperCase() === u.doerName?.toUpperCase());
+                    return (
+                      <div key={u.id} className="flex items-center justify-between gap-2 px-4 py-3 bg-surface-container-lowest">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-label-sm text-label-sm font-bold uppercase text-on-surface">{u.username}</span>
+                            <span className="text-[10px] font-mono px-1 border border-outline text-on-surface-variant uppercase">{u.role}</span>
+                          </div>
+                          {u.doerName && (
+                            <div className="font-mono text-[11px] text-on-surface-variant uppercase mt-0.5">
+                              Doer: {u.doerName} {matchedSheetsDoer?.department ? `(${matchedSheetsDoer.department})` : ""}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => handleReset(u)}
+                            className="inline-flex items-center gap-1 border-2 border-on-surface px-2 py-1 font-label-sm text-[11px] uppercase text-on-surface hover:bg-on-surface hover:text-on-primary transition-colors"
+                            title="Reset password to default"
+                          >
+                            <Icon name="lock_reset" className="text-[14px]" />
+                            Reset
+                          </button>
+                          <button
+                            onClick={() => handleRemove(u)}
+                            disabled={removing === u.id}
+                            className="inline-flex items-center gap-1 border-2 border-error px-2 py-1 font-label-sm text-[11px] uppercase text-error hover:bg-error hover:text-on-error transition-colors disabled:opacity-50"
+                            title="Delete this user"
+                          >
+                            <Icon name={removing === u.id ? "progress_activity" : "person_remove"} className={cn("text-[14px]", removing === u.id && "animate-spin")} />
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+            <div className="flex justify-end pt-2 border-t-2 border-on-surface">
               <button onClick={onClose} className="border-2 border-on-surface bg-on-surface px-5 py-2.5 font-label-sm text-label-sm uppercase text-on-primary hover:bg-surface hover:text-on-surface transition-colors">
                 Close
               </button>

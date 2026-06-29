@@ -100,7 +100,8 @@ export async function addTask(payload) {
 }
 
 // Add a new doer to the Doers sheet in Google Sheets.
-// payload: { name, department }
+// payload: { name, department, mobile, email, username, password }
+// username and password are saved so admin can reference them from the sheet.
 export async function addDoer(payload) {
   if (!APPS_SCRIPT_URL) {
     return { ok: false, error: "Sample mode — no live sheet connected to write to." };

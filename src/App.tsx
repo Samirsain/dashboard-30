@@ -2,7 +2,8 @@ import * as React from "react";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { loadData, weekOptions, filterByWeek, filterByDoer } from "@/lib/data";
 import { Login } from "@/components/Login";
-import { isAuthed, currentRole, currentDoerName, currentCanAdd, logout, type Role } from "@/lib/auth";
+import { ForcePasswordChange } from "@/components/ForcePasswordChange";
+import { isAuthed, currentRole, currentDoerName, currentCanAdd, logout, type Role, currentSession } from "@/lib/auth";
 import { Sidebar, AdminSidebar, MobileSectionTabs, SECTIONS } from "@/components/exec/Sidebar";
 import { Topbar } from "@/components/exec/Topbar";
 import { Overview } from "@/components/exec/Overview";
@@ -201,16 +202,35 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
 export default function App() {
   const [authed, setAuthed] = React.useState<boolean>(() => isAuthed());
+  const [session, setSessionState] = React.useState(() => currentSession());
 
-  if (!authed) return <Login onSuccess={() => setAuthed(true)} />;
+  const handleLoginSuccess = () => {
+    setAuthed(true);
+    setSessionState(currentSession());
+  };
 
-  const role = currentRole() ?? "staff";
-  const doerName = currentDoerName();
-  const canAdd = currentCanAdd();
   const onLogout = () => {
     logout();
     setAuthed(false);
+    setSessionState(null);
   };
+
+  if (!authed || !session) {
+    return <Login onSuccess={handleLoginSuccess} />;
+  }
+
+  if (session.forcePasswordChange) {
+    return (
+      <ForcePasswordChange
+        session={session}
+        onDone={(updatedSession) => setSessionState(updatedSession)}
+      />
+    );
+  }
+
+  const role = session.role;
+  const doerName = session.doerName;
+  const canAdd = session.canAdd;
 
   // Only the admin can open the Scoring panel; everyone else → the dashboard.
   if (onAdminRoute()) {
