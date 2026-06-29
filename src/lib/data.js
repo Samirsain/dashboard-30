@@ -124,6 +124,27 @@ export async function addDoer(payload) {
   return out || { ok: true };
 }
 
+// Remove a doer from the Doers sheet.
+// payload: { name }
+export async function removeDoer(payload) {
+  if (!APPS_SCRIPT_URL) {
+    return { ok: false, error: "Sample mode — no live sheet connected." };
+  }
+  const body = JSON.stringify({ token: WRITE_TOKEN, action: "removeDoer", ...payload });
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    redirect: "follow",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body,
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  let out;
+  try { out = JSON.parse(text); } catch { out = { ok: true }; }
+  if (out && out.ok === false) throw new Error(out.error || "Could not remove the doer.");
+  return out || { ok: true };
+}
+
 // Mark a task complete. Sends Task ID plus a doer/task/date fallback so the
 // Apps Script can find the row even when a checklist row has no Task ID.
 // task: a unified task row from analytics (has id, source, doer, task, due).

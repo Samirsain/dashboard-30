@@ -132,6 +132,7 @@ function PublicApp({ role, doerName, canAdd, onLogout }: { role: Role; doerName:
       )}
       {showAddDoer && (
         <AddDoerModal
+          existingDoers={data?.doers || []}
           onClose={() => { setShowAddDoer(false); setReloadToken((t) => t + 1); }}
         />
       )}
@@ -190,6 +191,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       )}
       {showAddDoer && (
         <AddDoerModal
+          existingDoers={data?.doers || []}
           onClose={() => { setShowAddDoer(false); setReloadToken((t) => t + 1); }}
         />
       )}
