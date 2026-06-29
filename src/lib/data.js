@@ -11,7 +11,10 @@ export const ALL_WEEKS = { key: "all", label: "All weeks", from: "", to: "" };
 
 // Ex-staff hidden everywhere (case-insensitive). Applied to live + sample data.
 const EXCLUDED = new Set((EXCLUDED_DOERS || []).map((s) => String(s).trim().toUpperCase()));
-const isExcluded = (name) => EXCLUDED.has(String(name ?? "").trim().toUpperCase());
+const isExcluded = (name) => {
+  const s = String(name ?? "").trim().toUpperCase();
+  return s === "" || EXCLUDED.has(s);
+};
 
 function dropExcludedDoers(data) {
   if (!data) return data;
