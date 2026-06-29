@@ -196,16 +196,36 @@ export function TaskDirectory({
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2 border-b-2 border-on-surface px-4 py-3 sm:px-5">
-        <span className="flex shrink-0 items-center gap-1.5 font-label-sm text-label-sm uppercase text-on-surface">
-          <Icon name="filter_alt" className="text-[18px]" /> Filter
-        </span>
-        {showSystem && systems.length > 1 && (
-          <FilterSelect value={system} onChange={setSystem} options={["Checklist", "Task List", "Workflow"]} allLabel="All Systems" />
-        )}
-        <FilterSelect value={dept} onChange={setDept} options={depts} allLabel="All Departments" />
-        <FilterSelect value={status} onChange={setStatus} options={["Completed", "Pending"]} allLabel="All Statuses" />
-        {hasPriority && <FilterSelect value={priority} onChange={setPriority} options={["High", "Medium", "Low"]} allLabel="All Priorities" />}
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-3 sm:gap-2 border-b-2 border-on-surface px-4 py-3 sm:px-5">
+        <div className="flex w-full sm:w-auto items-center justify-between">
+          <span className="flex shrink-0 items-center gap-1.5 font-label-sm text-label-sm uppercase text-on-surface">
+            <Icon name="filter_alt" className="text-[18px]" /> Filter
+          </span>
+          {(search || dept !== "All" || status !== "All" || priority !== "All" || system !== "All") && (
+            <button
+              onClick={() => {
+                setSearch("");
+                setDept("All");
+                setStatus("All");
+                setPriority("All");
+                setSystem("All");
+              }}
+              className="sm:hidden font-label-sm text-label-sm font-bold uppercase text-error hover:underline"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        
+        <div className="flex flex-wrap w-full sm:w-auto items-center gap-2">
+          {showSystem && systems.length > 1 && (
+            <FilterSelect value={system} onChange={setSystem} options={["Checklist", "Task List", "Workflow"]} allLabel="All Systems" className="flex-1 sm:flex-none min-w-[130px]" />
+          )}
+          <FilterSelect value={dept} onChange={setDept} options={depts} allLabel="All Departments" className="flex-1 sm:flex-none min-w-[130px]" />
+          <FilterSelect value={status} onChange={setStatus} options={["Completed", "Pending"]} allLabel="All Statuses" className="flex-1 sm:flex-none min-w-[130px]" />
+          {hasPriority && <FilterSelect value={priority} onChange={setPriority} options={["High", "Medium", "Low"]} allLabel="All Priorities" className="flex-1 sm:flex-none min-w-[130px]" />}
+        </div>
+        
         {(search || dept !== "All" || status !== "All" || priority !== "All" || system !== "All") && (
           <button
             onClick={() => {
@@ -215,7 +235,7 @@ export function TaskDirectory({
               setPriority("All");
               setSystem("All");
             }}
-            className="ml-auto font-label-sm text-label-sm font-bold uppercase text-error hover:underline"
+            className="hidden sm:block ml-auto font-label-sm text-label-sm font-bold uppercase text-error hover:underline"
           >
             Clear
           </button>
@@ -471,12 +491,12 @@ function ReviseModal({
   );
 }
 
-function FilterSelect({ value, onChange, options, allLabel }: { value: string; onChange: (v: string) => void; options: string[]; allLabel: string }) {
+function FilterSelect({ value, onChange, options, allLabel, className }: { value: string; onChange: (v: string) => void; options: string[]; allLabel: string; className?: string }) {
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="border-2 border-on-surface bg-surface-container-lowest px-3 py-1.5 font-label-sm text-label-sm uppercase text-on-surface outline-none focus:bg-surface-container-low"
+      className={cn("border-2 border-on-surface bg-surface-container-lowest px-3 py-1.5 font-label-sm text-label-sm uppercase text-on-surface outline-none focus:bg-surface-container-low", className)}
     >
       <option value="All">{allLabel}</option>
       {options.map((o) => (
