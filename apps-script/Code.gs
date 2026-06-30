@@ -391,7 +391,11 @@ function reviseTask(body) {
     ss = openOrNull(customSheetId || SHEET_IDS.delegation);
     headers = ["Task ID", "Total Revisions", "Status", "First Date"];
     matcher.dateField = "First Date";
-    setVals = { "Latest Revision": newDateVal };
+    // Latest Revision = the new (revised) date — this becomes the task's due in
+    // the dashboard. Status -> "Week Shifted" matches the sheet's own convention
+    // for a revised/pending task, so the row reads consistently in both places
+    // and is never mistaken for Completed.
+    setVals = { "Latest Revision": newDateVal, "Status": "Week Shifted" };
     incHeaders = ["Total Revisions"];
   }
   if (!ss) return json({ ok: false, error: "Sheet not configured." });
