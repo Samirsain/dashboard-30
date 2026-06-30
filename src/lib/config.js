@@ -14,8 +14,50 @@
 // normalises them, and emits ONE JSON payload with the keys the frontend uses.
 // =============================================================================
 
-// Apps Script Web App URL (doGet). Blank → bundled sample data.
-export const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwQgfIzJJAIadH52kU_Vvwbtu-Rte38Ey_DCuqf1TKcTN4eh7s8ExPZ-_GYF7FwPSzC/exec";
+// Apps Script Web App URL (doGet). This is the DEFAULT baked into the build, but
+// it can be overridden at runtime from the dashboard (admin → Sheet Connections,
+// or the error screen) and stored in localStorage — so when a new deployment
+// mints a new /exec URL you just paste it, no rebuild needed.
+const BACKEND_URL_KEY = "tm-mis-backend-url";
+const DEFAULT_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwQgfIzJJAIadH52kU_Vvwbtu-Rte38Ey_DCuqf1TKcTN4eh7s8ExPZ-_GYF7FwPSzC/exec";
+
+function readBackendUrl() {
+  try {
+    const v = localStorage.getItem(BACKEND_URL_KEY);
+    return v && v.trim() ? v.trim() : DEFAULT_APPS_SCRIPT_URL;
+  } catch {
+    return DEFAULT_APPS_SCRIPT_URL;
+  }
+}
+
+// Live binding — call sites read this at fetch time, so an override applies on
+// the next load. (The settings UI also reloads the page for a clean refetch.)
+export let APPS_SCRIPT_URL = readBackendUrl();
+
+export function getBackendUrl() {
+  return APPS_SCRIPT_URL;
+}
+export function getDefaultBackendUrl() {
+  return DEFAULT_APPS_SCRIPT_URL;
+}
+export function isBackendUrlOverridden() {
+  return APPS_SCRIPT_URL !== DEFAULT_APPS_SCRIPT_URL;
+}
+
+// Save (or clear) the runtime backend URL override. Pass a blank string to reset
+// back to the build's default. Returns the URL now in effect.
+export function setBackendUrl(url) {
+  const clean = String(url || "").trim();
+  try {
+    if (clean && clean !== DEFAULT_APPS_SCRIPT_URL) localStorage.setItem(BACKEND_URL_KEY, clean);
+    else localStorage.removeItem(BACKEND_URL_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+  APPS_SCRIPT_URL = clean || DEFAULT_APPS_SCRIPT_URL;
+  return APPS_SCRIPT_URL;
+}
+
 export const USE_SAMPLE_DATA_FALLBACK = false;
 
 // Shared secret for the "Add Task" write endpoint (doPost in Code.gs). Must match

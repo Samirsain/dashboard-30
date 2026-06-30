@@ -1,6 +1,8 @@
 import * as React from "react";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { loadData, weekOptions, filterByWeek, filterByDoer, fetchConnectionData } from "@/lib/data";
+import { getBackendUrl, getDefaultBackendUrl, setBackendUrl, isBackendUrlOverridden } from "@/lib/config";
+import { cn } from "@/lib/utils";
 import { Login } from "@/components/Login";
 import { ForcePasswordChange } from "@/components/ForcePasswordChange";
 import { isAuthed, logout, currentSession, type Session } from "@/lib/auth";
@@ -51,18 +53,79 @@ function LoadingState() {
   );
 }
 
+// Settings card to view/change the Apps Script backend URL at runtime. Shown in
+// the admin panel and on the error screen (so a wrong/expired /exec URL — e.g. a
+// 404 after re-deploying — can be fixed by pasting the new URL, no rebuild).
+function BackendUrlCard() {
+  const [url, setUrl] = React.useState(getBackendUrl());
+  const [status, setStatus] = React.useState<{ kind: "idle" | "testing" | "ok" | "err"; msg?: string }>({ kind: "idle" });
+
+  async function test() {
+    const u = url.trim().replace(/\/+$/, "");
+    if (!u) { setStatus({ kind: "err", msg: "URL daalein." }); return; }
+    setStatus({ kind: "testing" });
+    try {
+      const res = await fetch(`${u}?version=1&_t=${Date.now()}`, { redirect: "follow" });
+      if (!res.ok) { setStatus({ kind: "err", msg: `HTTP ${res.status}` }); return; }
+      const j = await res.json();
+      setStatus({ kind: "ok", msg: j?.version ? `OK · ${j.version}` : "Reachable" });
+    } catch (e: any) {
+      setStatus({ kind: "err", msg: e?.message || "Unreachable" });
+    }
+  }
+  function save() { setBackendUrl(url); window.location.reload(); }
+  function reset() { setBackendUrl(""); window.location.reload(); }
+
+  return (
+    <div className="glass-card p-4 text-left sm:p-5">
+      <div className="mb-2 flex items-center gap-2">
+        <Icon name="link" className="text-[20px] text-on-surface" />
+        <h3 className="font-headline-md text-headline-md uppercase tracking-tight text-on-surface">Backend URL</h3>
+      </div>
+      <p className="mb-3 font-mono text-data-mono uppercase text-on-surface-variant">
+        Apps Script Web App ka /exec URL. Naya deploy karne par yahan paste karke Save karein — rebuild ki zaroorat nahi.
+      </p>
+      <input
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        spellCheck={false}
+        placeholder="https://script.google.com/macros/s/…/exec"
+        className="w-full border-2 border-on-surface bg-surface-container-lowest px-3 py-2.5 font-mono text-data-mono text-on-surface outline-none focus:bg-surface-container-low"
+      />
+      {status.kind !== "idle" && (
+        <div className={cn(
+          "mt-2 border-2 px-3 py-1.5 font-label-sm text-label-sm uppercase",
+          status.kind === "ok" ? "border-on-surface text-on-surface" : status.kind === "err" ? "border-error text-error" : "border-on-surface text-on-surface-variant"
+        )}>
+          {status.kind === "testing" ? "Testing…" : status.msg}
+        </div>
+      )}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <button onClick={test} className="border-2 border-on-surface px-4 py-2 font-label-sm text-label-sm uppercase text-on-surface transition-colors hover:bg-surface-container">Test</button>
+        <button onClick={save} className="inline-flex items-center gap-2 border-2 border-on-surface bg-on-surface px-4 py-2 font-label-sm text-label-sm uppercase text-on-primary transition-colors hover:bg-surface hover:text-on-surface">Save &amp; Reload</button>
+        {isBackendUrlOverridden() && (
+          <button onClick={reset} className="border-2 border-on-surface px-4 py-2 font-label-sm text-label-sm uppercase text-on-surface-variant transition-colors hover:bg-surface-container">Reset</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ErrorState({ error, onRetry }: { error: any; onRetry: () => void }) {
   return (
-    <div className="glass-card flex flex-col items-center justify-center gap-3 border-error py-16 text-center">
-      <AlertTriangle className="h-8 w-8 text-error" />
-      <div className="font-headline-md text-headline-md uppercase text-error">Couldn't load the dashboard</div>
-      <div className="max-w-md font-mono text-data-mono text-on-surface-variant">{error?.message || "Unknown error."}</div>
-      <button
-        onClick={onRetry}
-        className="mt-1 inline-flex items-center gap-2 border-2 border-on-surface bg-on-surface px-4 py-2 font-label-sm text-label-sm uppercase text-on-primary transition-colors hover:bg-surface hover:text-on-surface"
-      >
-        <RefreshCw className="h-4 w-4" /> Retry
-      </button>
+    <div className="mx-auto max-w-xl space-y-4">
+      <div className="glass-card flex flex-col items-center justify-center gap-3 border-error py-16 text-center">
+        <AlertTriangle className="h-8 w-8 text-error" />
+        <div className="font-headline-md text-headline-md uppercase text-error">Couldn't load the dashboard</div>
+        <div className="max-w-md font-mono text-data-mono text-on-surface-variant">{error?.message || "Unknown error."}</div>
+        <button
+          onClick={onRetry}
+          className="mt-1 inline-flex items-center gap-2 border-2 border-on-surface bg-on-surface px-4 py-2 font-label-sm text-label-sm uppercase text-on-primary transition-colors hover:bg-surface hover:text-on-surface"
+        >
+          <RefreshCw className="h-4 w-4" /> Retry
+        </button>
+      </div>
+      <BackendUrlCard />
     </div>
   );
 }
@@ -81,7 +144,9 @@ function ComingSoon({ title, note }: { title: string; note: string }) {
 
 // A connected sheet's page. Its rows are fetched lazily — only when this module
 // is actually opened — so attaching sheets never slows the main dashboard load.
-function ConnectionModule({ conn, doerName, reloadToken, onChanged }: { conn: any; doerName: string | null; reloadToken: number; onChanged: () => void }) {
+// A connected sheet is a SHARED work-list: everyone granted access sees ALL of
+// its rows (access is the gate), unlike the main Task List which is doer-scoped.
+function ConnectionModule({ conn, reloadToken, onChanged }: { conn: any; reloadToken: number; onChanged: () => void }) {
   const [rows, setRows] = React.useState<any[] | null>(null);
   const [failed, setFailed] = React.useState(false);
 
@@ -100,13 +165,9 @@ function ConnectionModule({ conn, doerName, reloadToken, onChanged }: { conn: an
   if (rows === null) return <LoadingState />;
 
   const isTaskList = conn.sheetType === "tasklist";
-  // Scope to the logged-in doer's own rows (admins/pc have no doerName → see all).
-  const scoped = doerName
-    ? rows.filter((r) => String(r.doer || "").trim().toUpperCase() === String(doerName).trim().toUpperCase())
-    : rows;
   const connData = isTaskList
-    ? { delegation: scoped, checklist: [], fms: [] }
-    : { checklist: scoped, delegation: [], fms: [] };
+    ? { delegation: rows, checklist: [], fms: [] }
+    : { checklist: rows, delegation: [], fms: [] };
 
   return (
     <>
@@ -135,7 +196,7 @@ function ModuleBody({ slug, moduleName, viewData, onChanged, doerName, reloadTok
     default: {
       const conn = getConnectionBySlug(slug);
       if (conn) {
-        return <ConnectionModule conn={conn} doerName={doerName} reloadToken={reloadToken} onChanged={onChanged} />;
+        return <ConnectionModule conn={conn} reloadToken={reloadToken} onChanged={onChanged} />;
       }
       return <ComingSoon title={`${moduleName} coming soon`} note="Ye module enable ho gaya hai — iska data source connect hote hi yahan live aa jayega." />;
     }
@@ -275,7 +336,10 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-24 sm:p-6">
           <div className="mx-auto min-w-0 max-w-[1440px]">
             {adminSection === "sheets" ? (
-              <SheetManager />
+              <div className="space-y-6">
+                <BackendUrlCard />
+                <SheetManager />
+              </div>
             ) : loading ? (
               <LoadingState />
             ) : error && !data ? (
