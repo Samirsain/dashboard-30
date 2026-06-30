@@ -811,3 +811,4 @@ function toInt(v) { var n = parseInt(v, 10); return isNaN(n) ? 0 : n; }
 function pad(n) { return n < 10 ? "0" + n : "" + n; }
 function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
 function json(obj) { return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON); }
+function isoToDate(s) { return parseISO(s); }

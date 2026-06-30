@@ -113,7 +113,10 @@ export function TaskDirectory({
     setOptimisticDone((prev) => new Set(prev).add(t.id));
     setActionError("");
     try {
-      await completeTask(t);
+      const res = await completeTask(t);
+      if (!res.ok) {
+        throw new Error(res.error || "Could not mark the task done.");
+      }
       onChanged && onChanged();
     } catch (e: any) {
       setOptimisticDone((prev) => {
@@ -131,7 +134,10 @@ export function TaskDirectory({
     setBusyId(t.id);
     setActionError("");
     try {
-      await reviseTask(t, newDate);
+      const res = await reviseTask(t, newDate);
+      if (!res.ok) {
+        throw new Error(res.error || "Could not revise the task.");
+      }
       setRevising(null);
       onChanged && onChanged();
     } catch (e: any) {
