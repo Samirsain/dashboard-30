@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
-import { loadData, weekOptions, filterByWeek, filterByDoer, fetchConnectionData } from "@/lib/data";
+import { loadData, weekOptions, filterByWeek, filterByDoer, fetchConnectionData, getCachedData } from "@/lib/data";
 import { getBackendUrl, getDefaultBackendUrl, setBackendUrl, isBackendUrlOverridden } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { Login } from "@/components/Login";
@@ -29,12 +29,27 @@ function onAdminRoute(): boolean {
 type LoadState = { loading: boolean; data: any; source: string; error: any };
 
 function useAllData(reloadToken: number): LoadState {
-  const [state, setState] = React.useState<LoadState>({ loading: true, data: null, source: "sample", error: null });
+  // Seed from the cached payload (if any) so the dashboard paints instantly
+  // instead of showing a long spinner while the (sometimes slow) backend loads.
+  const [state, setState] = React.useState<LoadState>(() => {
+    const cached = getCachedData();
+    return cached
+      ? { loading: false, data: cached, source: "cache", error: null }
+      : { loading: true, data: null, source: "sample", error: null };
+  });
   React.useEffect(() => {
     let alive = true;
     setState((s) => ({ ...s, loading: s.data === null }));
     loadData().then((res: any) => {
-      if (alive) setState({ loading: false, data: res.data, source: res.source, error: res.error });
+      if (!alive) return;
+      // On a failed refresh keep whatever we were already showing (e.g. cache)
+      // and surface the error as a banner, rather than blanking to an error page.
+      setState((prev) => ({
+        loading: false,
+        data: res.data ?? prev.data,
+        source: res.data ? res.source : prev.source,
+        error: res.error,
+      }));
     });
     return () => {
       alive = false;

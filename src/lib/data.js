@@ -11,6 +11,18 @@ import { applyRemoteConfig } from "./configSync";
 
 export const ALL_WEEKS = { key: "all", label: "All weeks", from: "", to: "" };
 
+// Last successful LIVE payload, cached so the dashboard can render instantly on
+// the next visit while fresh data loads in the background (stale-while-revalidate).
+const DATA_CACHE_KEY = "tm-mis-data-cache-v1";
+export function getCachedData() {
+  try {
+    const raw = localStorage.getItem(DATA_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 // Ex-staff hidden everywhere (case-insensitive). Applied to live + sample data.
 const EXCLUDED = new Set((EXCLUDED_DOERS || []).map((s) => String(s).trim().toUpperCase()));
 const isExcluded = (name) => {
@@ -46,7 +58,9 @@ export async function loadData() {
   let mainSource = "live";
 
   try {
-    const res = await fetchWithTimeout(`${APPS_SCRIPT_URL}?week=all&_t=${Date.now()}`, { method: "GET", redirect: "follow" }, 25000);
+    // Generous budget: a cold Apps Script start over a large sheet can take
+    // 30-50s. This only guards against a true hang, not normal slowness.
+    const res = await fetchWithTimeout(`${APPS_SCRIPT_URL}?week=all&_t=${Date.now()}`, { method: "GET", redirect: "follow" }, 70000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const payload = await res.json();
     if (payload && payload.error) {
@@ -71,6 +85,13 @@ export async function loadData() {
   // each connection module only when it's opened (see ConnectionModule in
   // App.tsx). This keeps the main dashboard load fast no matter how many sheets
   // are attached, and a slow/large connected sheet can never stall the board.
+
+  // Cache the live payload so the next visit paints instantly from cache while
+  // this same fetch refreshes it in the background.
+  if (mainSource === "live" && mainData) {
+    try { localStorage.setItem(DATA_CACHE_KEY, JSON.stringify(mainData)); } catch { /* quota */ }
+  }
+
   return { data: mainData, source: mainSource, error: mainError };
 }
 
@@ -96,7 +117,7 @@ export async function fetchConnectionData(conn) {
     const res = await fetchWithTimeout(
       `${url}?sheetId=${encodeURIComponent(conn.sheetId)}&type=${conn.sheetType}&_t=${Date.now()}`,
       { method: "GET", redirect: "follow" },
-      20000
+      45000
     );
     if (!res.ok) return null;
     const payload = await res.json();
