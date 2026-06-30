@@ -44,6 +44,14 @@ function writeAll(conns: SheetConnection[]): void {
   } catch { /* unavailable */ }
 }
 
+// Fire-and-forget push of the connection list to the shared backend so other
+// devices see it. Dynamic import avoids a static cycle with configSync.
+function pushConfig(): void {
+  import("./configSync")
+    .then((m) => m.scheduleConfigPush())
+    .catch(() => { /* offline / sample mode — ignore */ });
+}
+
 export function getConnections(): SheetConnection[] {
   return readAll().sort((a, b) => a.order - b.order);
 }
@@ -84,6 +92,7 @@ export function addConnection(input: {
   };
 
   writeAll([...all, conn]);
+  pushConfig();
   return conn;
 }
 
@@ -98,12 +107,15 @@ export function removeConnection(id: string): void {
   }
 
   writeAll(all.filter((c) => c.id !== id));
+  pushConfig();
 }
 
 export function toggleConnection(id: string): void {
   writeAll(readAll().map((c) => (c.id === id ? { ...c, active: !c.active } : c)));
+  pushConfig();
 }
 
 export function updateConnectionName(id: string, name: string): void {
   writeAll(readAll().map((c) => (c.id === id ? { ...c, name: name.trim() } : c)));
+  pushConfig();
 }

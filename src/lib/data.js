@@ -7,6 +7,7 @@
 import { APPS_SCRIPT_URL, USE_SAMPLE_DATA_FALLBACK, EXCLUDED_DOERS, WRITE_TOKEN } from "./config.js";
 import { getAllSampleData } from "./sample-data.js";
 import { getActiveConnections } from "./sheets";
+import { applyRemoteConfig } from "./configSync";
 
 export const ALL_WEEKS = { key: "all", label: "All weeks", from: "", to: "" };
 
@@ -43,6 +44,7 @@ export async function loadData() {
   let mainData = null;
   let mainError = null;
   let mainSource = "live";
+  let serverConnections = null; // connection rows the server already returned
 
   try {
     const res = await fetch(`${APPS_SCRIPT_URL}?week=all&_t=${Date.now()}`, { method: "GET", redirect: "follow" });
@@ -52,6 +54,10 @@ export async function loadData() {
       mainError = { message: payload.error, missingHeaders: payload.missingHeaders || [] };
     } else {
       mainData = prepare(normalize(payload));
+      // Hydrate this device's connections + per-doer access from the shared
+      // backend config so every laptop sees the same sheets and permissions.
+      try { applyRemoteConfig(payload.config); } catch { /* ignore */ }
+      serverConnections = payload.connections || null;
     }
   } catch (err) {
     if (USE_SAMPLE_DATA_FALLBACK) {
@@ -63,18 +69,29 @@ export async function loadData() {
     }
   }
 
-  // Load additional connected sheets in parallel. Each connection's rows are stored
-  // under viewData[conn.moduleSlug] so ModuleBody can pull them by slug.
+  // Attach connected-sheet rows under viewData[conn.moduleSlug] so ModuleBody can
+  // pull them by slug. Prefer the rows the server already bundled (one round-trip,
+  // much faster); only fall back to per-connection fetches for connections the
+  // server couldn't serve (e.g. a custom scriptUrl, or an older deployment).
   const connections = getActiveConnections ? getActiveConnections() : [];
   if (connections.length && mainData) {
-    const connResults = await Promise.allSettled(
-      connections.map((conn) => fetchConnectionData(conn))
-    );
-    connResults.forEach((result, i) => {
-      if (result.status === "fulfilled" && result.value !== null) {
-        mainData[connections[i].moduleSlug] = result.value;
+    const needFetch = [];
+    for (const conn of connections) {
+      const bundled = serverConnections && serverConnections[conn.moduleSlug];
+      if (bundled) {
+        mainData[conn.moduleSlug] = bundled.map((r) => ({ ...r, _sheetId: conn.sheetId, _scriptUrl: conn.scriptUrl || "" }));
+      } else {
+        needFetch.push(conn);
       }
-    });
+    }
+    if (needFetch.length) {
+      const connResults = await Promise.allSettled(needFetch.map((conn) => fetchConnectionData(conn)));
+      connResults.forEach((result, i) => {
+        if (result.status === "fulfilled" && result.value !== null) {
+          mainData[needFetch[i].moduleSlug] = result.value;
+        }
+      });
+    }
   }
 
   return { data: mainData, source: mainSource, error: mainError };

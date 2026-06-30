@@ -19,6 +19,10 @@
 
 export type UserRole = "admin" | "pc" | "employee";
 
+// Per-doer access keyed by USERNAME (stable across devices). Stored server-side
+// and applied to local accounts on load so assignments sync across laptops.
+export type AccessMap = Record<string, { modules?: string[]; addable?: string[] }>;
+
 export interface UserRecord {
   id: string;
   username: string;
@@ -298,6 +302,7 @@ export function setUserModules(userId: string, modules: string[]): void {
   const unique = [...new Set(modules.map((s) => String(s).trim()).filter(Boolean))];
   users[idx] = { ...users[idx], modules: unique };
   writeAll(users);
+  pushConfig(); // sync this assignment to other devices
 }
 
 // The module slugs an account is explicitly allowed to add tasks to.
@@ -316,4 +321,41 @@ export function setUserAddableModules(userId: string, modules: string[]): void {
   const unique = [...new Set(modules.map((s) => String(s).trim()).filter(Boolean))];
   users[idx] = { ...users[idx], addableModules: unique };
   writeAll(users);
+  pushConfig(); // sync this assignment to other devices
+}
+
+// Apply a backend access map (keyed by username) onto local accounts. Used on
+// load so an admin's assignment shows up on every doer's device. Writes
+// directly (no re-push) to avoid echoing the config we just received.
+export function applyAccessByUsername(access: AccessMap): void {
+  if (!access || typeof access !== "object") return;
+  const users = readAll();
+  let changed = false;
+  const next = users.map((u) => {
+    const a = access[String(u.username || "").toUpperCase()];
+    if (!a) return u;
+    let nu = u;
+    if (Array.isArray(a.modules)) {
+      const m = [...new Set(a.modules.map((s) => String(s).trim()).filter(Boolean))];
+      nu = { ...nu, modules: m };
+      changed = true;
+    }
+    if (Array.isArray(a.addable)) {
+      const m = [...new Set(a.addable.map((s) => String(s).trim()).filter(Boolean))];
+      nu = { ...nu, addableModules: m };
+      changed = true;
+    }
+    return nu;
+  });
+  if (changed) writeAll(next);
+}
+
+// Fire-and-forget push to the shared backend. Dynamic import avoids a static
+// import cycle (configSync reads this module's users to build the payload).
+function pushConfig(): void {
+  import("./configSync")
+    .then((m) => m.scheduleConfigPush())
+    .catch(() => {
+      /* offline / sample mode — ignore */
+    });
 }

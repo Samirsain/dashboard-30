@@ -40,7 +40,7 @@ var WEEK_START = 0; // 0 = Sunday
 // open  <web-app-url>?version=1  in a browser — it should echo this string.
 // If it shows an older value (or 404s), the /exec URL is still serving old code
 // and you must redeploy: Deploy > Manage deployments > (edit) > New version.
-var SCRIPT_VERSION = "2026-06-30-revise-v2";
+var SCRIPT_VERSION = "2026-06-30-config-sync-v3";
 
 // ---- Entry point -----------------------------------------------------------
 function doGet(e) {
@@ -85,8 +85,16 @@ function doGet(e) {
     var range = wantAll ? { key: "all", label: "All weeks", from: "", to: "" } : resolveWeek(params);
     var filt = function (rows, field) { return wantAll ? rows : filterByDate(rows, field, range); };
 
+    // Shared config (connections + per-doer access) and the data for every
+    // active connection — all in this one response so the client needs no extra
+    // round-trips and every device renders the same modules/permissions.
+    var config = getSharedConfig();
+    var connectionsData = readConnectionsData(config);
+
     return json({
       scriptVersion: SCRIPT_VERSION,
+      config: config,
+      connections: connectionsData,
       doers: doers,
       departments: departments,
       fms: filt(fms, "plannedOrFirst"),
@@ -189,10 +197,75 @@ function doPost(e) {
     if (action === "revise") return reviseTask(body);
     if (action === "adddoer") return addDoerRow(body);
     if (action === "removedoer") return removeDoerRow(body);
+    if (action === "saveconfig") return saveSharedConfig(body);
     return addTaskRow(body);
   } catch (err) {
     return json({ ok: false, error: "Server error: " + (err && err.message ? err.message : err) });
   }
+}
+
+// ---- Shared app config (cross-device) --------------------------------------
+// The dashboard's sheet connections and per-doer access used to live only in
+// each browser's localStorage, so an assignment made on the admin's laptop was
+// invisible on a doer's laptop. We now persist that config server-side in
+// ScriptProperties (shared across every web-app user) and hand it back on each
+// load, so every device sees the same connections and permissions.
+var CONFIG_KEY = "APP_CONFIG_V1";
+
+function getSharedConfig() {
+  try {
+    var raw = PropertiesService.getScriptProperties().getProperty(CONFIG_KEY);
+    if (!raw) return { connections: [], access: {} };
+    var parsed = JSON.parse(raw);
+    return {
+      connections: parsed && parsed.connections ? parsed.connections : [],
+      access: parsed && parsed.access ? parsed.access : {},
+    };
+  } catch (e) {
+    return { connections: [], access: {} };
+  }
+}
+
+// Persist the config sent by an admin device. Only known keys are stored.
+function saveSharedConfig(body) {
+  var cfg = body.config;
+  if (!cfg || typeof cfg !== "object") return json({ ok: false, error: "No config provided." });
+  var clean = {
+    connections: (cfg.connections && cfg.connections.length) ? cfg.connections : [],
+    access: (cfg.access && typeof cfg.access === "object") ? cfg.access : {},
+  };
+  try {
+    PropertiesService.getScriptProperties().setProperty(CONFIG_KEY, JSON.stringify(clean));
+    return json({ ok: true });
+  } catch (e) {
+    return json({ ok: false, error: "Could not save config: " + (e && e.message ? e.message : e) });
+  }
+}
+
+// Read every active connected sheet server-side and return its rows keyed by
+// moduleSlug. Doing this in the same request the dashboard already makes turns
+// N+1 round-trips (one per connection) into one — the main reason the board felt
+// slow when sheets were attached.
+function readConnectionsData(config) {
+  var out = {};
+  var conns = (config && config.connections) ? config.connections : [];
+  for (var i = 0; i < conns.length; i++) {
+    var c = conns[i];
+    if (!c || !c.active || !c.sheetId || !c.moduleSlug) continue;
+    // Only sheets served by THIS web app (no custom scriptUrl) can be read here.
+    if (c.scriptUrl) continue;
+    try {
+      var doerMap = {};
+      var rows = (c.sheetType === "checklist")
+        ? readChecklistFromId(c.sheetId, doerMap)
+        : readDelegationFromId(c.sheetId, doerMap);
+      out[c.moduleSlug] = rows.filter(function (r) { return !isExcludedDoer(r.doer); });
+    } catch (e) {
+      // A bad sheet ID shouldn't break the whole dashboard load.
+      out[c.moduleSlug] = [];
+    }
+  }
+  return out;
 }
 
 // Append a brand-new task row (Status = Pending).

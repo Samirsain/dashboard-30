@@ -5,7 +5,7 @@ import { Login } from "@/components/Login";
 import { ForcePasswordChange } from "@/components/ForcePasswordChange";
 import { isAuthed, logout, currentSession, type Session } from "@/lib/auth";
 import { visibleModules, defaultModuleSlug } from "@/lib/permissions";
-import { getConnectionBySlug } from "@/lib/sheets";
+import { getConnectionBySlug, getActiveConnections } from "@/lib/sheets";
 import { Sidebar, AdminSidebar, MobileSectionTabs } from "@/components/exec/Sidebar";
 import { Topbar } from "@/components/exec/Topbar";
 import { Overview } from "@/components/exec/Overview";
@@ -117,8 +117,6 @@ function ModuleBody({ slug, moduleName, viewData, onChanged }: { slug: string; m
 function PublicApp({ session, onLogout }: { session: Session; onLogout: () => void }) {
   const { role, doerName, canAdd, userId } = session;
   const isAdmin = role === "admin";
-  const modules = React.useMemo(() => visibleModules(session), [session]);
-  const addableModules = React.useMemo(() => getUserAddableModules(userId), [userId]);
 
   const [section, setSection] = React.useState<string>(() => defaultModuleSlug(session));
   const [week, setWeek] = React.useState<string>("all");
@@ -126,6 +124,12 @@ function PublicApp({ session, onLogout }: { session: Session; onLogout: () => vo
   const [showAdd, setShowAdd] = React.useState(false);
   const [showAddDoer, setShowAddDoer] = React.useState(false);
   const { loading, data, source, error } = useAllData(reloadToken);
+
+  // Recompute visible/addable modules whenever data (re)loads. A load hydrates
+  // this device's connection + per-doer access caches from the shared backend,
+  // so a doer's assigned sheets appear without needing to log in again.
+  const modules = React.useMemo(() => visibleModules(session), [session, data]);
+  const addableModules = React.useMemo(() => getUserAddableModules(userId), [userId, data]);
 
   // When viewing a connected sheet module, employees can add tasks to that sheet.
   const currentConn = React.useMemo(() => getConnectionBySlug(section), [section]);
