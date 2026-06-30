@@ -40,7 +40,7 @@ var WEEK_START = 0; // 0 = Sunday
 // open  <web-app-url>?version=1  in a browser — it should echo this string.
 // If it shows an older value (or 404s), the /exec URL is still serving old code
 // and you must redeploy: Deploy > Manage deployments > (edit) > New version.
-var SCRIPT_VERSION = "2026-06-30-config-sync-v3";
+var SCRIPT_VERSION = "2026-06-30-lazy-v4";
 
 // ---- Entry point -----------------------------------------------------------
 function doGet(e) {
@@ -85,16 +85,14 @@ function doGet(e) {
     var range = wantAll ? { key: "all", label: "All weeks", from: "", to: "" } : resolveWeek(params);
     var filt = function (rows, field) { return wantAll ? rows : filterByDate(rows, field, range); };
 
-    // Shared config (connections + per-doer access) and the data for every
-    // active connection — all in this one response so the client needs no extra
-    // round-trips and every device renders the same modules/permissions.
+    // Shared config (connections + per-doer access) so every device renders the
+    // same modules/permissions. Connection ROW data is fetched lazily by the
+    // client when a connection module is opened — keeping this main load fast.
     var config = getSharedConfig();
-    var connectionsData = readConnectionsData(config);
 
     return json({
       scriptVersion: SCRIPT_VERSION,
       config: config,
-      connections: connectionsData,
       doers: doers,
       departments: departments,
       fms: filt(fms, "plannedOrFirst"),

@@ -44,10 +44,9 @@ export async function loadData() {
   let mainData = null;
   let mainError = null;
   let mainSource = "live";
-  let serverConnections = null; // connection rows the server already returned
 
   try {
-    const res = await fetch(`${APPS_SCRIPT_URL}?week=all&_t=${Date.now()}`, { method: "GET", redirect: "follow" });
+    const res = await fetchWithTimeout(`${APPS_SCRIPT_URL}?week=all&_t=${Date.now()}`, { method: "GET", redirect: "follow" }, 25000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const payload = await res.json();
     if (payload && payload.error) {
@@ -57,7 +56,6 @@ export async function loadData() {
       // Hydrate this device's connections + per-doer access from the shared
       // backend config so every laptop sees the same sheets and permissions.
       try { applyRemoteConfig(payload.config); } catch { /* ignore */ }
-      serverConnections = payload.connections || null;
     }
   } catch (err) {
     if (USE_SAMPLE_DATA_FALLBACK) {
@@ -69,43 +67,36 @@ export async function loadData() {
     }
   }
 
-  // Attach connected-sheet rows under viewData[conn.moduleSlug] so ModuleBody can
-  // pull them by slug. Prefer the rows the server already bundled (one round-trip,
-  // much faster); only fall back to per-connection fetches for connections the
-  // server couldn't serve (e.g. a custom scriptUrl, or an older deployment).
-  const connections = getActiveConnections ? getActiveConnections() : [];
-  if (connections.length && mainData) {
-    const needFetch = [];
-    for (const conn of connections) {
-      const bundled = serverConnections && serverConnections[conn.moduleSlug];
-      if (bundled) {
-        mainData[conn.moduleSlug] = bundled.map((r) => ({ ...r, _sheetId: conn.sheetId, _scriptUrl: conn.scriptUrl || "" }));
-      } else {
-        needFetch.push(conn);
-      }
-    }
-    if (needFetch.length) {
-      const connResults = await Promise.allSettled(needFetch.map((conn) => fetchConnectionData(conn)));
-      connResults.forEach((result, i) => {
-        if (result.status === "fulfilled" && result.value !== null) {
-          mainData[needFetch[i].moduleSlug] = result.value;
-        }
-      });
-    }
-  }
-
+  // Connected-sheet rows are NO LONGER fetched here — they are loaded lazily by
+  // each connection module only when it's opened (see ConnectionModule in
+  // App.tsx). This keeps the main dashboard load fast no matter how many sheets
+  // are attached, and a slow/large connected sheet can never stall the board.
   return { data: mainData, source: mainSource, error: mainError };
 }
 
+// fetch() with an abort timeout so a slow/hanging endpoint can never leave the
+// dashboard spinning forever. Rejects with an Error on timeout.
+async function fetchWithTimeout(url, opts = {}, ms = 20000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // Fetch rows from a single additional sheet connection. Returns an array of rows
-// (delegation or checklist format) with _sheetId stamped on each row for writes.
-async function fetchConnectionData(conn) {
+// (delegation or checklist format) with _sheetId stamped on each row for writes,
+// or null on error/timeout. Exported so connection modules can load on demand.
+export async function fetchConnectionData(conn) {
   const url = conn.scriptUrl || APPS_SCRIPT_URL;
   if (!url) return null;
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `${url}?sheetId=${encodeURIComponent(conn.sheetId)}&type=${conn.sheetType}&_t=${Date.now()}`,
-      { method: "GET", redirect: "follow" }
+      { method: "GET", redirect: "follow" },
+      20000
     );
     if (!res.ok) return null;
     const payload = await res.json();

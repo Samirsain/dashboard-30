@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
-import { loadData, weekOptions, filterByWeek, filterByDoer } from "@/lib/data";
+import { loadData, weekOptions, filterByWeek, filterByDoer, fetchConnectionData } from "@/lib/data";
 import { Login } from "@/components/Login";
 import { ForcePasswordChange } from "@/components/ForcePasswordChange";
 import { isAuthed, logout, currentSession, type Session } from "@/lib/auth";
@@ -79,9 +79,50 @@ function ComingSoon({ title, note }: { title: string; note: string }) {
   );
 }
 
-// Render a module's page by slug. Sheet-connection modules (sc-XXXXXX) resolve
-// to TaskDirectory fed with the connected sheet's rows from viewData[slug].
-function ModuleBody({ slug, moduleName, viewData, onChanged }: { slug: string; moduleName: string; viewData: any; onChanged: () => void }) {
+// A connected sheet's page. Its rows are fetched lazily — only when this module
+// is actually opened — so attaching sheets never slows the main dashboard load.
+function ConnectionModule({ conn, doerName, reloadToken, onChanged }: { conn: any; doerName: string | null; reloadToken: number; onChanged: () => void }) {
+  const [rows, setRows] = React.useState<any[] | null>(null);
+  const [failed, setFailed] = React.useState(false);
+
+  React.useEffect(() => {
+    let alive = true;
+    setRows(null);
+    setFailed(false);
+    fetchConnectionData(conn).then((r: any[] | null) => {
+      if (!alive) return;
+      if (r === null) { setFailed(true); setRows([]); }
+      else setRows(r);
+    });
+    return () => { alive = false; };
+  }, [conn.id, conn.sheetId, reloadToken]);
+
+  if (rows === null) return <LoadingState />;
+
+  const isTaskList = conn.sheetType === "tasklist";
+  // Scope to the logged-in doer's own rows (admins/pc have no doerName → see all).
+  const scoped = doerName
+    ? rows.filter((r) => String(r.doer || "").trim().toUpperCase() === String(doerName).trim().toUpperCase())
+    : rows;
+  const connData = isTaskList
+    ? { delegation: scoped, checklist: [], fms: [] }
+    : { checklist: scoped, delegation: [], fms: [] };
+
+  return (
+    <>
+      {failed && (
+        <div className="mb-4 border-2 border-error bg-error/5 px-3 py-2 font-mono text-data-mono uppercase text-error">
+          Is sheet ka data load nahi ho paya. Refresh karein ya Sheet ID check karein.
+        </div>
+      )}
+      <TaskDirectory data={connData} source={isTaskList ? "Task List" : "Checklist"} title={conn.name} onChanged={onChanged} />
+    </>
+  );
+}
+
+// Render a module's page by slug. Sheet-connection modules (sc-XXXXXX) lazy-load
+// their rows via ConnectionModule.
+function ModuleBody({ slug, moduleName, viewData, onChanged, doerName, reloadToken }: { slug: string; moduleName: string; viewData: any; onChanged: () => void; doerName: string | null; reloadToken: number }) {
   switch (slug) {
     case "dashboard":
       return <Overview data={viewData} onChanged={onChanged} />;
@@ -94,19 +135,7 @@ function ModuleBody({ slug, moduleName, viewData, onChanged }: { slug: string; m
     default: {
       const conn = getConnectionBySlug(slug);
       if (conn) {
-        const rows = (viewData?.[slug] as any[]) || [];
-        const isTaskList = conn.sheetType === "tasklist";
-        const connData = isTaskList
-          ? { ...viewData, delegation: rows, checklist: [], fms: [] }
-          : { ...viewData, checklist: rows, delegation: [], fms: [] };
-        return (
-          <TaskDirectory
-            data={connData}
-            source={isTaskList ? "Task List" : "Checklist"}
-            title={conn.name}
-            onChanged={onChanged}
-          />
-        );
+        return <ConnectionModule conn={conn} doerName={doerName} reloadToken={reloadToken} onChanged={onChanged} />;
       }
       return <ComingSoon title={`${moduleName} coming soon`} note="Ye module enable ho gaya hai — iska data source connect hote hi yahan live aa jayega." />;
     }
@@ -115,8 +144,10 @@ function ModuleBody({ slug, moduleName, viewData, onChanged }: { slug: string; m
 
 // ---- Public Executive dashboard (/) ----------------------------------------
 function PublicApp({ session, onLogout }: { session: Session; onLogout: () => void }) {
-  const { role, doerName, canAdd, userId } = session;
+  const { role, doerName, canAdd, userId, internalRole } = session;
   const isAdmin = role === "admin";
+  // admin & pc can add to any list; employees only to lists they're granted.
+  const isUnrestricted = internalRole === "admin" || internalRole === "pc";
 
   const [section, setSection] = React.useState<string>(() => defaultModuleSlug(session));
   const [week, setWeek] = React.useState<string>("all");
@@ -130,6 +161,16 @@ function PublicApp({ session, onLogout }: { session: Session; onLogout: () => vo
   // so a doer's assigned sheets appear without needing to log in again.
   const modules = React.useMemo(() => visibleModules(session), [session, data]);
   const addableModules = React.useMemo(() => getUserAddableModules(userId), [userId, data]);
+
+  // Lists shown in the Add Task "Save to List" dropdown. admin/pc get every
+  // list (their addable list is intentionally empty = "anywhere"); employees get
+  // exactly the lists they've been granted.
+  const allowedAddModules = React.useMemo(
+    () => (isUnrestricted
+      ? ["tasklist", "checklist", ...getActiveConnections().map((c) => c.moduleSlug)]
+      : addableModules),
+    [isUnrestricted, addableModules, data]
+  );
 
   // When viewing a connected sheet module, employees can add tasks to that sheet.
   const currentConn = React.useMemo(() => getConnectionBySlug(section), [section]);
@@ -153,7 +194,7 @@ function PublicApp({ session, onLogout }: { session: Session; onLogout: () => vo
   let body: React.ReactNode = null;
   if (loading) body = <LoadingState />;
   else if (error && !data) body = <ErrorState error={error} onRetry={refresh} />;
-  else body = <ModuleBody slug={section} moduleName={sectionLabel} viewData={viewData} onChanged={refresh} />;
+  else body = <ModuleBody slug={section} moduleName={sectionLabel} viewData={viewData} onChanged={refresh} doerName={doerName} reloadToken={reloadToken} />;
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface text-on-surface antialiased">
@@ -184,12 +225,12 @@ function PublicApp({ session, onLogout }: { session: Session; onLogout: () => vo
         <AddTaskModal
           doers={data?.doers || []}
           data={data}
-          allowedModules={addableModules}
+          allowedModules={allowedAddModules}
           onClose={() => setShowAdd(false)}
           onAdded={() => setReloadToken((t) => t + 1)}
           sheetId={currentConn?.sheetId}
           sheetType={currentConn?.sheetType}
-          lockedDoer={currentConn && !isAdmin ? doerName : undefined}
+          lockedDoer={currentConn && !isUnrestricted ? doerName : undefined}
         />
       )}
       {showAddDoer && (
