@@ -115,7 +115,7 @@ function readDelegationFromId(sheetId, doerMap) {
   if (!ss) return [];
   registerDoerList(ss, doerMap);
   var rows = tryReadTable(ss, ["Task ID", "Total Revisions", "Status", "First Date"]);
-  return rows.map(function (r) {
+  var mapped = rows.map(function (r) {
     var doer = canonical(r["Name"]);
     return {
       taskId: trim(r["Task ID"]),
@@ -129,6 +129,7 @@ function readDelegationFromId(sheetId, doerMap) {
       priority: trim(r["Priority"]),
     };
   });
+  return deduplicateDelegation(mapped);
 }
 
 function readChecklistFromId(sheetId, doerMap) {
@@ -568,7 +569,7 @@ function readDelegation(doerMap) {
   registerDoerList(ss, doerMap);
 
   var rows = readTable(ss, ["Task ID", "Total Revisions", "Status", "First Date"]);
-  return rows.map(function (r) {
+  var mapped = rows.map(function (r) {
     var doer = canonical(r["Name"]);
     return {
       taskId: trim(r["Task ID"]),
@@ -582,7 +583,72 @@ function readDelegation(doerMap) {
       priority: trim(r["Priority"]),
     };
   });
+  return deduplicateDelegation(mapped);
 }
+
+// Deduplicate delegation rows: when the same Task ID appears multiple times
+// (happens after retry clicks create duplicate rows), keep the "best" row —
+// Completed > Week Shifted > Pending. On equal status, prefer the row with
+// the most recent activity (max of firstDate and latestRevision).
+function deduplicateDelegation(rows) {
+  var statusScore = function(s) {
+    s = String(s || "").trim().toUpperCase();
+    if (s === "COMPLETED") return 3;
+    if (s === "WEEK SHIFTED") return 2;
+    return 1; // Pending or anything else
+  };
+  var activityOf = function(r) {
+    var a = r.firstDate || "";
+    var b = r.latestRevision || "";
+    return a > b ? a : b;
+  };
+
+  // Deduplicate by Task ID (for rows that have a non-blank ID).
+  var byId = {};
+  var noId = [];
+  rows.forEach(function(r) {
+    var id = r.taskId;
+    if (!id) { noId.push(r); return; }
+    var existing = byId[id];
+    if (!existing) { byId[id] = r; return; }
+    var rScore = statusScore(r.status);
+    var eScore = statusScore(existing.status);
+    if (rScore > eScore || (rScore === eScore && activityOf(r) > activityOf(existing))) {
+      byId[id] = r;
+    }
+  });
+
+  // For no-ID rows, deduplicate by canonical Doer+Task key.
+  var byKey = {};
+  noId.forEach(function(r) {
+    var key = String(r.doer || "").toUpperCase() + "||" + String(r.task || "").toUpperCase();
+    var existing = byKey[key];
+    if (!existing) { byKey[key] = r; return; }
+    var rScore = statusScore(r.status);
+    var eScore = statusScore(existing.status);
+    if (rScore > eScore || (rScore === eScore && activityOf(r) >= activityOf(existing))) {
+      byKey[key] = r;
+    }
+  });
+
+  // Merge: ID-keyed rows override no-ID rows on the same Doer+Task.
+  var finalByKey = {};
+  Object.keys(byKey).forEach(function(k) { finalByKey[k] = byKey[k]; });
+  Object.keys(byId).forEach(function(id) {
+    var r = byId[id];
+    var key = String(r.doer || "").toUpperCase() + "||" + String(r.task || "").toUpperCase();
+    var existing = finalByKey[key];
+    if (!existing) { finalByKey[key] = r; return; }
+    var rScore = statusScore(r.status);
+    var eScore = statusScore(existing.status);
+    if (rScore > eScore || (rScore === eScore && activityOf(r) >= activityOf(existing))) {
+      finalByKey[key] = r;
+    }
+  });
+
+  return Object.keys(finalByKey).map(function(k) { return finalByKey[k]; });
+}
+
 
 // ---- FMS (optional; wired in once the sheet ID is set) ---------------------
 function readFms(doerMap) {

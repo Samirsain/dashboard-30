@@ -88,18 +88,76 @@ export function unifyTasks(data) {
     return a > b ? a : b;
   };
 
-  // Group by key; within each group keep the row with the latest activity date.
-  // On a tie, the row appearing later in the data (the more recent write) wins.
-  const latestByKey = new Map();
+  // Status priority: Completed/Late wins over Week Shifted wins over Pending.
+  // This prevents duplicate Pending rows from hiding a legitimate Completed row
+  // when the sheet has the same task recorded multiple times (e.g. after retries).
+  const statusPriority = (t) => {
+    if (t.status === "Completed" || t.status === "Late") return 3;
+    if (t.status === "Week Shifted") return 2;
+    return 1; // Pending
+  };
+
+  // Pass 1: deduplicate by EXACT Task ID (when the ID is a real user-assigned
+  // ID, not an auto-generated CL-/TL- placeholder). Keep the row with the
+  // highest status priority, then by latest activity date.
+  const byTaskId = new Map();
   for (const t of taskListRows) {
-    const key = taskKey(t);
-    const existing = latestByKey.get(key);
-    if (!existing || activityOf(t) >= activityOf(existing)) {
-      latestByKey.set(key, t);
+    const isGenerated = /^TL-\d+$/.test(String(t.id || ""));
+    if (isGenerated) continue;
+    const existing = byTaskId.get(t.id);
+    if (!existing) {
+      byTaskId.set(t.id, t);
+    } else {
+      const tPrio = statusPriority(t);
+      const ePrio = statusPriority(existing);
+      if (tPrio > ePrio || (tPrio === ePrio && activityOf(t) > activityOf(existing))) {
+        byTaskId.set(t.id, t);
+      }
     }
   }
 
-  return [...otherRows, ...latestByKey.values()];
+  // Build a Set of real IDs already resolved above so Pass 2 skips them.
+  const resolvedIds = new Set(byTaskId.keys());
+
+  // Pass 2: deduplicate remaining (generated-ID or no-ID) rows by Doer+Task key.
+  // Prefer higher status priority first; break ties by latest activity date;
+  // break further ties by later sheet position (the >= keeps the later row).
+  const latestByKey = new Map();
+  for (const t of taskListRows) {
+    if (resolvedIds.has(t.id)) continue; // already handled in Pass 1
+    const key = taskKey(t);
+    const existing = latestByKey.get(key);
+    if (!existing) {
+      latestByKey.set(key, t);
+    } else {
+      const tPrio = statusPriority(t);
+      const ePrio = statusPriority(existing);
+      const tAct = activityOf(t);
+      const eAct = activityOf(existing);
+      if (tPrio > ePrio || (tPrio === ePrio && tAct >= eAct)) {
+        latestByKey.set(key, t);
+      }
+    }
+  }
+
+  // Merge Pass-1 and Pass-2 results; also deduplicate across the two passes by
+  // Doer+Task key so a real-ID Completed row beats a generated-ID Pending one.
+  const finalMap = new Map();
+  for (const t of [...byTaskId.values(), ...latestByKey.values()]) {
+    const key = taskKey(t);
+    const existing = finalMap.get(key);
+    if (!existing) {
+      finalMap.set(key, t);
+    } else {
+      const tPrio = statusPriority(t);
+      const ePrio = statusPriority(existing);
+      if (tPrio > ePrio || (tPrio === ePrio && activityOf(t) >= activityOf(existing))) {
+        finalMap.set(key, t);
+      }
+    }
+  }
+
+  return [...otherRows, ...finalMap.values()];
 }
 
 const isDone = (t) => t.status === "Completed" || t.status === "Late";
