@@ -396,8 +396,10 @@ function ReviseModal({
   onClose: () => void;
   onConfirm: (newDate: string) => void;
 }) {
-  const base = String(task.due || task.created || todayISO());
-  const [date, setDate] = React.useState(addDaysISO(base, 1));
+  const today = todayISO();
+  // Quick-pick chips are always relative to TODAY so "Tomorrow" always means
+  // the next calendar day even if the task is overdue.
+  const [date, setDate] = React.useState(addDaysISO(today, 1));
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -406,9 +408,10 @@ function ReviseModal({
   }, [onClose]);
 
   const quick = [
-    { label: "Tomorrow", iso: addDaysISO(base, 1) },
-    { label: "+2 Days", iso: addDaysISO(base, 2) },
-    { label: "Next Week", iso: addDaysISO(base, 7) },
+    { label: "Today", iso: today },
+    { label: "Tomorrow", iso: addDaysISO(today, 1) },
+    { label: "+2 Days", iso: addDaysISO(today, 2) },
+    { label: "Next Week", iso: addDaysISO(today, 7) },
   ];
 
   return (
@@ -436,7 +439,7 @@ function ReviseModal({
             {task.task}
           </p>
           <p className="font-mono text-data-mono uppercase text-on-surface-variant">
-            Current date: {fmtDate(base) || "—"}
+            Current due: {fmtDate(String(task.due || task.created || "")) || "—"}
           </p>
 
           <div className="flex flex-wrap gap-2">

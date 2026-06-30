@@ -333,6 +333,11 @@ export function filterByDoer(data, doerName) {
 }
 
 // Client-side week filter. "all" (or unknown) returns everything.
+// For pending delegation rows, the effective date is latestRevision (if set)
+// rather than firstDate — so a task revised to this week's date appears here
+// even if it was originally scheduled in a previous week.
+// Completed/done tasks always use their original firstDate so historical
+// scoring stays accurate.
 export function filterByWeek(data, weekKey) {
   if (!data) return data;
   if (!weekKey || weekKey === "all") return data;
@@ -342,10 +347,14 @@ export function filterByWeek(data, weekKey) {
     const s = String(d || "").trim();
     return !!s && s >= wk.from && s <= wk.to;
   };
+  const delegationDate = (r) => {
+    const done = r.status === "Completed" || r.status === "Done";
+    return done ? r.firstDate : (r.latestRevision || r.firstDate);
+  };
   return {
     ...data,
     checklist: (data.checklist || []).filter((r) => inRange(r.planned)),
-    delegation: (data.delegation || []).filter((r) => inRange(r.firstDate)),
+    delegation: (data.delegation || []).filter((r) => inRange(delegationDate(r))),
     fms: (data.fms || []).filter((r) => inRange(r.planned || r.firstDate)),
     weekRange: { key: wk.key, label: wk.label, from: wk.from, to: wk.to },
   };
