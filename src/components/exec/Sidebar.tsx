@@ -3,14 +3,8 @@ import { BRAND } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import logoSvg from "@/assets/logo.svg";
 
-export type Section = { id: string; label: string; icon: string };
-
-export const SECTIONS: Section[] = [
-  { id: "dashboard", label: "Dashboard", icon: "dashboard" },
-  { id: "checklist", label: "Checklist", icon: "checklist" },
-  { id: "tasklist", label: "Task List", icon: "assignment" },
-  { id: "workflow", label: "Workflow", icon: "account_tree" },
-];
+// Minimal shape the nav needs from a module (decoupled from the full ModuleDef).
+export type NavModule = { slug: string; name: string; icon: string };
 
 function Item({
   icon,
@@ -59,13 +53,15 @@ function Brand() {
 }
 
 export function Sidebar({
+  modules,
   active,
   onSelect,
   showAdmin,
   onLogout,
 }: {
+  modules: NavModule[];
   active: string;
-  onSelect: (id: string) => void;
+  onSelect: (slug: string) => void;
   showAdmin?: boolean;
   onLogout?: () => void;
 }) {
@@ -73,8 +69,8 @@ export function Sidebar({
     <nav className="sticky top-0 z-20 hidden h-screen w-64 shrink-0 flex-col border-r-2 border-on-surface bg-surface md:flex">
       <Brand />
       <div className="flex-1 overflow-y-auto py-3">
-        {SECTIONS.map((s) => (
-          <Item key={s.id} icon={s.icon} label={s.label} active={active === s.id} onClick={() => onSelect(s.id)} />
+        {modules.map((m) => (
+          <Item key={m.slug} icon={m.icon} label={m.name} active={active === m.slug} onClick={() => onSelect(m.slug)} />
         ))}
         {showAdmin && <Item icon="admin_panel_settings" label="Admin · Scoring" href="/admin" />}
       </div>
@@ -117,20 +113,20 @@ export function AdminSidebar({ onLogout }: { onLogout: () => void }) {
 
 // Mobile section tabs (sidebar is hidden on small screens). Equal-width grid so
 // every option is visible at once — no horizontal scrolling.
-export function MobileSectionTabs({ active, onSelect, showAdmin }: { active: string; onSelect: (id: string) => void; showAdmin?: boolean }) {
+export function MobileSectionTabs({ modules, active, onSelect, showAdmin }: { modules: NavModule[]; active: string; onSelect: (slug: string) => void; showAdmin?: boolean }) {
   return (
     <div className="grid auto-cols-fr grid-flow-col border-b-2 border-on-surface bg-surface md:hidden">
-      {SECTIONS.map((s) => (
+      {modules.map((m) => (
         <button
-          key={s.id}
-          onClick={() => onSelect(s.id)}
+          key={m.slug}
+          onClick={() => onSelect(m.slug)}
           className={cn(
             "flex flex-col items-center justify-center gap-1 border-r border-on-surface px-1 py-2 font-label-sm text-[10px] uppercase leading-none transition-colors",
-            active === s.id ? "bg-on-surface text-on-primary" : "text-on-surface-variant hover:bg-surface-container"
+            active === m.slug ? "bg-on-surface text-on-primary" : "text-on-surface-variant hover:bg-surface-container"
           )}
         >
-          <Icon name={s.icon} className="text-[20px]" />
-          <span className="w-full truncate text-center">{s.label}</span>
+          <Icon name={m.icon} className="text-[20px]" />
+          <span className="w-full truncate text-center">{m.name}</span>
         </button>
       ))}
       {showAdmin && (

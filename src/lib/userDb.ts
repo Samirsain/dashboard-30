@@ -27,6 +27,7 @@ export interface UserRecord {
   role: UserRole;
   doerName: string | null; // maps to Google Sheet doer name (UPPERCASE)
   canAdd: boolean;
+  modules?: string[]; // module slugs this user can access (employees only)
   forcePasswordChange: boolean;
   createdAt: string;
   lastLogin?: string;
@@ -34,6 +35,9 @@ export interface UserRecord {
 
 const DB_KEY = "tm-mis-users-v4";
 const PBKDF2_ITERATIONS = 100_000;
+
+// What a brand-new employee can see until admin customises it.
+export const DEFAULT_EMPLOYEE_MODULES = ["dashboard", "tasklist", "checklist"];
 
 // ── Crypto helpers ──────────────────────────────────────────────────────────
 
@@ -119,14 +123,20 @@ export async function initDefaultUsers(): Promise<void> {
 
   let needsUpdate = false;
   const patched = existing.map((u) => {
-    if (u.doerName === null) {
-      const def = DEFAULT_DEFS.find((d) => d.username === u.username);
+    let next = u;
+    if (next.doerName === null) {
+      const def = DEFAULT_DEFS.find((d) => d.username === next.username);
       if (def && def.doerName) {
         needsUpdate = true;
-        return { ...u, doerName: def.doerName };
+        next = { ...next, doerName: def.doerName };
       }
     }
-    return u;
+    // Back-fill module access for accounts created before module permissions.
+    if (next.modules === undefined && next.role === "employee") {
+      needsUpdate = true;
+      next = { ...next, modules: [...DEFAULT_EMPLOYEE_MODULES] };
+    }
+    return next;
   });
 
   if (toCreate.length === 0 && !needsUpdate) return;
@@ -143,6 +153,7 @@ export async function initDefaultUsers(): Promise<void> {
         role: def.role,
         doerName: def.doerName,
         canAdd: def.canAdd,
+        modules: def.role === "employee" ? [...DEFAULT_EMPLOYEE_MODULES] : undefined,
         forcePasswordChange: false, // disabled per user request
         createdAt: new Date().toISOString(),
       };
@@ -252,6 +263,7 @@ export async function createDoerAccount(doerName: string): Promise<{ user: UserR
     role: "employee",
     doerName: doerName.toUpperCase(),
     canAdd: false,
+    modules: [...DEFAULT_EMPLOYEE_MODULES],
     forcePasswordChange: false,
     createdAt: new Date().toISOString(),
   };
@@ -263,4 +275,24 @@ export async function createDoerAccount(doerName: string): Promise<{ user: UserR
 export function removeUserByDoerName(doerName: string): void {
   const users = readAll();
   writeAll(users.filter((u) => u.doerName?.toUpperCase() !== doerName.toUpperCase()));
+}
+
+// ── Module access ─────────────────────────────────────────────────────────────
+
+// The module slugs an account can access. admin/pc are unrestricted (handled by
+// the permission layer, which treats an empty list here as "all active modules").
+export function getUserModules(userId: string): string[] {
+  const u = readAll().find((x) => x.id === userId);
+  if (!u) return [];
+  if (u.role === "admin" || u.role === "pc") return [];
+  return u.modules ?? [...DEFAULT_EMPLOYEE_MODULES];
+}
+
+export function setUserModules(userId: string, modules: string[]): void {
+  const users = readAll();
+  const idx = users.findIndex((u) => u.id === userId);
+  if (idx === -1) return;
+  const unique = [...new Set(modules.map((s) => String(s).trim()).filter(Boolean))];
+  users[idx] = { ...users[idx], modules: unique };
+  writeAll(users);
 }

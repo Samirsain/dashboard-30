@@ -3,8 +3,9 @@ import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { loadData, weekOptions, filterByWeek, filterByDoer } from "@/lib/data";
 import { Login } from "@/components/Login";
 import { ForcePasswordChange } from "@/components/ForcePasswordChange";
-import { isAuthed, currentRole, currentDoerName, currentCanAdd, logout, type Role, currentSession } from "@/lib/auth";
-import { Sidebar, AdminSidebar, MobileSectionTabs, SECTIONS } from "@/components/exec/Sidebar";
+import { isAuthed, logout, currentSession, type Session } from "@/lib/auth";
+import { visibleModules, defaultModuleSlug } from "@/lib/permissions";
+import { Sidebar, AdminSidebar, MobileSectionTabs } from "@/components/exec/Sidebar";
 import { Topbar } from "@/components/exec/Topbar";
 import { Overview } from "@/components/exec/Overview";
 import { Scorecard } from "@/components/exec/Scorecard";
@@ -75,34 +76,60 @@ function ComingSoon({ title, note }: { title: string; note: string }) {
   );
 }
 
+// Render a module's page by slug. New modules without a wired component show a
+// friendly placeholder — so adding a module never breaks the app.
+function ModuleBody({ slug, moduleName, viewData, onChanged }: { slug: string; moduleName: string; viewData: any; onChanged: () => void }) {
+  switch (slug) {
+    case "dashboard":
+      return <Overview data={viewData} onChanged={onChanged} />;
+    case "tasklist":
+      return <TaskDirectory data={viewData} source="Task List" title="Task List" onChanged={onChanged} />;
+    case "checklist":
+      return <TaskDirectory data={viewData} source="Checklist" title="Checklist" onChanged={onChanged} />;
+    case "workflow":
+      return <ComingSoon title="Workflow coming soon" note="Workflow sheet abhi connect nahi hui hai. Uska Google Sheet share kar do — yahi Done/Pending tracking ke saath aa jayegi." />;
+    default:
+      return <ComingSoon title={`${moduleName} coming soon`} note="Ye module enable ho gaya hai — iska data source connect hote hi yahan live aa jayega." />;
+  }
+}
+
 // ---- Public Executive dashboard (/) ----------------------------------------
-function PublicApp({ role, doerName, canAdd, onLogout }: { role: Role; doerName: string | null; canAdd: boolean; onLogout: () => void }) {
-  const [section, setSection] = React.useState<string>("dashboard");
+function PublicApp({ session, onLogout }: { session: Session; onLogout: () => void }) {
+  const { role, doerName, canAdd } = session;
+  const isAdmin = role === "admin";
+  const modules = React.useMemo(() => visibleModules(session), [session]);
+
+  const [section, setSection] = React.useState<string>(() => defaultModuleSlug(session));
   const [week, setWeek] = React.useState<string>("all");
   const [reloadToken, setReloadToken] = React.useState(0);
   const [showAdd, setShowAdd] = React.useState(false);
   const [showAddDoer, setShowAddDoer] = React.useState(false);
   const { loading, data, source, error } = useAllData(reloadToken);
-  const isAdmin = role === "admin";
+
+  // Permission guard: if the active module isn't accessible, fall back to the
+  // first allowed one (covers a module being disabled / access revoked).
+  React.useEffect(() => {
+    if (modules.length && !modules.some((m) => m.slug === section)) {
+      setSection(modules[0].slug);
+    }
+  }, [modules, section]);
 
   // When a staff member is logged in, scope the data to their own tasks only.
   const staffData = React.useMemo(() => filterByDoer(data, doerName), [data, doerName]);
   const weeks = weekOptions(staffData);
   const viewData = React.useMemo(() => filterByWeek(staffData, week), [staffData, week]);
-  const sectionLabel = SECTIONS.find((s) => s.id === section)?.label || "Dashboard";
+  const activeModule = modules.find((m) => m.slug === section);
+  const sectionLabel = activeModule?.name || "Dashboard";
 
   const refresh = () => setReloadToken((t) => t + 1);
   let body: React.ReactNode = null;
   if (loading) body = <LoadingState />;
   else if (error && !data) body = <ErrorState error={error} onRetry={refresh} />;
-  else if (section === "dashboard") body = <Overview data={viewData} onChanged={refresh} />;
-  else if (section === "checklist") body = <TaskDirectory data={viewData} source="Checklist" title="Checklist" onChanged={refresh} />;
-  else if (section === "tasklist") body = <TaskDirectory data={viewData} source="Task List" title="Task List" onChanged={refresh} />;
-  else if (section === "workflow") body = <ComingSoon title="Workflow coming soon" note="Workflow sheet abhi connect nahi hui hai. Uska Google Sheet share kar do — yahi Done/Pending tracking ke saath aa jayegi." />;
+  else body = <ModuleBody slug={section} moduleName={sectionLabel} viewData={viewData} onChanged={refresh} />;
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface text-on-surface antialiased">
-      <Sidebar active={section} onSelect={setSection} showAdmin={isAdmin} onLogout={onLogout} />
+      <Sidebar modules={modules} active={section} onSelect={setSection} showAdmin={isAdmin} onLogout={onLogout} />
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <Topbar
           sectionLabel={sectionLabel}
@@ -115,7 +142,7 @@ function PublicApp({ role, doerName, canAdd, onLogout }: { role: Role; doerName:
           onAddDoer={isAdmin ? () => setShowAddDoer(true) : undefined}
           loggedInName={doerName || role}
         />
-        <MobileSectionTabs active={section} onSelect={setSection} showAdmin={isAdmin} />
+        <MobileSectionTabs modules={modules} active={section} onSelect={setSection} showAdmin={isAdmin} />
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-24 sm:p-6">
           <div className="mx-auto min-w-0 max-w-[1440px]">
             {error && data && (
@@ -230,21 +257,17 @@ export default function App() {
     );
   }
 
-  const role = session.role;
-  const doerName = session.doerName;
-  const canAdd = session.canAdd;
-
   // Only the admin can open the Scoring panel; everyone else → the dashboard.
   if (onAdminRoute()) {
-    if (role !== "admin") {
+    if (session.role !== "admin") {
       try {
         window.history.replaceState(null, "", "/");
       } catch {
         /* ignore */
       }
-      return <PublicApp role={role} doerName={doerName} canAdd={canAdd} onLogout={onLogout} />;
+      return <PublicApp session={session} onLogout={onLogout} />;
     }
     return <AdminPanel onLogout={onLogout} />;
   }
-  return <PublicApp role={role} doerName={doerName} canAdd={canAdd} onLogout={onLogout} />;
+  return <PublicApp session={session} onLogout={onLogout} />;
 }
