@@ -15,6 +15,7 @@ import { AddTaskModal } from "@/components/exec/AddTaskModal";
 import { AddDoerModal } from "@/components/exec/AddDoerModal";
 import { SheetManager } from "@/components/exec/SheetManager";
 import { Icon } from "@/components/exec/Icon";
+import { getUserAddableModules } from "@/lib/userDb";
 
 function onAdminRoute(): boolean {
   if (typeof window === "undefined") return false;
@@ -114,9 +115,10 @@ function ModuleBody({ slug, moduleName, viewData, onChanged }: { slug: string; m
 
 // ---- Public Executive dashboard (/) ----------------------------------------
 function PublicApp({ session, onLogout }: { session: Session; onLogout: () => void }) {
-  const { role, doerName, canAdd } = session;
+  const { role, doerName, canAdd, userId } = session;
   const isAdmin = role === "admin";
   const modules = React.useMemo(() => visibleModules(session), [session]);
+  const addableModules = React.useMemo(() => getUserAddableModules(userId), [userId]);
 
   const [section, setSection] = React.useState<string>(() => defaultModuleSlug(session));
   const [week, setWeek] = React.useState<string>("all");
@@ -160,7 +162,7 @@ function PublicApp({ session, onLogout }: { session: Session; onLogout: () => vo
           onWeekChange={setWeek}
           source={source}
           onLogout={onLogout}
-          onAddTask={(canAdd || !!currentConn) ? () => setShowAdd(true) : undefined}
+          onAddTask={(canAdd || addableModules.includes(section)) ? () => setShowAdd(true) : undefined}
           onAddDoer={isAdmin ? () => setShowAddDoer(true) : undefined}
           loggedInName={doerName || role}
         />
@@ -178,7 +180,7 @@ function PublicApp({ session, onLogout }: { session: Session; onLogout: () => vo
         <AddTaskModal
           doers={data?.doers || []}
           data={data}
-          allowedModules={modules.map((m) => m.slug)}
+          allowedModules={addableModules}
           onClose={() => setShowAdd(false)}
           onAdded={() => setReloadToken((t) => t + 1)}
           sheetId={currentConn?.sheetId}

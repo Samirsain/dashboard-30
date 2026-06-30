@@ -12,7 +12,7 @@ import {
 } from "@/lib/sheets";
 import { testSheetConnection } from "@/lib/data.js";
 import { APPS_SCRIPT_URL } from "@/lib/config.js";
-import { getAllUsers, getUserModules, setUserModules } from "@/lib/userDb";
+import { getAllUsers, getUserModules, setUserModules, getUserAddableModules, setUserAddableModules } from "@/lib/userDb";
 
 // ── Small helpers ────────────────────────────────────────────────────────────
 
@@ -72,18 +72,40 @@ function AccessSection({ moduleSlug }: { moduleSlug: string }) {
   );
 
   const hasAccess = (userId: string) => getUserModules(userId).includes(moduleSlug);
+  const canAddTasks = (userId: string) => getUserAddableModules(userId).includes(moduleSlug);
 
   const toggleAccess = (userId: string) => {
     const current = getUserModules(userId);
     if (current.includes(moduleSlug)) {
       setUserModules(userId, current.filter((s) => s !== moduleSlug));
+      // Optionally: if they lose view access, they should probably lose add access too
+      const currentAdd = getUserAddableModules(userId);
+      if (currentAdd.includes(moduleSlug)) {
+        setUserAddableModules(userId, currentAdd.filter((s) => s !== moduleSlug));
+      }
     } else {
       setUserModules(userId, [...current, moduleSlug]);
     }
     setTick((t) => t + 1);
   };
 
+  const toggleAddAccess = (userId: string) => {
+    const current = getUserAddableModules(userId);
+    if (current.includes(moduleSlug)) {
+      setUserAddableModules(userId, current.filter((s) => s !== moduleSlug));
+    } else {
+      setUserAddableModules(userId, [...current, moduleSlug]);
+      // If they get add access, ensure they have view access too
+      const currentView = getUserModules(userId);
+      if (!currentView.includes(moduleSlug)) {
+        setUserModules(userId, [...currentView, moduleSlug]);
+      }
+    }
+    setTick((t) => t + 1);
+  };
+
   const accessCount = employees.filter((u) => hasAccess(u.id)).length;
+  const addCount = employees.filter((u) => canAddTasks(u.id)).length;
 
   return (
     <div className="mt-3 border-t border-on-surface/20 pt-3">
@@ -100,14 +122,18 @@ function AccessSection({ moduleSlug }: { moduleSlug: string }) {
           Access ·{" "}
           {accessCount === 0
             ? "no employees assigned"
-            : `${accessCount} employee${accessCount !== 1 ? "s" : ""} assigned`}
+            : `${accessCount} assigned`}
+          {" · "}
+          {addCount === 0
+            ? "0 can add"
+            : `${addCount} can add`}
         </span>
       </button>
 
       {open && (
         <div className="mt-3">
           <div className="mb-2 font-mono text-[10px] text-on-surface-variant/60">
-            Admin and PC always have full access. Toggle to give employees view + Done + Revise + Add Task.
+            Admin and PC always have full access. Toggle 'View' to give view/done/revise access. Toggle 'Add' to give task addition rights.
           </div>
 
           {employees.length === 0 ? (
@@ -118,6 +144,7 @@ function AccessSection({ moduleSlug }: { moduleSlug: string }) {
             <div className="divide-y divide-on-surface/10 border border-on-surface/20">
               {employees.map((u) => {
                 const active = hasAccess(u.id);
+                const canAdd = canAddTasks(u.id);
                 return (
                   <div
                     key={u.id}
@@ -139,17 +166,25 @@ function AccessSection({ moduleSlug }: { moduleSlug: string }) {
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {active && (
-                        <span className="font-mono text-[9px] uppercase text-on-surface-variant/60">
-                          view · done · revise · add
-                        </span>
-                      )}
-                      <Toggle
-                        active={active}
-                        onChange={() => toggleAccess(u.id)}
-                        label={active ? `Remove ${u.doerName || u.username}'s access` : `Give ${u.doerName || u.username} access`}
-                      />
+                    <div className="flex items-center gap-4">
+                      {/* View Access Toggle */}
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="font-mono text-[8px] uppercase text-on-surface-variant/60">View</span>
+                        <Toggle
+                          active={active}
+                          onChange={() => toggleAccess(u.id)}
+                          label={active ? `Remove view access` : `Give view access`}
+                        />
+                      </div>
+                      {/* Add Access Toggle */}
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="font-mono text-[8px] uppercase text-on-surface-variant/60">Add</span>
+                        <Toggle
+                          active={canAdd}
+                          onChange={() => toggleAddAccess(u.id)}
+                          label={canAdd ? `Remove add access` : `Give add access`}
+                        />
+                      </div>
                     </div>
                   </div>
                 );

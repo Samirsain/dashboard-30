@@ -28,6 +28,7 @@ export interface UserRecord {
   doerName: string | null; // maps to Google Sheet doer name (UPPERCASE)
   canAdd: boolean;
   modules?: string[]; // module slugs this user can access (employees only)
+  addableModules?: string[]; // module slugs this user can ADD TASKS to
   forcePasswordChange: boolean;
   createdAt: string;
   lastLogin?: string;
@@ -38,6 +39,8 @@ const PBKDF2_ITERATIONS = 100_000;
 
 // What a brand-new employee can see until admin customises it.
 export const DEFAULT_EMPLOYEE_MODULES = ["dashboard", "tasklist", "checklist"];
+// By default, employees cannot add tasks anywhere.
+export const DEFAULT_ADDABLE_MODULES: string[] = [];
 
 // ── Crypto helpers ──────────────────────────────────────────────────────────
 
@@ -294,5 +297,23 @@ export function setUserModules(userId: string, modules: string[]): void {
   if (idx === -1) return;
   const unique = [...new Set(modules.map((s) => String(s).trim()).filter(Boolean))];
   users[idx] = { ...users[idx], modules: unique };
+  writeAll(users);
+}
+
+// The module slugs an account is explicitly allowed to add tasks to.
+// admin/pc automatically can add anywhere, this is primarily for employees.
+export function getUserAddableModules(userId: string): string[] {
+  const u = readAll().find((x) => x.id === userId);
+  if (!u) return [];
+  if (u.role === "admin" || u.role === "pc") return []; // Admins can add anywhere
+  return u.addableModules ?? [...DEFAULT_ADDABLE_MODULES];
+}
+
+export function setUserAddableModules(userId: string, modules: string[]): void {
+  const users = readAll();
+  const idx = users.findIndex((u) => u.id === userId);
+  if (idx === -1) return;
+  const unique = [...new Set(modules.map((s) => String(s).trim()).filter(Boolean))];
+  users[idx] = { ...users[idx], addableModules: unique };
   writeAll(users);
 }
