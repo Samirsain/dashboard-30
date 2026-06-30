@@ -5,6 +5,7 @@ import { Login } from "@/components/Login";
 import { ForcePasswordChange } from "@/components/ForcePasswordChange";
 import { isAuthed, logout, currentSession, type Session } from "@/lib/auth";
 import { visibleModules, defaultModuleSlug } from "@/lib/permissions";
+import { getConnectionBySlug } from "@/lib/sheets";
 import { Sidebar, AdminSidebar, MobileSectionTabs } from "@/components/exec/Sidebar";
 import { Topbar } from "@/components/exec/Topbar";
 import { Overview } from "@/components/exec/Overview";
@@ -12,6 +13,7 @@ import { Scorecard } from "@/components/exec/Scorecard";
 import { TaskDirectory } from "@/components/exec/TaskDirectory";
 import { AddTaskModal } from "@/components/exec/AddTaskModal";
 import { AddDoerModal } from "@/components/exec/AddDoerModal";
+import { SheetManager } from "@/components/exec/SheetManager";
 import { Icon } from "@/components/exec/Icon";
 
 function onAdminRoute(): boolean {
@@ -76,8 +78,8 @@ function ComingSoon({ title, note }: { title: string; note: string }) {
   );
 }
 
-// Render a module's page by slug. New modules without a wired component show a
-// friendly placeholder — so adding a module never breaks the app.
+// Render a module's page by slug. Sheet-connection modules (sc-XXXXXX) resolve
+// to TaskDirectory fed with the connected sheet's rows from viewData[slug].
 function ModuleBody({ slug, moduleName, viewData, onChanged }: { slug: string; moduleName: string; viewData: any; onChanged: () => void }) {
   switch (slug) {
     case "dashboard":
@@ -88,8 +90,25 @@ function ModuleBody({ slug, moduleName, viewData, onChanged }: { slug: string; m
       return <TaskDirectory data={viewData} source="Checklist" title="Checklist" onChanged={onChanged} />;
     case "workflow":
       return <ComingSoon title="Workflow coming soon" note="Workflow sheet abhi connect nahi hui hai. Uska Google Sheet share kar do — yahi Done/Pending tracking ke saath aa jayegi." />;
-    default:
+    default: {
+      const conn = getConnectionBySlug(slug);
+      if (conn) {
+        const rows = (viewData?.[slug] as any[]) || [];
+        const isTaskList = conn.sheetType === "tasklist";
+        const connData = isTaskList
+          ? { ...viewData, delegation: rows, checklist: [], fms: [] }
+          : { ...viewData, checklist: rows, delegation: [], fms: [] };
+        return (
+          <TaskDirectory
+            data={connData}
+            source={isTaskList ? "Task List" : "Checklist"}
+            title={conn.name}
+            onChanged={onChanged}
+          />
+        );
+      }
       return <ComingSoon title={`${moduleName} coming soon`} note="Ye module enable ho gaya hai — iska data source connect hote hi yahan live aa jayega." />;
+    }
   }
 }
 
@@ -169,8 +188,9 @@ function PublicApp({ session, onLogout }: { session: Session; onLogout: () => vo
   );
 }
 
-// ---- Admin panel (/admin): Scorecard, in the same shell (admin role only) --
+// ---- Admin panel (/admin): Scorecard + Sheet Connections -------------------
 function AdminPanel({ onLogout }: { onLogout: () => void }) {
+  const [adminSection, setAdminSection] = React.useState<"scoring" | "sheets">("scoring");
   const [week, setWeek] = React.useState<string>("all");
   const [reloadToken, setReloadToken] = React.useState(0);
   const [showAdd, setShowAdd] = React.useState(false);
@@ -180,24 +200,28 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const weeks = weekOptions(data);
   const viewData = React.useMemo(() => filterByWeek(data, week), [data, week]);
 
+  const sectionLabel = adminSection === "scoring" ? "Scoring" : "Sheet Connections";
+
   return (
     <div className="flex h-screen overflow-hidden bg-surface text-on-surface antialiased">
-      <AdminSidebar onLogout={onLogout} />
+      <AdminSidebar section={adminSection} onSection={(s) => setAdminSection(s as any)} onLogout={onLogout} />
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <Topbar
-          sectionLabel="Scoring"
-          weeks={weeks}
+          sectionLabel={sectionLabel}
+          weeks={adminSection === "scoring" ? weeks : []}
           weekKey={week}
           onWeekChange={setWeek}
           source={source}
           onLogout={onLogout}
-          onAddTask={() => setShowAdd(true)}
-          onAddDoer={() => setShowAddDoer(true)}
+          onAddTask={adminSection === "scoring" ? () => setShowAdd(true) : undefined}
+          onAddDoer={adminSection === "scoring" ? () => setShowAddDoer(true) : undefined}
           loggedInName="ADMIN"
         />
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-24 sm:p-6">
           <div className="mx-auto min-w-0 max-w-[1440px]">
-            {loading ? (
+            {adminSection === "sheets" ? (
+              <SheetManager />
+            ) : loading ? (
               <LoadingState />
             ) : error && !data ? (
               <ErrorState error={error} onRetry={() => setReloadToken((t) => t + 1)} />

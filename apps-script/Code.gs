@@ -41,6 +41,12 @@ function doGet(e) {
   try {
     var params = (e && e.parameter) ? e.parameter : {};
 
+    // Dynamic sheet read: ?sheetId=XXX&type=tasklist|checklist
+    // Used by the Sheet Connections manager to read additional linked sheets.
+    if (params.sheetId && params.type) {
+      return handleDynamicSheet(params.sheetId, params.type);
+    }
+
     var doerMap = {}; // canonical doer -> { doer, department, email }
     var checklist = readChecklist(doerMap);
     var delegation = readDelegation(doerMap);
@@ -79,6 +85,74 @@ function doGet(e) {
   } catch (err) {
     return json({ error: "Server error: " + (err && err.message ? err.message : err) });
   }
+}
+
+// Read a dynamically-linked sheet (from the Sheet Connections admin panel).
+// Returns { delegation: [...] } or { checklist: [...] } — same row shapes as
+// the main readDelegation / readChecklist so the frontend can reuse all the
+// same analytics and table components.
+function handleDynamicSheet(sheetId, type) {
+  try {
+    var doerMap = {};
+    var rows;
+    if (type === "tasklist" || type === "delegation") {
+      rows = readDelegationFromId(sheetId, doerMap);
+      rows = rows.filter(function (r) { return !isExcludedDoer(r.doer); });
+      return json({ delegation: rows });
+    } else if (type === "checklist") {
+      rows = readChecklistFromId(sheetId, doerMap);
+      rows = rows.filter(function (r) { return !isExcludedDoer(r.doer); });
+      return json({ checklist: rows });
+    }
+    return json({ error: "Unknown type: " + type });
+  } catch (err) {
+    return json({ error: "Dynamic sheet error: " + (err && err.message ? err.message : err) });
+  }
+}
+
+function readDelegationFromId(sheetId, doerMap) {
+  var ss = openOrNull(sheetId);
+  if (!ss) return [];
+  registerDoerList(ss, doerMap);
+  var rows = tryReadTable(ss, ["Task ID", "Total Revisions", "Status", "First Date"]);
+  return rows.map(function (r) {
+    var doer = canonical(r["Name"]);
+    return {
+      taskId: trim(r["Task ID"]),
+      task: trim(r["Task"]),
+      doer: doer,
+      department: deptOf(doerMap, doer),
+      firstDate: toISODate(r["First Date"]),
+      latestRevision: toISODate(r["Latest Revision"]),
+      revisions: toInt(r["Total Revisions"]),
+      status: trim(r["Status"]) || "Pending",
+      priority: trim(r["Priority"]),
+    };
+  });
+}
+
+function readChecklistFromId(sheetId, doerMap) {
+  var ss = openOrNull(sheetId);
+  if (!ss) return [];
+  registerDoerList(ss, doerMap);
+  var rows = tryReadTable(ss, ["Task ID", "Planned", "Actual", "Status", "Task"]);
+  var horizon = toISODate(addDays(startOfWeek(new Date()), 6));
+  return rows
+    .map(function (r) {
+      var doer = canonical(r["Name"]);
+      var status = String(r["Status"]).trim() === "Done" || trim(r["Actual"]) ? "Done" : "Pending";
+      return {
+        taskId: trim(r["Task ID"]),
+        task: trim(r["Task"]),
+        doer: doer,
+        department: trim(r["Department"]) || deptOf(doerMap, doer),
+        frequency: expandFreq(r["Freq"]),
+        planned: toISODate(r["Planned"]),
+        actual: toISODate(r["Actual"]),
+        status: status,
+      };
+    })
+    .filter(function (r) { return r.planned && r.planned <= horizon; });
 }
 
 // ---- Write: add a task (doPost) --------------------------------------------
@@ -267,14 +341,15 @@ function completeTask(body) {
   };
   var doneDate = isoToDate(toISODate(new Date()));
 
+  var customSheetId = trim(body.sheetId);
   var ss, headers, setVals;
   if (system === "checklist") {
-    ss = openOrNull(SHEET_IDS.checklist);
+    ss = openOrNull(customSheetId || SHEET_IDS.checklist);
     headers = ["Task ID", "Planned", "Actual", "Status", "Task"];
     matcher.dateField = "Planned";
     setVals = { "Status": "Done", "Actual": doneDate };
   } else {
-    ss = openOrNull(SHEET_IDS.delegation);
+    ss = openOrNull(customSheetId || SHEET_IDS.delegation);
     headers = ["Task ID", "Total Revisions", "Status", "First Date"];
     matcher.dateField = "First Date";
     setVals = { "Status": "Completed", "Latest Revision": doneDate };
@@ -301,15 +376,16 @@ function reviseTask(body) {
     dateVal: body.date ? toISODate(body.date) : "",
   };
 
+  var customSheetId = trim(body.sheetId);
   var ss, headers, setVals, incHeaders;
   if (system === "checklist") {
-    ss = openOrNull(SHEET_IDS.checklist);
+    ss = openOrNull(customSheetId || SHEET_IDS.checklist);
     headers = ["Task ID", "Planned", "Actual", "Status", "Task"];
     matcher.dateField = "Planned";
     setVals = { "Planned": newDateVal };
     incHeaders = [];
   } else {
-    ss = openOrNull(SHEET_IDS.delegation);
+    ss = openOrNull(customSheetId || SHEET_IDS.delegation);
     headers = ["Task ID", "Total Revisions", "Status", "First Date"];
     matcher.dateField = "First Date";
     setVals = { "Latest Revision": newDateVal };

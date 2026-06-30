@@ -6,6 +6,7 @@
 
 import { APPS_SCRIPT_URL, USE_SAMPLE_DATA_FALLBACK, EXCLUDED_DOERS, WRITE_TOKEN } from "./config.js";
 import { getAllSampleData } from "./sample-data.js";
+import { getActiveConnections } from "./sheets";
 
 export const ALL_WEEKS = { key: "all", label: "All weeks", from: "", to: "" };
 
@@ -38,23 +39,87 @@ export async function loadData() {
   if (!APPS_SCRIPT_URL) {
     return { data: prepare(getAllSampleData()), source: "sample", error: null };
   }
+
+  let mainData = null;
+  let mainError = null;
+  let mainSource = "live";
+
   try {
     const res = await fetch(`${APPS_SCRIPT_URL}?week=all&_t=${Date.now()}`, { method: "GET", redirect: "follow" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const payload = await res.json();
     if (payload && payload.error) {
-      return { data: null, source: "live", error: { message: payload.error, missingHeaders: payload.missingHeaders || [] } };
+      mainError = { message: payload.error, missingHeaders: payload.missingHeaders || [] };
+    } else {
+      mainData = prepare(normalize(payload));
     }
-    return { data: prepare(normalize(payload)), source: "live", error: null };
   } catch (err) {
     if (USE_SAMPLE_DATA_FALLBACK) {
-      return {
-        data: prepare(getAllSampleData()),
-        source: "sample",
-        error: { message: `Live data unavailable (${err.message}); showing sample data.` },
-      };
+      mainData = prepare(getAllSampleData());
+      mainSource = "sample";
+      mainError = { message: `Live data unavailable (${err.message}); showing sample data.` };
+    } else {
+      return { data: null, source: "live", error: { message: `Could not reach data source: ${err.message}` } };
     }
-    return { data: null, source: "live", error: { message: `Could not reach data source: ${err.message}` } };
+  }
+
+  // Load additional connected sheets in parallel. Each connection's rows are stored
+  // under viewData[conn.moduleSlug] so ModuleBody can pull them by slug.
+  const connections = getActiveConnections ? getActiveConnections() : [];
+  if (connections.length && mainData) {
+    const connResults = await Promise.allSettled(
+      connections.map((conn) => fetchConnectionData(conn))
+    );
+    connResults.forEach((result, i) => {
+      if (result.status === "fulfilled" && result.value !== null) {
+        mainData[connections[i].moduleSlug] = result.value;
+      }
+    });
+  }
+
+  return { data: mainData, source: mainSource, error: mainError };
+}
+
+// Fetch rows from a single additional sheet connection. Returns an array of rows
+// (delegation or checklist format) with _sheetId stamped on each row for writes.
+async function fetchConnectionData(conn) {
+  const url = conn.scriptUrl || APPS_SCRIPT_URL;
+  if (!url) return null;
+  try {
+    const res = await fetch(
+      `${url}?sheetId=${encodeURIComponent(conn.sheetId)}&type=${conn.sheetType}&_t=${Date.now()}`,
+      { method: "GET", redirect: "follow" }
+    );
+    if (!res.ok) return null;
+    const payload = await res.json();
+    if (payload && payload.error) return null;
+    const rows = conn.sheetType === "tasklist"
+      ? (payload.delegation || [])
+      : (payload.checklist || []);
+    // Stamp the source sheetId so completeTask / reviseTask write to the right sheet.
+    return rows.map((r) => ({ ...r, _sheetId: conn.sheetId, _scriptUrl: conn.scriptUrl || "" }));
+  } catch {
+    return null;
+  }
+}
+
+// Test a potential connection before saving — used by SheetManager.
+// Returns { ok, rows, error }.
+export async function testSheetConnection({ sheetId, sheetType, scriptUrl }) {
+  const url = scriptUrl || APPS_SCRIPT_URL;
+  if (!url || !sheetId) return { ok: false, rows: 0, error: "Script URL or Sheet ID missing." };
+  try {
+    const res = await fetch(
+      `${url}?sheetId=${encodeURIComponent(sheetId)}&type=${sheetType}&_t=${Date.now()}`,
+      { method: "GET", redirect: "follow" }
+    );
+    if (!res.ok) return { ok: false, rows: 0, error: `HTTP ${res.status}` };
+    const payload = await res.json();
+    if (payload && payload.error) return { ok: false, rows: 0, error: payload.error };
+    const rows = sheetType === "tasklist" ? (payload.delegation || []) : (payload.checklist || []);
+    return { ok: true, rows: rows.length, error: null };
+  } catch (err) {
+    return { ok: false, rows: 0, error: err.message };
   }
 }
 
@@ -153,7 +218,8 @@ export async function removeDoer(payload) {
 // Apps Script can find the row even when a checklist row has no Task ID.
 // task: a unified task row from analytics (has id, source, doer, task, due).
 export async function completeTask(task) {
-  if (!APPS_SCRIPT_URL) {
+  const scriptUrl = task._scriptUrl || APPS_SCRIPT_URL;
+  if (!scriptUrl) {
     return { ok: false, error: "Sample mode — no live sheet connected to write to." };
   }
   const generated = /^(CL|TL)-\d+$/.test(String(task.id || ""));
@@ -161,12 +227,13 @@ export async function completeTask(task) {
     token: WRITE_TOKEN,
     action: "complete",
     system: task.source === "Checklist" ? "checklist" : "tasklist",
+    sheetId: task._sheetId || "",
     taskId: generated ? "" : task.id,
     doer: task.doer,
     task: task.task,
     date: task.due || task.created || "",
   });
-  const res = await fetch(APPS_SCRIPT_URL, {
+  const res = await fetch(scriptUrl, {
     method: "POST",
     redirect: "follow",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -187,7 +254,8 @@ export async function completeTask(task) {
 // Reschedule a pending task to a new date (newDateISO = "YYYY-MM-DD").
 // Task List → revision count +1, Latest Revision = new date; Checklist → Planned moves.
 export async function reviseTask(task, newDateISO) {
-  if (!APPS_SCRIPT_URL) {
+  const scriptUrl = task._scriptUrl || APPS_SCRIPT_URL;
+  if (!scriptUrl) {
     return { ok: false, error: "Sample mode — no live sheet connected to write to." };
   }
   const generated = /^(CL|TL)-\d+$/.test(String(task.id || ""));
@@ -195,13 +263,14 @@ export async function reviseTask(task, newDateISO) {
     token: WRITE_TOKEN,
     action: "revise",
     system: task.source === "Checklist" ? "checklist" : "tasklist",
+    sheetId: task._sheetId || "",
     taskId: generated ? "" : task.id,
     doer: task.doer,
     task: task.task,
     date: task.due || task.created || "",
     newDate: newDateISO,
   });
-  const res = await fetch(APPS_SCRIPT_URL, {
+  const res = await fetch(scriptUrl, {
     method: "POST",
     redirect: "follow",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -238,16 +307,29 @@ export function weekOptions(data) {
 // Client-side doer filter. When a staff member is logged in, only show their tasks.
 // doerName must match the "Doer" column value in the sheet (case-insensitive).
 // Pass null/undefined to return all data (admin or unmapped staff).
+// Also filters any extra array keys (sheet connection data keyed by moduleSlug).
+const STANDARD_ARRAY_KEYS = new Set(["checklist", "delegation", "fms"]);
+
 export function filterByDoer(data, doerName) {
   if (!data || !doerName) return data;
   const needle = String(doerName).trim().toUpperCase();
   const match = (r) => String(r.doer || "").trim().toUpperCase() === needle;
-  return {
+
+  const result = {
     ...data,
     checklist: (data.checklist || []).filter(match),
     delegation: (data.delegation || []).filter(match),
     fms: (data.fms || []).filter(match),
   };
+
+  // Filter dynamic connection arrays (keyed sc-XXXXXX).
+  for (const key of Object.keys(data)) {
+    if (!STANDARD_ARRAY_KEYS.has(key) && Array.isArray(data[key])) {
+      result[key] = data[key].filter(match);
+    }
+  }
+
+  return result;
 }
 
 // Client-side week filter. "all" (or unknown) returns everything.

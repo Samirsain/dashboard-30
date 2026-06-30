@@ -89,13 +89,22 @@ export function Sidebar({
   );
 }
 
-// ---- Admin shell sidebar (scoring only) ------------------------------------
-export function AdminSidebar({ onLogout }: { onLogout: () => void }) {
+// ---- Admin shell sidebar ---------------------------------------------------
+export function AdminSidebar({
+  section,
+  onSection,
+  onLogout,
+}: {
+  section: string;
+  onSection: (s: string) => void;
+  onLogout: () => void;
+}) {
   return (
     <nav className="sticky top-0 z-20 hidden h-screen w-64 shrink-0 flex-col border-r-2 border-on-surface bg-surface md:flex">
       <Brand />
       <div className="flex-1 py-3">
-        <Item icon="leaderboard" label="Scoring" active />
+        <Item icon="leaderboard" label="Scoring" active={section === "scoring"} onClick={() => onSection("scoring")} />
+        <Item icon="link" label="Sheet Connections" active={section === "sheets"} onClick={() => onSection("sheets")} />
         <Item icon="dashboard" label="Public Dashboard" href="/" />
       </div>
       <div className="border-t-2 border-on-surface py-2">
