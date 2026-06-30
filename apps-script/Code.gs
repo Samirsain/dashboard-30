@@ -40,7 +40,7 @@ var WEEK_START = 0; // 0 = Sunday
 // open  <web-app-url>?version=1  in a browser — it should echo this string.
 // If it shows an older value (or 404s), the /exec URL is still serving old code
 // and you must redeploy: Deploy > Manage deployments > (edit) > New version.
-var SCRIPT_VERSION = "2026-06-30-lazy-v4";
+var SCRIPT_VERSION = "2026-06-30-cache-v5";
 
 // ---- Entry point -----------------------------------------------------------
 function doGet(e) {
@@ -59,51 +59,136 @@ function doGet(e) {
       return handleDynamicSheet(params.sheetId, params.type);
     }
 
-    var doerMap = {}; // canonical doer -> { doer, department, email }
-    var checklist = readChecklist(doerMap);
-    var delegation = readDelegation(doerMap);
-    var fms = readFms(doerMap);
-
-    // Drop ex-staff from rows and the doer list.
-    checklist = checklist.filter(function (r) { return !isExcludedDoer(r.doer); });
-    delegation = delegation.filter(function (r) { return !isExcludedDoer(r.doer); });
-    fms = fms.filter(function (r) { return !isExcludedDoer(r.doer); });
-    Object.keys(doerMap).forEach(function (k) { if (isExcludedDoer(k)) delete doerMap[k]; });
-
-    // Recurring checklists are pre-expanded months ahead; keep only up to the
-    // end of the current week so future blank rows don't flood the view.
-    var horizon = toISODate(addDays(startOfWeek(new Date()), 6));
-    checklist = checklist.filter(function (r) { return r.planned && r.planned <= horizon; });
-
-    var doers = Object.keys(doerMap).map(function (k) { return doerMap[k]; }).sort(byDoer);
-    var departments = uniqueDepartments(doers);
-    var weeks = buildWeeks(checklist, delegation);
-
     // Default = ALL data (frontend does week filtering). A specific ?week=KEY
-    // still filters server-side for back-compat.
+    // still filters server-side for back-compat (and skips the cache).
     var wantAll = !params.week || params.week === "all";
-    var range = wantAll ? { key: "all", label: "All weeks", from: "", to: "" } : resolveWeek(params);
-    var filt = function (rows, field) { return wantAll ? rows : filterByDate(rows, field, range); };
 
-    // Shared config (connections + per-doer access) so every device renders the
-    // same modules/permissions. Connection ROW data is fetched lazily by the
-    // client when a connection module is opened — keeping this main load fast.
-    var config = getSharedConfig();
+    // FAST PATH: serve the cached full payload, skipping the slow sheet read.
+    // The cache is cleared on every write (doPost) and refreshed by the keepWarm
+    // time-trigger, so it stays fresh. ?nocache=1 forces a rebuild.
+    if (wantAll && params.nocache !== "1") {
+      var cachedStr = getCachedPayload();
+      if (cachedStr) return jsonRaw(cachedStr);
+    }
 
-    return json({
-      scriptVersion: SCRIPT_VERSION,
-      config: config,
-      doers: doers,
-      departments: departments,
-      fms: filt(fms, "plannedOrFirst"),
-      checklist: filt(checklist, "planned"),
-      delegation: filt(delegation, "firstDate"),
-      availableWeeks: weeks,
-      weekRange: range,
-    });
+    var payloadStr = buildMainPayloadString(params, wantAll);
+    if (wantAll) setCachedPayload(payloadStr);
+    return jsonRaw(payloadStr);
   } catch (err) {
     return json({ error: "Server error: " + (err && err.message ? err.message : err) });
   }
+}
+
+// Build the full dashboard payload as a JSON STRING (so it can be cached as-is).
+// This is the expensive part — it reads the Checklist + Task List sheets.
+function buildMainPayloadString(params, wantAll) {
+  var doerMap = {}; // canonical doer -> { doer, department, email }
+  var checklist = readChecklist(doerMap);
+  var delegation = readDelegation(doerMap);
+  var fms = readFms(doerMap);
+
+  // Drop ex-staff from rows and the doer list.
+  checklist = checklist.filter(function (r) { return !isExcludedDoer(r.doer); });
+  delegation = delegation.filter(function (r) { return !isExcludedDoer(r.doer); });
+  fms = fms.filter(function (r) { return !isExcludedDoer(r.doer); });
+  Object.keys(doerMap).forEach(function (k) { if (isExcludedDoer(k)) delete doerMap[k]; });
+
+  // Recurring checklists are pre-expanded months ahead; keep only up to the end
+  // of the current week so future blank rows don't flood the view.
+  var horizon = toISODate(addDays(startOfWeek(new Date()), 6));
+  checklist = checklist.filter(function (r) { return r.planned && r.planned <= horizon; });
+
+  var doers = Object.keys(doerMap).map(function (k) { return doerMap[k]; }).sort(byDoer);
+  var departments = uniqueDepartments(doers);
+  var weeks = buildWeeks(checklist, delegation);
+
+  var range = wantAll ? { key: "all", label: "All weeks", from: "", to: "" } : resolveWeek(params);
+  var filt = function (rows, field) { return wantAll ? rows : filterByDate(rows, field, range); };
+
+  // Shared config (connections + per-doer access) so every device renders the
+  // same modules/permissions. Connection ROW data is fetched lazily by the client.
+  var config = getSharedConfig();
+
+  return JSON.stringify({
+    scriptVersion: SCRIPT_VERSION,
+    config: config,
+    doers: doers,
+    departments: departments,
+    fms: filt(fms, "plannedOrFirst"),
+    checklist: filt(checklist, "planned"),
+    delegation: filt(delegation, "firstDate"),
+    availableWeeks: weeks,
+    weekRange: range,
+    cachedAt: new Date().toISOString(),
+  });
+}
+
+function jsonRaw(str) {
+  return ContentService.createTextOutput(str).setMimeType(ContentService.MimeType.JSON);
+}
+
+// ---- Payload cache (CacheService) ------------------------------------------
+// The built payload can exceed CacheService's 100KB-per-key limit, so it's
+// stored in ~95KB chunks plus a count key. Cleared on every write; refreshed by
+// the keepWarm trigger. This is what makes repeat loads near-instant.
+var PAYLOAD_CACHE_PREFIX = "pl_v1_";
+var PAYLOAD_CACHE_TTL = 21600; // seconds (6h max) — kept fresh by writes + keepWarm
+
+function getCachedPayload() {
+  try {
+    var cache = CacheService.getScriptCache();
+    var meta = cache.get(PAYLOAD_CACHE_PREFIX + "n");
+    if (!meta) return null;
+    var n = parseInt(meta, 10);
+    if (!n || n < 1) return null;
+    var keys = [];
+    for (var i = 0; i < n; i++) keys.push(PAYLOAD_CACHE_PREFIX + i);
+    var parts = cache.getAll(keys);
+    var out = "";
+    for (var j = 0; j < n; j++) {
+      var p = parts[PAYLOAD_CACHE_PREFIX + j];
+      if (p == null) return null; // a chunk expired → treat as a full miss
+      out += p;
+    }
+    return out;
+  } catch (e) {
+    return null;
+  }
+}
+
+function setCachedPayload(str) {
+  try {
+    var cache = CacheService.getScriptCache();
+    var CHUNK = 95000; // stay under the 100KB-per-key limit
+    var n = Math.ceil(str.length / CHUNK) || 1;
+    var obj = {};
+    for (var i = 0; i < n; i++) obj[PAYLOAD_CACHE_PREFIX + i] = str.substring(i * CHUNK, (i + 1) * CHUNK);
+    obj[PAYLOAD_CACHE_PREFIX + "n"] = String(n);
+    cache.putAll(obj, PAYLOAD_CACHE_TTL);
+  } catch (e) {
+    /* cache unavailable — fall back to live build */
+  }
+}
+
+function clearCachedPayload() {
+  try {
+    var cache = CacheService.getScriptCache();
+    var meta = cache.get(PAYLOAD_CACHE_PREFIX + "n");
+    var n = meta ? parseInt(meta, 10) : 0;
+    var keys = [PAYLOAD_CACHE_PREFIX + "n"];
+    for (var i = 0; i < n; i++) keys.push(PAYLOAD_CACHE_PREFIX + i);
+    cache.removeAll(keys);
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+// Time-trigger target. Add a 5-minute time-driven trigger on this function
+// (Apps Script → Triggers → Add Trigger → keepWarm → Time-driven → Minutes →
+// Every 5 minutes). It rebuilds the cache so loads always hit a warm cache and
+// edits made directly in the sheet appear within ~5 minutes.
+function keepWarm() {
+  try { setCachedPayload(buildMainPayloadString({}, true)); } catch (e) { /* ignore */ }
 }
 
 // Read a dynamically-linked sheet (from the Sheet Connections admin panel).
@@ -191,12 +276,18 @@ function doPost(e) {
     }
 
     var action = String(body.action || "add").toLowerCase();
-    if (action === "complete") return completeTask(body);
-    if (action === "revise") return reviseTask(body);
-    if (action === "adddoer") return addDoerRow(body);
-    if (action === "removedoer") return removeDoerRow(body);
-    if (action === "saveconfig") return saveSharedConfig(body);
-    return addTaskRow(body);
+    var result;
+    if (action === "complete") result = completeTask(body);
+    else if (action === "revise") result = reviseTask(body);
+    else if (action === "adddoer") result = addDoerRow(body);
+    else if (action === "removedoer") result = removeDoerRow(body);
+    else if (action === "saveconfig") result = saveSharedConfig(body);
+    else result = addTaskRow(body);
+
+    // Data (or config) changed — drop the cached payload so the next load
+    // rebuilds fresh instead of serving stale rows.
+    clearCachedPayload();
+    return result;
   } catch (err) {
     return json({ ok: false, error: "Server error: " + (err && err.message ? err.message : err) });
   }
