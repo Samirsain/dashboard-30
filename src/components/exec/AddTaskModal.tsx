@@ -3,28 +3,62 @@ import { Icon } from "./Icon";
 import { cn } from "@/lib/utils";
 import { addTask } from "@/lib/data";
 import { todayISO } from "@/lib/analytics";
+import { getActiveConnections } from "@/lib/sheets";
 
 type System = "tasklist" | "checklist";
 
-const PRIORITIES = ["Normal", "High", "Medium", "Low"];
+const PRIORITIES = ["Normal", "Urgent"];
 const FREQUENCIES = ["One-time", "Daily", "Weekly", "Monthly"];
 
 export function AddTaskModal({
-  doers,
+  doers: _legacyDoers,
+  data,
+  allowedModules = [],
   onClose,
   onAdded,
-  sheetId,
+  sheetId: lockedSheetId,
   sheetType: lockedSheetType,
   lockedDoer,
 }: {
   doers: { doer: string; department?: string }[];
+  data?: any;
+  allowedModules?: string[];
   onClose: () => void;
   onAdded: () => void;
   sheetId?: string;
   sheetType?: System;
   lockedDoer?: string;
 }) {
-  const [system, setSystem] = React.useState<System>(lockedSheetType || "tasklist");
+  const connections = React.useMemo(() => getActiveConnections(), []);
+
+  // Determine default target
+  const defaultTarget = React.useMemo(() => {
+    let t = "master:tasklist";
+    if (lockedSheetId) t = `conn:${lockedSheetId}`;
+    else if (lockedSheetType) t = `master:${lockedSheetType}`;
+
+    // If the preferred target is not allowed, pick the first allowed one
+    const isAllowed = (tgt: string) => {
+      if (tgt === "master:tasklist") return allowedModules.includes("tasklist");
+      if (tgt === "master:checklist") return allowedModules.includes("checklist");
+      if (tgt.startsWith("conn:")) {
+        const id = tgt.replace("conn:", "");
+        const conn = connections.find((c) => c.sheetId === id);
+        return conn && allowedModules.includes(conn.moduleSlug);
+      }
+      return false;
+    };
+
+    if (isAllowed(t)) return t;
+
+    if (allowedModules.includes("tasklist")) return "master:tasklist";
+    if (allowedModules.includes("checklist")) return "master:checklist";
+    const firstConn = connections.find((c) => allowedModules.includes(c.moduleSlug));
+    if (firstConn) return `conn:${firstConn.sheetId}`;
+    return t; // fallback
+  }, [lockedSheetId, lockedSheetType, allowedModules, connections]);
+
+  const [target, setTarget] = React.useState<string>(defaultTarget);
   const [task, setTask] = React.useState("");
   const [doer, setDoer] = React.useState(lockedDoer || "");
   const [priority, setPriority] = React.useState("Normal");
@@ -34,11 +68,43 @@ export function AddTaskModal({
   const [error, setError] = React.useState("");
   const [done, setDone] = React.useState(false);
 
-  const doerList = React.useMemo(
-    () => [...new Set((doers || []).map((d) => String(d.doer || "").trim()).filter(Boolean))].sort(),
-    [doers]
-  );
-  const deptOf = (name: string) => (doers || []).find((d) => d.doer === name)?.department || "";
+  // Derive system and sheetId from the selected target
+  const { system, activeSheetId } = React.useMemo(() => {
+    if (target.startsWith("conn:")) {
+      const id = target.replace("conn:", "");
+      const conn = connections.find((c) => c.sheetId === id);
+      return { system: (conn?.sheetType || "tasklist") as System, activeSheetId: id };
+    }
+    return { system: target.replace("master:", "") as System, activeSheetId: "" };
+  }, [target, connections]);
+
+  // Extract doers dynamically based on the active sheet
+  const doerList = React.useMemo(() => {
+    let sourceRows: any[] = [];
+    if (activeSheetId) {
+      const conn = connections.find((c) => c.sheetId === activeSheetId);
+      if (conn && data && data[conn.moduleSlug]) {
+        sourceRows = data[conn.moduleSlug];
+      }
+    } else {
+      sourceRows = _legacyDoers || [];
+    }
+    // Extract doers specifically from this sheet's rows
+    const names = sourceRows.map((r: any) => r.doer).filter(Boolean);
+    return [...new Set(names)].map((n) => String(n).trim()).sort();
+  }, [activeSheetId, connections, data, _legacyDoers]);
+
+  const deptOf = (name: string) => {
+    if (activeSheetId) {
+      const conn = connections.find((c) => c.sheetId === activeSheetId);
+      if (conn && data && data[conn.moduleSlug]) {
+        const row = data[conn.moduleSlug].find((r: any) => r.doer === name);
+        return row?.department || "";
+      }
+      return "";
+    }
+    return (_legacyDoers || []).find((d) => d.doer === name)?.department || "";
+  };
 
   // Close on Escape.
   React.useEffect(() => {
@@ -61,7 +127,7 @@ export function AddTaskModal({
         task: task.trim(),
         doer: doer.trim(),
         date,
-        sheetId: sheetId || "",
+        sheetId: activeSheetId,
         ...(system === "tasklist" ? { priority } : { frequency, department: deptOf(doer) }),
       });
       setDone(true);
@@ -104,28 +170,21 @@ export function AddTaskModal({
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4 p-5">
-            {/* System toggle — hidden when sheet type is locked by context */}
-            {!lockedSheetType && (
-              <div>
-                <Label>System</Label>
-                <div className="grid grid-cols-2 gap-0 border-2 border-on-surface">
-                  {(["tasklist", "checklist"] as System[]).map((s) => (
-                    <button
-                      type="button"
-                      key={s}
-                      onClick={() => setSystem(s)}
-                      className={cn(
-                        "flex items-center justify-center gap-1.5 px-3 py-2.5 font-label-sm text-label-sm uppercase transition-colors",
-                        system === s ? "bg-on-surface text-on-primary" : "bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container"
-                      )}
-                    >
-                      <Icon name={s === "tasklist" ? "assignment" : "checklist"} className="text-[16px]" />
-                      {s === "tasklist" ? "Task List" : "Checklist"}
-                    </button>
+            {/* Target List Dropdown */}
+            <label className="block">
+              <Label>Save to List</Label>
+              <Field as="select" value={target} onChange={(e: any) => setTarget(e.target.value)}>
+                {allowedModules.includes("tasklist") && <option value="master:tasklist">Main Task List (Master)</option>}
+                {allowedModules.includes("checklist") && <option value="master:checklist">Main Checklist (Master)</option>}
+                {connections
+                  .filter((c) => allowedModules.includes(c.moduleSlug))
+                  .map((c) => (
+                    <option key={c.sheetId} value={`conn:${c.sheetId}`}>
+                      {c.name} ({c.sheetType === "tasklist" ? "Task List" : "Checklist"})
+                    </option>
                   ))}
-                </div>
-              </div>
-            )}
+              </Field>
+            </label>
 
             {/* Task description */}
             <label className="block">
@@ -145,7 +204,7 @@ export function AddTaskModal({
               <Label>Assign To (Doer)</Label>
               {lockedDoer ? (
                 <Field value={lockedDoer} readOnly className="cursor-not-allowed opacity-70" />
-              ) : doerList.length > 0 ? (
+              ) : (
                 <Field as="select" value={doer} onChange={(e: any) => setDoer(e.target.value)}>
                   <option value="">— Select doer —</option>
                   {doerList.map((d) => (
@@ -154,8 +213,6 @@ export function AddTaskModal({
                     </option>
                   ))}
                 </Field>
-              ) : (
-                <Field value={doer} onChange={(e: any) => setDoer(e.target.value)} placeholder="DOER NAME" />
               )}
             </label>
 

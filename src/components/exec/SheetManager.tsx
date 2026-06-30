@@ -269,9 +269,15 @@ function AddConnectionForm({ onAdded }: { onAdded: () => void }) {
     setTestState("idle"); setTestMsg(""); setErr(""); setOpen(false);
   };
 
+  const extractSheetId = (input: string) => {
+    const match = input.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    return match ? match[1] : input.trim();
+  };
+
   const handleTest = async () => {
     setTestState("loading"); setTestMsg("");
-    const res = await testSheetConnection({ sheetId, sheetType, scriptUrl: scriptUrl || undefined });
+    const targetId = extractSheetId(sheetId);
+    const res = await testSheetConnection({ sheetId: targetId, sheetType, scriptUrl: scriptUrl || undefined });
     if (res.ok) {
       setTestState("ok");
       setTestMsg(
@@ -287,12 +293,12 @@ function AddConnectionForm({ onAdded }: { onAdded: () => void }) {
 
   const handleSave = () => {
     const trimmedName = name.trim();
-    const trimmedId = sheetId.trim();
+    const targetId = extractSheetId(sheetId);
     if (!trimmedName) { setErr("Connection name is required."); return; }
-    if (!trimmedId) { setErr("Google Sheet ID is required."); return; }
+    if (!targetId) { setErr("Google Sheet ID is required."); return; }
     setSaving(true);
     try {
-      addConnection({ name: trimmedName, sheetId: trimmedId, sheetType, scriptUrl: scriptUrl.trim() || undefined });
+      addConnection({ name: trimmedName, sheetId: targetId, sheetType, scriptUrl: scriptUrl.trim() || undefined });
       onAdded();
       reset();
     } catch (e: any) {

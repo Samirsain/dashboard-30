@@ -177,6 +177,8 @@ function PublicApp({ session, onLogout }: { session: Session; onLogout: () => vo
       {showAdd && (
         <AddTaskModal
           doers={data?.doers || []}
+          data={data}
+          allowedModules={modules.map((m) => m.slug)}
           onClose={() => setShowAdd(false)}
           onAdded={() => setReloadToken((t) => t + 1)}
           sheetId={currentConn?.sheetId}
@@ -245,6 +247,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       {showAdd && (
         <AddTaskModal
           doers={data?.doers || []}
+          data={data}
+          allowedModules={getActiveConnections().map((c) => c.moduleSlug).concat(["tasklist", "checklist"])}
           onClose={() => setShowAdd(false)}
           onAdded={() => setReloadToken((t) => t + 1)}
         />

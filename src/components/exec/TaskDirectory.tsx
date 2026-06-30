@@ -280,7 +280,7 @@ export function TaskDirectory({
               pageRows.map((t) => (
                 <tr key={t.id} className={cn("table-row-hover group border-b border-outline-variant", t.priority === "Urgent" && "bg-error/5 border-l-2 border-l-error")}>
                   <td className="hidden whitespace-nowrap border-r border-outline-variant px-3 py-3 font-mono text-data-mono text-on-surface-variant 2xl:table-cell">{t.id}</td>
-                  <td className="border-r border-outline-variant px-3 py-3 text-body-md font-medium text-on-surface group-hover:underline">
+                  <td className={cn("border-r border-outline-variant px-3 py-3 text-body-md font-medium group-hover:underline", t.priority === "Urgent" ? "text-error font-bold" : "text-on-surface")}>
                     {t.task}
                   </td>
                   {showSystem && (
@@ -300,7 +300,7 @@ export function TaskDirectory({
                   <td className="hidden border-r border-outline-variant px-3 py-3 text-center font-mono text-data-mono uppercase text-on-surface-variant xl:table-cell">
                     {source === "Task List" ? (
                       t.priority ? (
-                        <span className={cn("inline-block px-2 py-0.5 font-label-sm text-label-sm uppercase", PRIORITY_STYLE[t.priority] || "border border-outline text-on-surface-variant")}>
+                        <span className={cn("inline-block px-2 py-0.5 font-label-sm text-label-sm uppercase", t.priority === "Urgent" ? "text-error font-bold" : "text-on-surface-variant")}>
                           {t.priority}
                         </span>
                       ) : (
