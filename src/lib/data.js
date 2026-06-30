@@ -223,6 +223,11 @@ export async function completeTask(task) {
     return { ok: false, error: "Sample mode — no live sheet connected to write to." };
   }
   const generated = /^(CL|TL)-\d+$/.test(String(task.id || ""));
+  // IMPORTANT: Always use task.created (= firstDate / planned) as the date to
+  // match against the sheet's "First Date" / "Planned" column. task.due shifts
+  // to the revised date after a revise, so it would no longer match the sheet.
+  // task.created always holds the ORIGINAL date and never changes on revise.
+  const matchDate = task.created || task.due || "";
   const body = JSON.stringify({
     token: WRITE_TOKEN,
     action: "complete",
@@ -231,9 +236,7 @@ export async function completeTask(task) {
     taskId: generated ? "" : task.id,
     doer: task.doer,
     task: task.task,
-    // Match on the ORIGINAL first/planned date (the sheet column never changes
-    // on revise) — task.due moves to the revised date and wouldn't match.
-    date: task.created || task.due || "",
+    date: matchDate,
   });
   const res = await fetch(scriptUrl, {
     method: "POST",
@@ -261,6 +264,13 @@ export async function reviseTask(task, newDateISO) {
     return { ok: false, error: "Sample mode — no live sheet connected to write to." };
   }
   const generated = /^(CL|TL)-\d+$/.test(String(task.id || ""));
+  // IMPORTANT: Always match on the ORIGINAL first/planned date (task.created).
+  // After a revise, task.due moves to the new date but the sheet's "First Date"
+  // column stays at the original value. Using task.created avoids a mismatch
+  // on re-revise (where task.due is the previously-revised date, not the sheet's
+  // First Date). task.created is set from r.firstDate in analytics.js and
+  // never changes through the task lifecycle in the frontend.
+  const matchDate = task.created || task.due || "";
   const body = JSON.stringify({
     token: WRITE_TOKEN,
     action: "revise",
@@ -269,9 +279,7 @@ export async function reviseTask(task, newDateISO) {
     taskId: generated ? "" : task.id,
     doer: task.doer,
     task: task.task,
-    // Match on the ORIGINAL first/planned date — on a re-revise, task.due is the
-    // previously-revised date, which no longer matches the sheet's First Date.
-    date: task.created || task.due || "",
+    date: matchDate,
     newDate: newDateISO,
   });
   const res = await fetch(scriptUrl, {

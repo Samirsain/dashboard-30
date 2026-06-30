@@ -406,6 +406,11 @@ function reviseTask(body) {
 
 // Find a row (by Task ID, else by Name+Task+date) and set the given columns.
 // Headers listed in incrementHeaders get their numeric value bumped by 1.
+// Matching strategy (in order):
+//   1. Task ID (exact) — fastest, most reliable.
+//   2. Name + Task + Date — handles rows without a Task ID.
+//   3. Name + Task only  — fallback when date is blank or mismatched; picks the
+//      first non-completed row so we don't accidentally touch a done duplicate.
 function updateRow(ss, requiredHeaders, matcher, valuesByHeader, incrementHeaders) {
   var sheets = ss.getSheets();
   for (var s = 0; s < sheets.length; s++) {
@@ -421,21 +426,43 @@ function updateRow(ss, requiredHeaders, matcher, valuesByHeader, incrementHeader
     var nameCol = headers.indexOf("Name");
     var taskCol = headers.indexOf("Task");
     var dateCol = headers.indexOf(matcher.dateField);
+    var statusCol = headers.indexOf("Status");
 
     var foundRow = -1;
+
+    // --- Strategy 1: Task ID match ---
     if (matcher.taskId && idCol !== -1) {
       for (var r = hIdx + 1; r < values.length; r++) {
         if (trim(values[r][idCol]) === matcher.taskId) { foundRow = r; break; }
       }
     }
-    if (foundRow === -1 && matcher.doer && nameCol !== -1 && taskCol !== -1) {
+
+    // --- Strategy 2: Name + Task + Date ---
+    if (foundRow === -1 && matcher.doer && nameCol !== -1 && taskCol !== -1 && matcher.dateVal && dateCol !== -1) {
       for (var r2 = hIdx + 1; r2 < values.length; r2++) {
-        var nameOk = canonical(values[r2][nameCol]) === matcher.doer;
-        var taskOk = trim(values[r2][taskCol]).toUpperCase() === matcher.task.toUpperCase();
-        var dateOk = !matcher.dateVal || (dateCol !== -1 && toISODate(values[r2][dateCol]) === matcher.dateVal);
-        if (nameOk && taskOk && dateOk) { foundRow = r2; break; }
+        var nameOk2 = canonical(values[r2][nameCol]) === matcher.doer;
+        var taskOk2 = trim(values[r2][taskCol]).toUpperCase() === matcher.task.toUpperCase();
+        var dateOk2 = toISODate(values[r2][dateCol]) === matcher.dateVal;
+        if (nameOk2 && taskOk2 && dateOk2) { foundRow = r2; break; }
       }
     }
+
+    // --- Strategy 3: Name + Task only (date-agnostic fallback) ---
+    // Picks the first non-completed row to avoid touching a done duplicate.
+    if (foundRow === -1 && matcher.doer && nameCol !== -1 && taskCol !== -1) {
+      var lastResortRow = -1;
+      for (var r3 = hIdx + 1; r3 < values.length; r3++) {
+        var nameOk3 = canonical(values[r3][nameCol]) === matcher.doer;
+        var taskOk3 = trim(values[r3][taskCol]).toUpperCase() === matcher.task.toUpperCase();
+        if (!nameOk3 || !taskOk3) continue;
+        var rowStatus = statusCol !== -1 ? trim(values[r3][statusCol]).toUpperCase() : "";
+        var isDone = rowStatus === "COMPLETED" || rowStatus === "DONE";
+        if (!isDone) { foundRow = r3; break; }           // prefer pending row
+        if (lastResortRow === -1) lastResortRow = r3;     // remember done row as fallback
+      }
+      if (foundRow === -1) foundRow = lastResortRow;      // nothing pending found
+    }
+
     if (foundRow === -1) continue;
 
     for (var c = 0; c < headers.length; c++) {
