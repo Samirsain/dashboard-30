@@ -36,10 +36,22 @@ function isExcludedDoer(name) { return !!EXCLUDED_DOERS[canonical(name)]; }
 
 var WEEK_START = 0; // 0 = Sunday
 
+// Bump this whenever Code.gs changes. To confirm a deployment is actually live,
+// open  <web-app-url>?version=1  in a browser — it should echo this string.
+// If it shows an older value (or 404s), the /exec URL is still serving old code
+// and you must redeploy: Deploy > Manage deployments > (edit) > New version.
+var SCRIPT_VERSION = "2026-06-30-revise-v2";
+
 // ---- Entry point -----------------------------------------------------------
 function doGet(e) {
   try {
     var params = (e && e.parameter) ? e.parameter : {};
+
+    // Deploy check: ?version=1 (or ?ping=1) echoes the running code version so
+    // you can verify the live /exec URL has the latest code.
+    if (params.version || params.ping) {
+      return json({ ok: true, version: SCRIPT_VERSION });
+    }
 
     // Dynamic sheet read: ?sheetId=XXX&type=tasklist|checklist
     // Used by the Sheet Connections manager to read additional linked sheets.
@@ -74,6 +86,7 @@ function doGet(e) {
     var filt = function (rows, field) { return wantAll ? rows : filterByDate(rows, field, range); };
 
     return json({
+      scriptVersion: SCRIPT_VERSION,
       doers: doers,
       departments: departments,
       fms: filt(fms, "plannedOrFirst"),
@@ -811,4 +824,6 @@ function toInt(v) { var n = parseInt(v, 10); return isNaN(n) ? 0 : n; }
 function pad(n) { return n < 10 ? "0" + n : "" + n; }
 function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
 function json(obj) { return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON); }
-function isoToDate(s) { return parseISO(s); }
+// NOTE: isoToDate(iso) is defined once near the value helpers above (returns a
+// real Date for date cells). Do not redefine it here — duplicate declarations
+// silently shadow each other and make the active one ambiguous.
