@@ -231,7 +231,9 @@ export async function completeTask(task) {
     taskId: generated ? "" : task.id,
     doer: task.doer,
     task: task.task,
-    date: task.due || task.created || "",
+    // Match on the ORIGINAL first/planned date (the sheet column never changes
+    // on revise) — task.due moves to the revised date and wouldn't match.
+    date: task.created || task.due || "",
   });
   const res = await fetch(scriptUrl, {
     method: "POST",
@@ -267,7 +269,9 @@ export async function reviseTask(task, newDateISO) {
     taskId: generated ? "" : task.id,
     doer: task.doer,
     task: task.task,
-    date: task.due || task.created || "",
+    // Match on the ORIGINAL first/planned date — on a re-revise, task.due is the
+    // previously-revised date, which no longer matches the sheet's First Date.
+    date: task.created || task.due || "",
     newDate: newDateISO,
   });
   const res = await fetch(scriptUrl, {

@@ -32,6 +32,10 @@ export function unifyTasks(data) {
       due: r.planned || "",
       actual: r.actual || "",
       status: done ? (late ? "Late" : "Completed") : "Pending",
+      // Carry the source sheet so Done/Revise write back to the right sheet
+      // (connected sheets stamp these; the main sheet leaves them blank).
+      _sheetId: r._sheetId || "",
+      _scriptUrl: r._scriptUrl || "",
     });
   });
   (data.delegation || []).forEach((r, i) => {
@@ -54,37 +58,44 @@ export function unifyTasks(data) {
       red: delegationColour(r) === "Red",
       revisions: r.revisions || 0,
       latestRevision: r.latestRevision || "",
+      _sheetId: r._sheetId || "",
+      _scriptUrl: r._scriptUrl || "",
     });
   });
 
   // ---- Deduplicate Task List rows ------------------------------------------
-  // When a task gets revised, a NEW row is added to the sheet each time.
-  // So the same task+doer can appear 3-4 times. We keep only the LATEST row
-  // per unique (doer + normalised task) pair. "Latest" = highest firstDate.
-  // This eliminates the confusion of the same task looking like it was added
-  // multiple times.
+  // The same task+doer can appear multiple times in the sheet (a revision adds
+  // a fresh row, or the task was logged more than once). We keep only ONE row
+  // per unique (doer + normalised task) pair — the most recently *touched* one.
+  //
+  // "Most recent" = the latest activity date = max(firstDate, latestRevision).
+  // This is critical: when a task is revised to a new date, only its Latest
+  // Revision moves forward — the First Date stays the same. Ranking by firstDate
+  // alone would discard the revised row in favour of a stale duplicate, so a
+  // task revised to today would never reach Today's Followup. Ranking by the
+  // effective activity date keeps the revised row, so its new (revised) date
+  // shows and it lands in today's list when revised to today.
   const taskListRows = out.filter((t) => t.source === "Task List");
   const otherRows = out.filter((t) => t.source !== "Task List");
 
   const taskKey = (t) =>
     `${String(t.doer || "").trim().toUpperCase()}||${String(t.task || "").trim().toUpperCase()}`;
 
-  // Group by key; within each group keep only the latest firstDate row.
+  // Effective activity date — the later of firstDate and latestRevision.
+  const activityOf = (t) => {
+    const a = String(t.created || "");
+    const b = String(t.latestRevision || "");
+    return a > b ? a : b;
+  };
+
+  // Group by key; within each group keep the row with the latest activity date.
+  // On a tie, the row appearing later in the data (the more recent write) wins.
   const latestByKey = new Map();
   for (const t of taskListRows) {
     const key = taskKey(t);
     const existing = latestByKey.get(key);
-    if (!existing) {
+    if (!existing || activityOf(t) >= activityOf(existing)) {
       latestByKey.set(key, t);
-    } else {
-      // Prefer the row with the LATEST created (firstDate). If the firstDate
-      // is the same, the newer row appearing later in the data (which has the
-      // updated revision) will overwrite the older one.
-      const existingDate = String(existing.created || "");
-      const newDate = String(t.created || "");
-      if (newDate >= existingDate) {
-        latestByKey.set(key, t);
-      }
     }
   }
 
