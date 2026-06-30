@@ -77,11 +77,12 @@ export function unifyTasks(data) {
     if (!existing) {
       latestByKey.set(key, t);
     } else {
-      // Prefer the row with the LATEST created (firstDate) — that is the most
-      // recent entry added to the sheet when the task was revised/re-added.
+      // Prefer the row with the LATEST created (firstDate). If the firstDate
+      // is the same, the newer row appearing later in the data (which has the
+      // updated revision) will overwrite the older one.
       const existingDate = String(existing.created || "");
       const newDate = String(t.created || "");
-      if (newDate > existingDate) {
+      if (newDate >= existingDate) {
         latestByKey.set(key, t);
       }
     }

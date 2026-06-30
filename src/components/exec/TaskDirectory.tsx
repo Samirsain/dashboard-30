@@ -258,7 +258,7 @@ export function TaskDirectory({
               <th className="hidden border-r border-outline-variant px-3 py-3 text-center font-label-sm text-label-sm uppercase text-on-surface xl:table-cell">
                 {source === "Task List" ? "Priority" : "Freq"}
               </th>
-              <th className={cn("border-r border-outline-variant px-3 py-3 font-label-sm text-label-sm uppercase text-on-surface", todayOnly ? "hidden" : "hidden xl:table-cell")}>Due</th>
+              <th className="border-r border-outline-variant px-3 py-3 font-label-sm text-label-sm uppercase text-on-surface">Due</th>
               <th className="hidden border-r border-outline-variant px-3 py-3 font-label-sm text-label-sm uppercase text-on-surface lg:table-cell">Actual</th>
               <th className="px-2 py-3 text-center font-label-sm text-label-sm uppercase text-on-surface w-20 min-w-[80px]">Status</th>
             </tr>
@@ -304,7 +304,7 @@ export function TaskDirectory({
                       t.frequency || "—"
                     )}
                   </td>
-                  <td className={cn("whitespace-nowrap border-r border-outline-variant px-3 py-3 font-mono text-data-mono text-on-surface-variant", todayOnly ? "hidden" : "hidden xl:table-cell")}>{fmtDate(t.due) || "—"}</td>
+                  <td className="whitespace-nowrap border-r border-outline-variant px-3 py-3 font-mono text-data-mono text-on-surface-variant">{fmtDate(t.due) || "—"}</td>
                   <td className="hidden whitespace-nowrap border-r border-outline-variant px-3 py-3 font-mono text-data-mono text-on-surface-variant lg:table-cell">{fmtDate(t.actual) || "—"}</td>
                   <td className="px-2 py-2 text-center w-20 min-w-[80px]">
                     <div className="flex flex-col items-stretch gap-1">
