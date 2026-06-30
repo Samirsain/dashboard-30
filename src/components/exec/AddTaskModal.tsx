@@ -13,14 +13,20 @@ export function AddTaskModal({
   doers,
   onClose,
   onAdded,
+  sheetId,
+  sheetType: lockedSheetType,
+  lockedDoer,
 }: {
   doers: { doer: string; department?: string }[];
   onClose: () => void;
   onAdded: () => void;
+  sheetId?: string;
+  sheetType?: System;
+  lockedDoer?: string;
 }) {
-  const [system, setSystem] = React.useState<System>("tasklist");
+  const [system, setSystem] = React.useState<System>(lockedSheetType || "tasklist");
   const [task, setTask] = React.useState("");
-  const [doer, setDoer] = React.useState("");
+  const [doer, setDoer] = React.useState(lockedDoer || "");
   const [priority, setPriority] = React.useState("Normal");
   const [frequency, setFrequency] = React.useState("One-time");
   const [date, setDate] = React.useState(todayISO());
@@ -55,6 +61,7 @@ export function AddTaskModal({
         task: task.trim(),
         doer: doer.trim(),
         date,
+        sheetId: sheetId || "",
         ...(system === "tasklist" ? { priority } : { frequency, department: deptOf(doer) }),
       });
       setDone(true);
@@ -97,26 +104,28 @@ export function AddTaskModal({
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4 p-5">
-            {/* System toggle */}
-            <div>
-              <Label>System</Label>
-              <div className="grid grid-cols-2 gap-0 border-2 border-on-surface">
-                {(["tasklist", "checklist"] as System[]).map((s) => (
-                  <button
-                    type="button"
-                    key={s}
-                    onClick={() => setSystem(s)}
-                    className={cn(
-                      "flex items-center justify-center gap-1.5 px-3 py-2.5 font-label-sm text-label-sm uppercase transition-colors",
-                      system === s ? "bg-on-surface text-on-primary" : "bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container"
-                    )}
-                  >
-                    <Icon name={s === "tasklist" ? "assignment" : "checklist"} className="text-[16px]" />
-                    {s === "tasklist" ? "Task List" : "Checklist"}
-                  </button>
-                ))}
+            {/* System toggle — hidden when sheet type is locked by context */}
+            {!lockedSheetType && (
+              <div>
+                <Label>System</Label>
+                <div className="grid grid-cols-2 gap-0 border-2 border-on-surface">
+                  {(["tasklist", "checklist"] as System[]).map((s) => (
+                    <button
+                      type="button"
+                      key={s}
+                      onClick={() => setSystem(s)}
+                      className={cn(
+                        "flex items-center justify-center gap-1.5 px-3 py-2.5 font-label-sm text-label-sm uppercase transition-colors",
+                        system === s ? "bg-on-surface text-on-primary" : "bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container"
+                      )}
+                    >
+                      <Icon name={s === "tasklist" ? "assignment" : "checklist"} className="text-[16px]" />
+                      {s === "tasklist" ? "Task List" : "Checklist"}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Task description */}
             <label className="block">
@@ -131,10 +140,12 @@ export function AddTaskModal({
               />
             </label>
 
-            {/* Doer */}
+            {/* Doer — read-only when lockedDoer is set (employee adding to their own sheet) */}
             <label className="block">
               <Label>Assign To (Doer)</Label>
-              {doerList.length > 0 ? (
+              {lockedDoer ? (
+                <Field value={lockedDoer} readOnly className="cursor-not-allowed opacity-70" />
+              ) : doerList.length > 0 ? (
                 <Field as="select" value={doer} onChange={(e: any) => setDoer(e.target.value)}>
                   <option value="">— Select doer —</option>
                   {doerList.map((d) => (

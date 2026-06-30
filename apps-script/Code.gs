@@ -198,8 +198,11 @@ function addTaskRow(body) {
   // the target tab actually has "Number" / "Email").
   var contact = lookupDoerContact(doer);
 
+  // Use a custom sheetId when adding to a connected sheet (Sheet Connections feature).
+  var customSheetId = trim(body.sheetId);
+
   if (system === "checklist") {
-    var cs = openOrNull(SHEET_IDS.checklist);
+    var cs = openOrNull(customSheetId || SHEET_IDS.checklist);
     if (!cs) return json({ ok: false, error: "Checklist sheet not configured." });
     appendByHeaders(cs, ["Task ID", "Planned", "Actual", "Status", "Task"], {
       "Task ID": id,
@@ -215,7 +218,7 @@ function addTaskRow(body) {
       "Status": "Pending",
     });
   } else {
-    var ds = openOrNull(SHEET_IDS.delegation);
+    var ds = openOrNull(customSheetId || SHEET_IDS.delegation);
     if (!ds) return json({ ok: false, error: "Task List sheet not configured." });
     appendByHeaders(ds, ["Task ID", "Total Revisions", "Status", "First Date"], {
       "Task ID": id,

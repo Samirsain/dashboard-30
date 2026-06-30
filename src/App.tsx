@@ -125,6 +125,9 @@ function PublicApp({ session, onLogout }: { session: Session; onLogout: () => vo
   const [showAddDoer, setShowAddDoer] = React.useState(false);
   const { loading, data, source, error } = useAllData(reloadToken);
 
+  // When viewing a connected sheet module, employees can add tasks to that sheet.
+  const currentConn = React.useMemo(() => getConnectionBySlug(section), [section]);
+
   // Permission guard: if the active module isn't accessible, fall back to the
   // first allowed one (covers a module being disabled / access revoked).
   React.useEffect(() => {
@@ -157,7 +160,7 @@ function PublicApp({ session, onLogout }: { session: Session; onLogout: () => vo
           onWeekChange={setWeek}
           source={source}
           onLogout={onLogout}
-          onAddTask={canAdd ? () => setShowAdd(true) : undefined}
+          onAddTask={(canAdd || !!currentConn) ? () => setShowAdd(true) : undefined}
           onAddDoer={isAdmin ? () => setShowAddDoer(true) : undefined}
           loggedInName={doerName || role}
         />
@@ -176,6 +179,9 @@ function PublicApp({ session, onLogout }: { session: Session; onLogout: () => vo
           doers={data?.doers || []}
           onClose={() => setShowAdd(false)}
           onAdded={() => setReloadToken((t) => t + 1)}
+          sheetId={currentConn?.sheetId}
+          sheetType={currentConn?.sheetType}
+          lockedDoer={currentConn && !isAdmin ? doerName : undefined}
         />
       )}
       {showAddDoer && (
