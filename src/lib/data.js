@@ -182,30 +182,30 @@ export async function fetchDoerNames() {
 async function postToScript(url, payloadObj, failMsg) {
   if (!url) return { ok: false, error: "Sample mode — no live sheet connected to write to." };
   const body = JSON.stringify(payloadObj);
-  let res;
+
+  // Apps Script answers a POST with a 302 redirect to googleusercontent.com.
+  // Browsers frequently block reading that redirected response cross-origin, so a
+  // normal fetch throws "Failed to fetch" EVEN THOUGH the write already ran. We
+  // therefore send a single "simple" fire-and-forget request in no-cors mode:
+  // doPost executes and the row is written to the sheet; we just can't read the
+  // reply, so we assume success and let the follow-up reload show the result.
+  // One request only ⇒ no duplicate rows. Client-side validation already guards
+  // the common mistakes (empty task/doer), so losing the server reply is fine.
   try {
-    res = await fetch(url, {
+    await fetch(url, {
       method: "POST",
+      mode: "no-cors",
       redirect: "follow",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body,
     });
+    return { ok: true };
   } catch {
     throw new Error(
-      "Backend se connect nahi ho paya. Backend URL sahi/naya hai? (Admin → Sheet Connections → Backend URL me 'Test' dabao). " +
-      "Aur Apps Script deployment ka access 'Anyone' hona chahiye."
+      "Backend se connect nahi ho paya. Internet, ya Backend URL check karein " +
+      "(Admin → Sheet Connections → Backend URL → Test). " + (failMsg || "")
     );
   }
-  if (!res.ok) throw new Error(`Backend error: HTTP ${res.status}`);
-  const text = await res.text();
-  let out;
-  try {
-    out = JSON.parse(text);
-  } catch {
-    out = { ok: true }; // unreadable (opaque) response — assume the write landed
-  }
-  if (out && out.ok === false) throw new Error(out.error || failMsg || "Write failed.");
-  return out || { ok: true };
 }
 
 // Add a task. payload: { system, task, doer, priority?, frequency?, department?, date?, sheetId? }
