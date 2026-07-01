@@ -191,7 +191,7 @@ function ConnectionModule({ conn, reloadToken, onChanged }: { conn: any; reloadT
           Is sheet ka data load nahi ho paya. Refresh karein ya Sheet ID check karein.
         </div>
       )}
-      <TaskDirectory data={connData} source={isTaskList ? "Task List" : "Checklist"} title={conn.name} onChanged={onChanged} />
+      <TaskDirectory data={connData} source={isTaskList ? "Task List" : "Checklist"} title={conn.name} pendingOnly onChanged={onChanged} />
     </>
   );
 }
@@ -203,9 +203,9 @@ function ModuleBody({ slug, moduleName, viewData, onChanged, doerName, reloadTok
     case "dashboard":
       return <Overview data={viewData} onChanged={onChanged} />;
     case "tasklist":
-      return <TaskDirectory data={viewData} source="Task List" title="Task List" onChanged={onChanged} />;
+      return <TaskDirectory data={viewData} source="Task List" title="Task List" pendingOnly onChanged={onChanged} />;
     case "checklist":
-      return <TaskDirectory data={viewData} source="Checklist" title="Checklist" onChanged={onChanged} />;
+      return <TaskDirectory data={viewData} source="Checklist" title="Checklist" pendingOnly onChanged={onChanged} />;
     case "workflow":
       return <ComingSoon title="Workflow coming soon" note="Workflow sheet abhi connect nahi hui hai. Uska Google Sheet share kar do — yahi Done/Pending tracking ke saath aa jayegi." />;
     default: {

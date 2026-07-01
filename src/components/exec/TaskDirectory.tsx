@@ -234,7 +234,7 @@ export function TaskDirectory({
             <FilterSelect value={system} onChange={setSystem} options={["Checklist", "Task List", "Workflow"]} allLabel="All Systems" className="flex-1 sm:flex-none min-w-[130px]" />
           )}
           <FilterSelect value={dept} onChange={setDept} options={depts} allLabel="All Departments" className="flex-1 sm:flex-none min-w-[130px]" />
-          <FilterSelect value={status} onChange={setStatus} options={["Completed", "Pending"]} allLabel="All Statuses" className="flex-1 sm:flex-none min-w-[130px]" />
+          {!pendingOnly && <FilterSelect value={status} onChange={setStatus} options={["Completed", "Pending"]} allLabel="All Statuses" className="flex-1 sm:flex-none min-w-[130px]" />}
           {hasPriority && <FilterSelect value={priority} onChange={setPriority} options={["Normal", "Urgent"]} allLabel="All Priorities" className="flex-1 sm:flex-none min-w-[130px]" />}
         </div>
         
