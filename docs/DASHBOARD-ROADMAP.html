@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ThirtyMilestones MIS Dashboard — Technology & Scaling Plan</title>
+<style>
+  :root { --ink:#281c15; --muted:#6b5d4f; --line:#d8cdb8; --bg:#f5f0e6; --card:#fffdf8; --accent:#281c15; --good:#1c6b3a; --warn:#9a6a12; --bad:#9a3412; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.55; }
+  .page { max-width:900px; margin:0 auto; padding:48px 40px; }
+  header { border-bottom:3px solid var(--ink); padding-bottom:18px; margin-bottom:28px; }
+  .brand { display:flex; align-items:baseline; gap:12px; }
+  .brand .logo { font-weight:800; font-size:30px; letter-spacing:-1px; }
+  .brand .sub { font-size:13px; text-transform:uppercase; letter-spacing:2px; color:var(--muted); }
+  h1 { font-size:26px; margin:16px 0 4px; }
+  .meta { font-size:13px; color:var(--muted); }
+  h2 { font-size:19px; margin:34px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--line); }
+  h3 { font-size:16px; margin:18px 0 6px; }
+  p { margin:8px 0; }
+  ul { margin:8px 0 8px 0; padding-left:20px; }
+  li { margin:5px 0; }
+  .lead { font-size:15.5px; background:var(--card); border-left:4px solid var(--ink); padding:14px 18px; }
+  .grid { display:grid; grid-template-columns:1fr; gap:16px; margin:14px 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:0; padding:18px 20px; }
+  .card h3 { margin-top:0; display:flex; align-items:center; gap:10px; }
+  .tag { font-size:11px; text-transform:uppercase; letter-spacing:1px; padding:3px 9px; border:1px solid var(--ink); border-radius:999px; }
+  .tag.rec { background:var(--ink); color:#fff; }
+  table { width:100%; border-collapse:collapse; margin:14px 0; font-size:14px; }
+  th, td { text-align:left; padding:10px 12px; border:1px solid var(--line); vertical-align:top; }
+  th { background:var(--ink); color:#fff; font-weight:600; }
+  td.good { color:var(--good); font-weight:600; } td.warn { color:var(--warn); font-weight:600; } td.bad { color:var(--bad); font-weight:600; }
+  .pill { display:inline-block; font-size:12px; padding:2px 8px; border:1px solid var(--line); background:var(--bg); margin:2px 4px 2px 0; }
+  .rec-box { background:var(--card); border:2px solid var(--ink); padding:18px 20px; margin:16px 0; }
+  .foot { margin-top:36px; padding-top:14px; border-top:1px solid var(--line); font-size:12.5px; color:var(--muted); }
+  .kv { font-size:14px; }
+  .kv b { display:inline-block; min-width:130px; }
+  @media print { body{background:#fff;} .page{padding:0;} .card,.rec-box,.lead{break-inside:avoid;} }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="brand"><span class="logo">30&#10;</span><span class="logo">ThirtyMilestones</span><span class="sub">MIS Executive Dashboard</span></div>
+    <h1>Technology &amp; Scaling Plan</h1>
+    <div class="meta">Prepared for Management &middot; Decision Document &middot; July 2026</div>
+  </header>
+
+  <p class="lead">
+    Hamara MIS Dashboard live hai — Google Sheets ke data se poori company ka kaam (Task List, Checklist,
+    multiple offices) track hota hai. <b>Data hamesha Google Sheet me hi rahega</b> (safe &amp; in our control).
+    Ye document 3 options deta hai taaki jaise-jaise company aur sheets badhein (aaj 3 &rarr; kal 50+), system
+    utni hi speed &amp; reliability se chale.
+  </p>
+
+  <h2>1. Abhi kya ready hai (delivered)</h2>
+  <ul>
+    <li><b>Executive Dashboard</b> — KPIs, department performance, status breakdown, sabki ek nazar me progress.</li>
+    <li><b>Task List &amp; Checklist</b> — seedha Google Sheets se live, har doer ka kaam.</li>
+    <li><b>Done / Revise</b> — dashboard se hi task complete ya reschedule; wapas Google Sheet me likhta hai.</li>
+    <li><b>Multi-Sheet</b> — Admin panel se nayi Google Sheets easily connect (alag office / kaam ki alag list).</li>
+    <li><b>Access control</b> — konsi sheet kis doer ko dikhe, admin decide karta hai.</li>
+    <li><b>Cross-device</b> — assignment ek laptop pe karo, har device pe same dikhta hai.</li>
+    <li><b>Clean view</b> — sirf pending kaam dikhta hai; complete hote hi hat jaata hai (record Sheet me rehta hai).</li>
+    <li><b>Speed</b> — caching (server + browser) se repeat loads fast.</li>
+    <li><b>Login &amp; roles</b> — Admin / PC / Employee accounts.</li>
+  </ul>
+
+  <h2>2. Core principle — Data Google Sheet me hi</h2>
+  <p>
+    Poora system is tarah banaya gaya hai ki <b>asli data Google Sheets me rahe</b> — kyunki wahan data safe hai,
+    backup hota hai, aur team usse seedhe bhi kholker dekh/edit kar sakti hai. Neeche ke saare options is soch ka
+    samman karte hain. Farak sirf itna hai ki data ko <i>kitni tezi se</i> aur <i>kitne bade scale</i> par serve
+    kiya jaaye.
+  </p>
+
+  <h2>3. Aage ki soch (scaling ka sawaal)</h2>
+  <p>
+    Aaj 2&ndash;3 sheets hain — sab theek. Jab <b>50+ sheets</b> aur zyada log ek saath use karenge, tab
+    "sheet ko baar-baar padhne" wala current tareeqa dheema pad sakta hai. Iske 3 raaste hain:
+  </p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Option A &nbsp;<span class="tag">Abhi wala</span></h3>
+      <div class="kv"><b>Kaise:</b> Google Sheet + Apps Script (+ caching, jo add kar diya gaya hai).</div>
+      <div class="kv"><b>Speed:</b> Theek (cache se), par bhaari load par dheema.</div>
+      <div class="kv"><b>50 sheets:</b> Apps Script ki limits (execution time, daily quota) aड़चन ban sakti hain.</div>
+      <div class="kv"><b>Data:</b> Google Sheet me. &nbsp; <b>Kharcha:</b> Free. &nbsp; <b>Mehnat:</b> Ban chuka.</div>
+      <p><b>Faisla:</b> Aaj ke chhote scale ke liye badhiya. Badi company ke liye long-term nahi.</p>
+    </div>
+
+    <div class="card" style="border-color:var(--ink);border-width:2px;">
+      <h3>Option B &nbsp;<span class="tag rec">Recommended</span></h3>
+      <div class="kv"><b>Kaise:</b> Google Sheet (data wahi) + official <b>Google Sheets API</b> + Vercel serverless + ek <b>cache layer</b>. Apps Script hata dete hain.</div>
+      <div class="kv"><b>Speed:</b> Kaafi fast — koi cold start nahi, koi 6-min limit nahi.</div>
+      <div class="kv"><b>50 sheets:</b> Cache layer load &amp; API-limits dono sambhaal leta hai.</div>
+      <div class="kv"><b>Data:</b> <b>Google Sheet me hi</b> (100% same). &nbsp; <b>Auth:</b> Proper login. &nbsp; <b>Kharcha:</b> Free/sasta.</div>
+      <div class="kv"><b>Mehnat:</b> Medium (one-time setup).</div>
+      <p><b>Faisla:</b> Data Sheets me rakhte hue sabse behtar balance — speed, scale &amp; kam kharcha. <b>Growth ke liye yahi.</b></p>
+    </div>
+
+    <div class="card">
+      <h3>Option C &nbsp;<span class="tag">Enterprise</span></h3>
+      <div class="kv"><b>Kaise:</b> Asli database (Supabase / Postgres) + Google Sheet ko <b>auto-backup/export</b>.</div>
+      <div class="kv"><b>Speed:</b> Instant, lakhon rows par bhi. &nbsp; <b>50/500 sheets:</b> koi farak nahi.</div>
+      <div class="kv"><b>Data:</b> Database me (Sheet me auto-copy backup ke liye). &nbsp; <b>Auth:</b> Best (row-level security).</div>
+      <div class="kv"><b>Kharcha:</b> Free tier bada, sasta. &nbsp; <b>Mehnat:</b> Zyada (migration).</div>
+      <p><b>Faisla:</b> Jab company bahut badi ho jaaye. Sabse fast &amp; scalable, par tab data ka "asli ghar" database ban jaata hai (Sheet backup rahता hai).</p>
+    </div>
+  </div>
+
+  <h2>4. Ek nazar me tulna</h2>
+  <table>
+    <tr>
+      <th>Kasauti</th>
+      <th>A — Abhi (Apps Script)</th>
+      <th>B — Sheets API + Cache</th>
+      <th>C — Database (Supabase)</th>
+    </tr>
+    <tr><td>Speed</td><td class="bad">Theek</td><td class="good">Fast</td><td class="good">Sabse fast</td></tr>
+    <tr><td>50+ sheets</td><td class="bad">Atkega</td><td class="good">Aaram se</td><td class="good">Aaram se</td></tr>
+    <tr><td>Data Google Sheet me</td><td class="good">Haan</td><td class="good">Haan</td><td class="warn">Backup/export</td></tr>
+    <tr><td>Security / Login</td><td class="bad">Basic</td><td class="good">Proper</td><td class="good">Best</td></tr>
+    <tr><td>Kharcha</td><td class="good">Free</td><td class="good">Free / Sasta</td><td class="good">Free tier / Sasta</td></tr>
+    <tr><td>Banane ki mehnat</td><td class="good">Ho chuka</td><td class="warn">Medium</td><td class="bad">Zyada</td></tr>
+    <tr><td>Company scale ke liye</td><td class="bad">Nahi</td><td class="good">Haan</td><td class="good">Perfect</td></tr>
+  </table>
+
+  <h2>5. Recommendation (phased plan)</h2>
+  <div class="rec-box">
+    <p><b>Abhi (0&ndash;3 mahine):</b> <b>Option A</b> — jo ban chuka hai. Current scale ke liye kaafi. Kharcha zero.</p>
+    <p><b>Growth phase (jab sheets/users badhein):</b> <b>Option B</b> par shift &mdash; <i>data Google Sheet me hi
+      rakhte hue</i> speed &amp; scale mil jaayega. Yehi hamari <b>sifarish</b> hai.</p>
+    <p><b>Enterprise (bahut badi company):</b> <b>Option C</b> &mdash; database, Sheet auto-backup ke saath.
+      Sirf tab jab data/users bahut zyada ho jaayein.</p>
+    <p style="margin-bottom:0"><b>Ek line me:</b> Data hamesha Google Sheet me safe rahega. Jab scale badhe,
+      Option&nbsp;B se system 50+ sheets par bhi tez &amp; reliable chalega — kam kharche me.</p>
+  </div>
+
+  <h2>6. Kharcha (summary)</h2>
+  <p>
+    Teeno options <b>free ya bahut kam kharche</b> me chalte hain:
+    <span class="pill">Vercel — hosting (free/low)</span>
+    <span class="pill">Google Sheets — free</span>
+    <span class="pill">Sheets API — free</span>
+    <span class="pill">Supabase — free tier</span>
+    <br />Koi bhi bada server ya license kharcha nahi. Scale badhne par hi mamooli cost aati hai.
+  </p>
+
+  <h2>7. Decision needed (Sir se)</h2>
+  <ul>
+    <li>Kya hum <b>Option B</b> (Sheets API + Cache) par growth ke liye aage badhein? <i>(Data Sheet me hi rahega.)</i></li>
+    <li>Ya abhi <b>Option A</b> par hi rahein aur baad me review karein?</li>
+  </ul>
+  <p>Approval milते hi ye step-by-step, bina kaam roke, implement kiya ja sakta hai.</p>
+
+  <div class="foot">
+    ThirtyMilestones MIS Dashboard &middot; Internal decision document &middot; Data resides in Google Sheets at all times.
+  </div>
+
+</div>
+</body>
+</html>
