@@ -8,7 +8,7 @@ export function Overview({ data, onChanged }: { data: any; onChanged?: () => voi
 
       <KpiCards data={data} />
 
-      <TaskDirectory data={data} todayOnly title="Today's Followup" onChanged={onChanged} />
+      <TaskDirectory data={data} pendingOnly title="Pending Followup" onChanged={onChanged} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <DeptPerformance data={data} className="lg:col-span-7" />

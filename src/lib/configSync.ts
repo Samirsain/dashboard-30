@@ -20,7 +20,7 @@
 
 import { APPS_SCRIPT_URL, WRITE_TOKEN } from "./config.js";
 import { getConnections } from "./sheets";
-import { createModule, getModuleBySlug } from "./modules";
+import { createModule, getModuleBySlug, getAllModules, deleteModule } from "./modules";
 import { getAllUsers, applyAccessByUsername, type AccessMap } from "./userDb";
 
 // localStorage key owned by sheets.ts — written directly here so hydration does
@@ -71,6 +71,16 @@ export function applyRemoteConfig(config: SharedConfig | null | undefined): void
       });
     } catch {
       /* slug already taken / race — ignore */
+    }
+  }
+
+  // Prune orphan connection modules: a sheet removed (or renamed) on one device
+  // leaves its old sc-* module behind on other devices, showing as a duplicate
+  // "Coming soon" entry. Drop any sc-* module that no longer has a connection.
+  const liveSlugs = new Set(remoteConns.map((c: any) => c && c.moduleSlug).filter(Boolean));
+  for (const mod of getAllModules()) {
+    if (mod.slug.indexOf("sc-") === 0 && !mod.core && !liveSlugs.has(mod.slug)) {
+      try { deleteModule(mod.id); } catch { /* ignore */ }
     }
   }
 

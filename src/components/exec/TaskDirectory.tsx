@@ -67,12 +67,14 @@ export function TaskDirectory({
   source,
   title = "Active Task Directory",
   todayOnly = false,
+  pendingOnly = false,
   onChanged,
 }: {
   data: any;
   source?: "Checklist" | "Task List";
   title?: string;
   todayOnly?: boolean;
+  pendingOnly?: boolean;
   onChanged?: () => void;
 }) {
   const [optimisticDone, setOptimisticDone] = React.useState<Set<string>>(new Set());
@@ -81,15 +83,22 @@ export function TaskDirectory({
   const all = React.useMemo(() => {
     let t = unifyTasks(data);
     if (source) t = t.filter((x) => x.source === source);
+    // Apply optimistic "done" BEFORE the pending filter, so a task the user just
+    // marked done immediately disappears from a pending-only view.
+    if (optimisticDone.size > 0) {
+      t = t.map((x) => optimisticDone.has(x.id) ? { ...x, status: "Completed", actual: todayISO() } : x);
+    }
     if (todayOnly) {
       const today = todayISO();
       t = t.filter((x) => String(x.due || x.created || "").trim() === today);
     }
-    if (optimisticDone.size > 0) {
-      t = t.map((x) => optimisticDone.has(x.id) ? { ...x, status: "Completed", actual: todayISO() } : x);
+    // Pending-only view (the Dashboard): hide Completed/Late so the board stays
+    // clean and shows every doer's outstanding work.
+    if (pendingOnly) {
+      t = t.filter((x) => x.status === "Pending");
     }
     return t;
-  }, [data, source, todayOnly, optimisticDone]);
+  }, [data, source, todayOnly, pendingOnly, optimisticDone]);
 
   // Show the "System" column only in the mixed view (no single source picked),
   // e.g. Today's Followup — so you can see which system each task is from.
