@@ -169,22 +169,34 @@ export async function fetchDoerNames() {
   }
 }
 
-// Add a task by POSTing to the Apps Script doPost handler. Uses a "simple"
+// Shared writer for all POSTs to the Apps Script doPost handler. Uses a "simple"
 // text/plain request so the browser skips the CORS preflight (Apps Script can't
-// answer preflight) — same cross-origin path the GET already uses successfully.
-// payload: { system: "tasklist"|"checklist", task, doer, priority?, frequency?, department?, date? }
-export async function addTask(payload) {
-  if (!APPS_SCRIPT_URL) {
-    return { ok: false, error: "Sample mode — no live sheet connected to write to." };
+// answer preflight) — same cross-origin path the GET uses.
+//
+// If fetch() throws before any response, that's a network/CORS failure ("Failed
+// to fetch"): the request never reached the server. In practice this means the
+// Backend URL is wrong/expired, OR the Apps Script deployment isn't shared as
+// "Anyone" (so the POST gets redirected to a Google login the browser blocks).
+// We turn that into a clear, actionable message instead of a cryptic one. We do
+// NOT silently re-send (no-cors) because that risks duplicate rows.
+async function postToScript(url, payloadObj, failMsg) {
+  if (!url) return { ok: false, error: "Sample mode — no live sheet connected to write to." };
+  const body = JSON.stringify(payloadObj);
+  let res;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      redirect: "follow",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body,
+    });
+  } catch {
+    throw new Error(
+      "Backend se connect nahi ho paya. Backend URL sahi/naya hai? (Admin → Sheet Connections → Backend URL me 'Test' dabao). " +
+      "Aur Apps Script deployment ka access 'Anyone' hona chahiye."
+    );
   }
-  const body = JSON.stringify({ token: WRITE_TOKEN, ...payload });
-  const res = await fetch(APPS_SCRIPT_URL, {
-    method: "POST",
-    redirect: "follow",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body,
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`Backend error: HTTP ${res.status}`);
   const text = await res.text();
   let out;
   try {
@@ -192,55 +204,25 @@ export async function addTask(payload) {
   } catch {
     out = { ok: true }; // unreadable (opaque) response — assume the write landed
   }
-  if (out && out.ok === false) throw new Error(out.error || "Could not add the task.");
+  if (out && out.ok === false) throw new Error(out.error || failMsg || "Write failed.");
   return out || { ok: true };
+}
+
+// Add a task. payload: { system, task, doer, priority?, frequency?, department?, date?, sheetId? }
+export async function addTask(payload) {
+  return postToScript(APPS_SCRIPT_URL, { token: WRITE_TOKEN, ...payload }, "Could not add the task.");
 }
 
 // Add a new doer to the Doers sheet in Google Sheets.
 // payload: { name, department, mobile, email, username, password }
 // username and password are saved so admin can reference them from the sheet.
 export async function addDoer(payload) {
-  if (!APPS_SCRIPT_URL) {
-    return { ok: false, error: "Sample mode — no live sheet connected to write to." };
-  }
-  const body = JSON.stringify({ token: WRITE_TOKEN, action: "addDoer", ...payload });
-  const res = await fetch(APPS_SCRIPT_URL, {
-    method: "POST",
-    redirect: "follow",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body,
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const text = await res.text();
-  let out;
-  try {
-    out = JSON.parse(text);
-  } catch {
-    out = { ok: true };
-  }
-  if (out && out.ok === false) throw new Error(out.error || "Could not add the doer.");
-  return out || { ok: true };
+  return postToScript(APPS_SCRIPT_URL, { token: WRITE_TOKEN, action: "addDoer", ...payload }, "Could not add the doer.");
 }
 
-// Remove a doer from the Doers sheet.
-// payload: { name }
+// Remove a doer from the Doers sheet.  payload: { name }
 export async function removeDoer(payload) {
-  if (!APPS_SCRIPT_URL) {
-    return { ok: false, error: "Sample mode — no live sheet connected." };
-  }
-  const body = JSON.stringify({ token: WRITE_TOKEN, action: "removeDoer", ...payload });
-  const res = await fetch(APPS_SCRIPT_URL, {
-    method: "POST",
-    redirect: "follow",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body,
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const text = await res.text();
-  let out;
-  try { out = JSON.parse(text); } catch { out = { ok: true }; }
-  if (out && out.ok === false) throw new Error(out.error || "Could not remove the doer.");
-  return out || { ok: true };
+  return postToScript(APPS_SCRIPT_URL, { token: WRITE_TOKEN, action: "removeDoer", ...payload }, "Could not remove the doer.");
 }
 
 // Mark a task complete. Sends Task ID plus a doer/task/date fallback so the
@@ -257,7 +239,7 @@ export async function completeTask(task) {
   // to the revised date after a revise, so it would no longer match the sheet.
   // task.created always holds the ORIGINAL date and never changes on revise.
   const matchDate = task.created || task.due || "";
-  const body = JSON.stringify({
+  return postToScript(scriptUrl, {
     token: WRITE_TOKEN,
     action: "complete",
     system: task.source === "Checklist" ? "checklist" : "tasklist",
@@ -266,23 +248,7 @@ export async function completeTask(task) {
     doer: task.doer,
     task: task.task,
     date: matchDate,
-  });
-  const res = await fetch(scriptUrl, {
-    method: "POST",
-    redirect: "follow",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body,
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const text = await res.text();
-  let out;
-  try {
-    out = JSON.parse(text);
-  } catch {
-    out = { ok: true };
-  }
-  if (out && out.ok === false) throw new Error(out.error || "Could not mark the task done.");
-  return out || { ok: true };
+  }, "Could not mark the task done.");
 }
 
 // Reschedule a pending task to a new date (newDateISO = "YYYY-MM-DD").
@@ -300,7 +266,7 @@ export async function reviseTask(task, newDateISO) {
   // First Date). task.created is set from r.firstDate in analytics.js and
   // never changes through the task lifecycle in the frontend.
   const matchDate = task.created || task.due || "";
-  const body = JSON.stringify({
+  return postToScript(scriptUrl, {
     token: WRITE_TOKEN,
     action: "revise",
     system: task.source === "Checklist" ? "checklist" : "tasklist",
@@ -310,23 +276,7 @@ export async function reviseTask(task, newDateISO) {
     task: task.task,
     date: matchDate,
     newDate: newDateISO,
-  });
-  const res = await fetch(scriptUrl, {
-    method: "POST",
-    redirect: "follow",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body,
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const text = await res.text();
-  let out;
-  try {
-    out = JSON.parse(text);
-  } catch {
-    out = { ok: true };
-  }
-  if (out && out.ok === false) throw new Error(out.error || "Could not revise the task.");
-  return out || { ok: true };
+  }, "Could not revise the task.");
 }
 
 function normalize(payload) {
