@@ -40,7 +40,7 @@ var WEEK_START = 0; // 0 = Sunday
 // open  <web-app-url>?version=1  in a browser — it should echo this string.
 // If it shows an older value (or 404s), the /exec URL is still serving old code
 // and you must redeploy: Deploy > Manage deployments > (edit) > New version.
-var SCRIPT_VERSION = "2026-06-30-cache-v5";
+var SCRIPT_VERSION = "2026-06-30-dedupe-v6";
 
 // ---- Entry point -----------------------------------------------------------
 function doGet(e) {
@@ -380,6 +380,12 @@ function addTaskRow(body) {
   if (system === "checklist") {
     var cs = openOrNull(customSheetId || SHEET_IDS.checklist);
     if (!cs) return json({ ok: false, error: "Checklist sheet not configured." });
+    // Idempotency guard: if the same doer+task+date row already exists, don't add
+    // a duplicate. This makes a retried/re-sent request harmless (the earlier
+    // "failed to fetch" writes actually landed, so users re-submitted → dupes).
+    if (taskRowExists(cs, ["Task ID", "Planned", "Actual", "Status", "Task"], doer, task, iso, "Planned")) {
+      return json({ ok: true, duplicate: true, taskId: id });
+    }
     appendByHeaders(cs, ["Task ID", "Planned", "Actual", "Status", "Task"], {
       "Task ID": id,
       "Name": doer,
@@ -396,6 +402,9 @@ function addTaskRow(body) {
   } else {
     var ds = openOrNull(customSheetId || SHEET_IDS.delegation);
     if (!ds) return json({ ok: false, error: "Task List sheet not configured." });
+    if (taskRowExists(ds, ["Task ID", "Total Revisions", "Status", "First Date"], doer, task, iso, "First Date")) {
+      return json({ ok: true, duplicate: true, taskId: id });
+    }
     appendByHeaders(ds, ["Task ID", "Total Revisions", "Status", "First Date"], {
       "Task ID": id,
       "Name": doer,
@@ -412,6 +421,85 @@ function addTaskRow(body) {
   }
 
   return json({ ok: true, taskId: id });
+}
+
+// True if a row with the same doer + task + date already exists in the target
+// tab — used to block duplicate adds. Matches on Name + Task + the date column.
+function taskRowExists(ss, requiredHeaders, doer, task, iso, dateField) {
+  var canonDoer = canonical(doer);
+  var taskUp = trim(task).toUpperCase();
+  var sheets = ss.getSheets();
+  for (var s = 0; s < sheets.length; s++) {
+    var sheet = sheets[s];
+    var lastRow = sheet.getLastRow();
+    var lastCol = sheet.getLastColumn();
+    if (lastRow < 2 || lastCol < 1) continue;
+    var values = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+    var hIdx = findHeaderRow(values, requiredHeaders);
+    if (hIdx === -1) continue;
+    var headers = values[hIdx].map(trim);
+    var nameCol = headers.indexOf("Name");
+    var taskCol = headers.indexOf("Task");
+    var dateCol = headers.indexOf(dateField);
+    if (nameCol === -1 || taskCol === -1) return false;
+    for (var r = hIdx + 1; r < values.length; r++) {
+      var nameOk = canonical(values[r][nameCol]) === canonDoer;
+      var taskOk = trim(values[r][taskCol]).toUpperCase() === taskUp;
+      var dateOk = dateCol === -1 || toISODate(values[r][dateCol]) === iso;
+      if (nameOk && taskOk && dateOk) return true;
+    }
+    return false; // matched the tab, checked all rows — not found
+  }
+  return false;
+}
+
+// ---- One-time cleanup: remove existing duplicate task rows -------------------
+// Run this ONCE from the Apps Script editor (Run ▸ dedupeTaskSheets) to clean up
+// duplicates that were created before the guard above. It keeps the FIRST
+// occurrence of each (Name + Task + date) and deletes the later copies.
+// It only touches the Task List and Checklist master sheets.
+function dedupeTaskSheets() {
+  var removed = 0;
+  removed += dedupeSheet(openOrNull(SHEET_IDS.delegation), ["Task ID", "Total Revisions", "Status", "First Date"], "First Date");
+  removed += dedupeSheet(openOrNull(SHEET_IDS.checklist), ["Task ID", "Planned", "Actual", "Status", "Task"], "Planned");
+  Logger.log("Duplicate rows removed: " + removed);
+  return removed;
+}
+
+function dedupeSheet(ss, requiredHeaders, dateField) {
+  if (!ss) return 0;
+  var sheets = ss.getSheets();
+  var total = 0;
+  for (var s = 0; s < sheets.length; s++) {
+    var sheet = sheets[s];
+    var lastRow = sheet.getLastRow();
+    var lastCol = sheet.getLastColumn();
+    if (lastRow < 3 || lastCol < 1) continue;
+    var values = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+    var hIdx = findHeaderRow(values, requiredHeaders);
+    if (hIdx === -1) continue;
+    var headers = values[hIdx].map(trim);
+    var nameCol = headers.indexOf("Name");
+    var taskCol = headers.indexOf("Task");
+    var dateCol = headers.indexOf(dateField);
+    if (nameCol === -1 || taskCol === -1) continue;
+    var seen = {};
+    var toDelete = [];
+    for (var r = hIdx + 1; r < values.length; r++) {
+      var raw = values[r];
+      if (raw.join("").toString().trim() === "") continue;
+      var key = canonical(raw[nameCol]) + "||" + trim(raw[taskCol]).toUpperCase() + "||" + (dateCol === -1 ? "" : toISODate(raw[dateCol]));
+      if (seen[key]) toDelete.push(r + 1); // 1-based sheet row
+      else seen[key] = true;
+    }
+    // Delete from the bottom up so earlier indices stay valid.
+    for (var d = toDelete.length - 1; d >= 0; d--) {
+      sheet.deleteRow(toDelete[d]);
+      total++;
+    }
+    return total; // only the tab that matched the headers
+  }
+  return total;
 }
 
 // Add a new doer to the Doers sheet.
