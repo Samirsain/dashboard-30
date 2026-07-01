@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ThirtyMilestones MIS Dashboard — Technology &amp; Scaling Plan</title>
+<style>
+  :root { --ink:#281c15; --muted:#6b5d4f; --line:#d8cdb8; --bg:#f5f0e6; --card:#fffdf8; --good:#1c6b3a; --warn:#9a6a12; --bad:#9a3412; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.55; }
+  .page { max-width:900px; margin:0 auto; padding:48px 40px; }
+  header { border-bottom:3px solid var(--ink); padding-bottom:18px; margin-bottom:28px; }
+  .brand { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .brand .logo { font-weight:800; font-size:26px; letter-spacing:-0.5px; }
+  .brand .sub { font-size:13px; text-transform:uppercase; letter-spacing:2px; color:var(--muted); }
+  h1 { font-size:26px; margin:16px 0 4px; }
+  .meta { font-size:13px; color:var(--muted); }
+  h2 { font-size:19px; margin:34px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--line); }
+  h3 { font-size:16px; margin:18px 0 6px; }
+  p { margin:8px 0; }
+  ul { margin:8px 0 8px 0; padding-left:20px; }
+  li { margin:5px 0; }
+  .lead { font-size:15.5px; background:var(--card); border-left:4px solid var(--ink); padding:14px 18px; }
+  .grid { display:grid; grid-template-columns:1fr; gap:16px; margin:14px 0; }
+  .card { background:var(--card); border:1px solid var(--line); padding:18px 20px; }
+  .card h3 { margin-top:0; display:flex; align-items:center; gap:10px; }
+  .tag { font-size:11px; text-transform:uppercase; letter-spacing:1px; padding:3px 9px; border:1px solid var(--ink); border-radius:999px; }
+  .tag.rec { background:var(--ink); color:#fff; }
+  table { width:100%; border-collapse:collapse; margin:14px 0; font-size:14px; }
+  th, td { text-align:left; padding:10px 12px; border:1px solid var(--line); vertical-align:top; }
+  th { background:var(--ink); color:#fff; font-weight:600; }
+  td.good { color:var(--good); font-weight:600; } td.warn { color:var(--warn); font-weight:600; } td.bad { color:var(--bad); font-weight:600; }
+  .pill { display:inline-block; font-size:12px; padding:2px 8px; border:1px solid var(--line); background:var(--bg); margin:2px 4px 2px 0; }
+  .rec-box { background:var(--card); border:2px solid var(--ink); padding:18px 20px; margin:16px 0; }
+  .foot { margin-top:36px; padding-top:14px; border-top:1px solid var(--line); font-size:12.5px; color:var(--muted); }
+  .kv { font-size:14px; margin:3px 0; }
+  .kv b { display:inline-block; min-width:120px; }
+  @media print { body{background:#fff;} .page{padding:0;} .card,.rec-box,.lead{break-inside:avoid;} }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="brand"><span class="logo">30 &middot; ThirtyMilestones</span><span class="sub">MIS Executive Dashboard</span></div>
+    <h1>Technology &amp; Scaling Plan</h1>
+    <div class="meta">Prepared for Management &middot; Decision Document &middot; July 2026</div>
+  </header>
+
+  <p class="lead">
+    Our MIS Dashboard is live and running the entire company's operations from Google Sheets — Task Lists,
+    Checklists and multiple offices, all tracked in one place. <b>Our data always stays inside Google Sheets</b>
+    (safe and fully in our control). This document presents three options so that as the company and the number
+    of sheets grow (from 3 today to 50+ tomorrow), the system continues to run with the same speed and reliability.
+  </p>
+
+  <h2>1. What is already delivered</h2>
+  <ul>
+    <li><b>Executive Dashboard</b> — KPIs, department performance and status breakdown; whole-company progress at a glance.</li>
+    <li><b>Task List &amp; Checklist</b> — live from Google Sheets, showing each doer's work.</li>
+    <li><b>Done / Revise</b> — complete or reschedule a task from the dashboard; it writes straight back to Google Sheets.</li>
+    <li><b>Multi-Sheet support</b> — the Admin can connect new Google Sheets easily (a separate list for each office / work area).</li>
+    <li><b>Access control</b> — the Admin decides which sheet is visible to which doer.</li>
+    <li><b>Works across devices</b> — assign on one laptop and it appears identically on every device.</li>
+    <li><b>Clean view</b> — only pending work is shown; a task disappears the moment it is completed (the record stays in the sheet).</li>
+    <li><b>Speed</b> — server-side and browser caching make repeat loads fast.</li>
+    <li><b>Login &amp; roles</b> — Admin / PC / Employee accounts.</li>
+  </ul>
+
+  <h2>2. Core principle — data stays in Google Sheets</h2>
+  <p>
+    The entire system is designed so that the <b>real data lives in Google Sheets</b> — because the data is safe there,
+    it is backed up automatically, and the team can also open and edit it directly. Every option below respects this
+    principle. The only difference between them is <i>how fast</i> and <i>at what scale</i> the data is served to the dashboard.
+  </p>
+
+  <h2>3. The scaling question</h2>
+  <p>
+    With 2&ndash;3 sheets today, everything runs well. When there are <b>50+ sheets</b> and many people using the system
+    at once, the current "read the whole sheet every time" approach can become slow. There are three ways forward.
+  </p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Option A &nbsp;<span class="tag">Current</span></h3>
+      <div class="kv"><b>How:</b> Google Sheets + Apps Script (with caching already added).</div>
+      <div class="kv"><b>Speed:</b> Acceptable (with cache), but slows under heavy load.</div>
+      <div class="kv"><b>At 50 sheets:</b> Apps Script limits (execution time, daily quotas) become a bottleneck.</div>
+      <div class="kv"><b>Data:</b> In Google Sheets. &nbsp; <b>Cost:</b> Free. &nbsp; <b>Effort:</b> Already built.</div>
+      <p><b>Verdict:</b> Ideal for the current small scale. Not the long-term answer for a large company.</p>
+    </div>
+
+    <div class="card" style="border-color:var(--ink); border-width:2px;">
+      <h3>Option B &nbsp;<span class="tag rec">Recommended</span></h3>
+      <div class="kv"><b>How:</b> Google Sheets (data unchanged) + the official <b>Google Sheets API</b> + Vercel serverless functions + a <b>cache layer</b>. Apps Script is retired.</div>
+      <div class="kv"><b>Speed:</b> Considerably faster — no cold starts, no 6-minute execution limit.</div>
+      <div class="kv"><b>At 50 sheets:</b> The cache layer absorbs both the load and the API rate limits.</div>
+      <div class="kv"><b>Data:</b> <b>Stays in Google Sheets</b> (100% the same). &nbsp; <b>Auth:</b> Proper login. &nbsp; <b>Cost:</b> Free / low.</div>
+      <div class="kv"><b>Effort:</b> Medium (a one-time setup).</div>
+      <p><b>Verdict:</b> The best balance while keeping data in Sheets — speed, scale and low cost. <b>The right choice for growth.</b></p>
+    </div>
+
+    <div class="card">
+      <h3>Option C &nbsp;<span class="tag">Enterprise</span></h3>
+      <div class="kv"><b>How:</b> A true database (Supabase / Postgres) with Google Sheets kept as an <b>automatic backup/export</b>.</div>
+      <div class="kv"><b>Speed:</b> Instant, even across millions of rows. &nbsp; <b>At 50/500 sheets:</b> no difference.</div>
+      <div class="kv"><b>Data:</b> In the database (auto-copied to Sheets for backup). &nbsp; <b>Auth:</b> Best (row-level security).</div>
+      <div class="kv"><b>Cost:</b> Generous free tier, low thereafter. &nbsp; <b>Effort:</b> High (migration).</div>
+      <p><b>Verdict:</b> For when the company becomes very large. Fastest and most scalable, but the data's primary home then becomes the database (with Sheets as backup).</p>
+    </div>
+  </div>
+
+  <h2>4. Comparison at a glance</h2>
+  <table>
+    <tr>
+      <th>Criteria</th>
+      <th>A — Current (Apps Script)</th>
+      <th>B — Sheets API + Cache</th>
+      <th>C — Database (Supabase)</th>
+    </tr>
+    <tr><td>Speed</td><td class="bad">Acceptable</td><td class="good">Fast</td><td class="good">Fastest</td></tr>
+    <tr><td>50+ sheets</td><td class="bad">Struggles</td><td class="good">Comfortable</td><td class="good">Comfortable</td></tr>
+    <tr><td>Data in Google Sheets</td><td class="good">Yes</td><td class="good">Yes</td><td class="warn">Backup / export</td></tr>
+    <tr><td>Security / Login</td><td class="bad">Basic</td><td class="good">Proper</td><td class="good">Best</td></tr>
+    <tr><td>Cost</td><td class="good">Free</td><td class="good">Free / Low</td><td class="good">Free tier / Low</td></tr>
+    <tr><td>Effort to build</td><td class="good">Done</td><td class="warn">Medium</td><td class="bad">High</td></tr>
+    <tr><td>Fit for company scale</td><td class="bad">No</td><td class="good">Yes</td><td class="good">Excellent</td></tr>
+  </table>
+
+  <h2>5. Recommendation (phased plan)</h2>
+  <div class="rec-box">
+    <p><b>Now (0&ndash;3 months):</b> <b>Option A</b> — already built. Sufficient for the current scale, at zero cost.</p>
+    <p><b>Growth phase (as sheets/users increase):</b> move to <b>Option B</b> — gaining speed and scale <i>while keeping
+      the data in Google Sheets</i>. This is our <b>recommendation</b>.</p>
+    <p><b>Enterprise (very large company):</b> <b>Option C</b> — a database with Google Sheets as automatic backup.
+      Only when data and user volumes become very high.</p>
+    <p style="margin-bottom:0"><b>In one line:</b> the data always remains safe in Google Sheets. As we scale,
+      Option&nbsp;B keeps the system fast and reliable even at 50+ sheets — at low cost.</p>
+  </div>
+
+  <h2>6. Cost summary</h2>
+  <p>
+    All three options run at <b>no cost or very low cost</b>:
+    <span class="pill">Vercel — hosting (free/low)</span>
+    <span class="pill">Google Sheets — free</span>
+    <span class="pill">Sheets API — free</span>
+    <span class="pill">Supabase — free tier</span>
+    <br />There is no large server or licence expense. A modest cost applies only as scale increases.
+  </p>
+
+  <h2>7. Decision required</h2>
+  <ul>
+    <li>Shall we proceed with <b>Option B</b> (Sheets API + Cache) for growth? <i>(The data stays in Google Sheets.)</i></li>
+    <li>Or remain on <b>Option A</b> for now and review later?</li>
+  </ul>
+  <p>Once approved, this can be implemented step by step without any interruption to daily use.</p>
+
+  <div class="foot">
+    ThirtyMilestones MIS Dashboard &middot; Internal decision document &middot; Data resides in Google Sheets at all times.
+  </div>
+
+</div>
+</body>
+</html>
