@@ -15,7 +15,7 @@ create table if not exists public.doers (
   active      boolean not null default true,
   created_at  timestamptz not null default now()
 );
-create unique index if not exists doers_name_key on public.doers (upper(name));
+create unique index if not exists doers_name_key on public.doers (name);
 
 -- ── LISTS (each "sheet": main Task List, main Checklist, or any extra list) ─
 create table if not exists public.lists (
@@ -56,7 +56,7 @@ create index if not exists tasks_date_idx   on public.tasks (planned_date);
 -- This is what makes "add the same task twice" impossible — the database itself
 -- refuses it (no more manual dedupe).
 create unique index if not exists tasks_dedupe_idx
-  on public.tasks (list_id, upper(doer_name), upper(title), planned_date);
+  on public.tasks (list_id, doer_name, title, planned_date);
 
 -- ── APP USERS (linked to Supabase Auth) + roles ────────────────────────────
 create table if not exists public.app_users (

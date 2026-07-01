@@ -3,6 +3,7 @@ import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { loadData, weekOptions, filterByWeek, filterByDoer, fetchConnectionData, getCachedData } from "@/lib/data";
 import { getBackendUrl, getDefaultBackendUrl, setBackendUrl, isBackendUrlOverridden } from "@/lib/config";
 import { cn } from "@/lib/utils";
+import { importFromSheets } from "@/lib/supabaseImport";
 import { Login } from "@/components/Login";
 import { ForcePasswordChange } from "@/components/ForcePasswordChange";
 import { isAuthed, logout, currentSession, type Session } from "@/lib/auth";
@@ -122,6 +123,56 @@ function BackendUrlCard() {
           <button onClick={reset} className="border-2 border-on-surface px-4 py-2 font-label-sm text-label-sm uppercase text-on-surface-variant transition-colors hover:bg-surface-container">Reset</button>
         )}
       </div>
+    </div>
+  );
+}
+
+// Admin one-time import of the current Google Sheet data into Supabase.
+function MigrateCard() {
+  const [busy, setBusy] = React.useState(false);
+  const [msg, setMsg] = React.useState("");
+  const [result, setResult] = React.useState<{ doers: number; tasks: number } | null>(null);
+  const [err, setErr] = React.useState("");
+
+  async function run() {
+    if (busy) return;
+    if (!window.confirm("Google Sheet ka poora data Supabase me import karein?\n\n(Safe hai — dobara chalा sakte ho, duplicate nahi banenge.)")) return;
+    setBusy(true); setErr(""); setResult(null); setMsg("");
+    try {
+      const r = await importFromSheets(setMsg);
+      setResult(r);
+    } catch (e: any) {
+      setErr(e?.message || "Import fail hua.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="glass-card p-4 text-left sm:p-5">
+      <div className="mb-2 flex items-center gap-2">
+        <Icon name="cloud_upload" className="text-[20px] text-on-surface" />
+        <h3 className="font-headline-md text-headline-md uppercase tracking-tight text-on-surface">Import to Supabase</h3>
+      </div>
+      <p className="mb-3 font-mono text-data-mono uppercase text-on-surface-variant">
+        Google Sheet ka current data (doers + tasks) ek click me Supabase database me le aao. Safe &amp; repeatable.
+      </p>
+      {result ? (
+        <div className="border-2 border-on-surface bg-surface-container-low px-3 py-2 font-label-sm text-label-sm uppercase text-on-surface">
+          ✅ Import ho gaya — {result.doers} doers · {result.tasks} tasks
+        </div>
+      ) : (
+        <button
+          onClick={run}
+          disabled={busy}
+          className="inline-flex items-center gap-2 border-2 border-on-surface bg-on-surface px-5 py-2.5 font-label-sm text-label-sm uppercase text-on-primary transition-colors hover:bg-surface hover:text-on-surface disabled:opacity-50"
+        >
+          <Icon name={busy ? "progress_activity" : "cloud_upload"} className={cn("text-[18px]", busy && "animate-spin")} />
+          {busy ? (msg || "Importing…") : "Import from Google Sheets"}
+        </button>
+      )}
+      {busy && msg && <div className="mt-2 font-mono text-data-mono uppercase text-on-surface-variant">{msg}</div>}
+      {err && <div className="mt-2 border-2 border-error px-3 py-1.5 font-label-sm text-label-sm uppercase text-error">{err}</div>}
     </div>
   );
 }
@@ -353,6 +404,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             {adminSection === "sheets" ? (
               <div className="space-y-6">
                 <BackendUrlCard />
+                <MigrateCard />
                 <SheetManager />
               </div>
             ) : loading ? (
