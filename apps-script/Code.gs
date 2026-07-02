@@ -94,10 +94,11 @@ function buildMainPayloadString(params, wantAll) {
   fms = fms.filter(function (r) { return !isExcludedDoer(r.doer); });
   Object.keys(doerMap).forEach(function (k) { if (isExcludedDoer(k)) delete doerMap[k]; });
 
-  // Recurring checklists are pre-expanded months ahead; keep only up to the end
-  // of the current week so future blank rows don't flood the view.
-  var horizon = toISODate(addDays(startOfWeek(new Date()), 6));
-  checklist = checklist.filter(function (r) { return r.planned && r.planned <= horizon; });
+  // Recurring checklists are pre-expanded months/years ahead. Show each row up
+  // to the end of the current period for ITS frequency (daily/weekly → this
+  // week, monthly → this month, quarterly → this quarter, yearly → this year)
+  // so due items appear on time without future rows flooding the view.
+  checklist = checklist.filter(function (r) { return r.planned && r.planned <= checklistDueThrough(r.frequency); });
 
   var doers = Object.keys(doerMap).map(function (k) { return doerMap[k]; }).sort(byDoer);
   var departments = uniqueDepartments(doers);
@@ -242,7 +243,6 @@ function readChecklistFromId(sheetId, doerMap) {
   if (!ss) return [];
   registerDoerList(ss, doerMap);
   var rows = tryReadTable(ss, ["Task ID", "Planned", "Actual", "Status", "Task"]);
-  var horizon = toISODate(addDays(startOfWeek(new Date()), 6));
   return rows
     .map(function (r) {
       var doer = canonical(r["Name"]);
@@ -258,7 +258,7 @@ function readChecklistFromId(sheetId, doerMap) {
         status: status,
       };
     })
-    .filter(function (r) { return r.planned && r.planned <= horizon; });
+    .filter(function (r) { return r.planned && r.planned <= checklistDueThrough(r.frequency); });
 }
 
 // ---- Write: add a task (doPost) --------------------------------------------
@@ -776,6 +776,8 @@ function freqCode(v) {
   if (s === "DAILY" || s === "D") return "D";
   if (s === "WEEKLY" || s === "W") return "W";
   if (s === "MONTHLY" || s === "M") return "M";
+  if (s === "QUARTERLY" || s === "Q") return "Q";
+  if (s === "YEARLY" || s === "ANNUAL" || s === "ANNUALLY" || s === "Y") return "Y";
   return ""; // One-time / blank
 }
 
@@ -1038,7 +1040,29 @@ function filterByDate(rows, field, range) {
 // ---- Value helpers ---------------------------------------------------------
 function expandFreq(v) {
   var s = trim(v).toUpperCase();
-  return { D: "Daily", W: "Weekly", M: "Monthly" }[s] || (s ? trim(v) : "");
+  return { D: "Daily", W: "Weekly", M: "Monthly", Q: "Quarterly", Y: "Yearly" }[s] || (s ? trim(v) : "");
+}
+
+// How far ahead a recurring checklist row is allowed to appear, as an ISO date:
+//   Daily / Weekly / one-time → end of THIS WEEK
+//   Monthly                   → end of THIS MONTH
+//   Quarterly                 → end of THIS QUARTER
+//   Yearly                    → end of THIS YEAR
+// So a monthly task due on the 25th shows for the whole month (not only in the
+// week of the 25th), a weekly-Monday task shows in its week, etc. Past rows
+// still show (overdue); completed ones are hidden by the frontend.
+function checklistDueThrough(freq) {
+  var now = new Date();
+  var f = trim(freq).toUpperCase();
+  if (f === "MONTHLY" || f === "M") return toISODate(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+  if (f === "QUARTERLY" || f === "Q") {
+    var qEndMonth = Math.floor(now.getMonth() / 3) * 3 + 3; // 3, 6, 9 or 12
+    return toISODate(new Date(now.getFullYear(), qEndMonth, 0));
+  }
+  if (f === "YEARLY" || f === "Y" || f === "ANNUAL" || f === "ANNUALLY") {
+    return toISODate(new Date(now.getFullYear(), 11, 31));
+  }
+  return toISODate(addDays(startOfWeek(now), 6)); // Daily / Weekly / one-time
 }
 
 // Dates in these sheets are DD/MM/YYYY (or real Date cells).
@@ -1046,6 +1070,16 @@ function toISODate(value) {
   if (value === "" || value === null || value === undefined) return "";
   if (Object.prototype.toString.call(value) === "[object Date]") {
     return value.getFullYear() + "-" + pad(value.getMonth() + 1) + "-" + pad(value.getDate());
+  }
+  // Google Sheets serial date number (epoch 1899-12-30). getValues() usually
+  // returns a real Date, but some cells come through as the raw serial (e.g.
+  // "46174" ≈ 2026); convert those so recurring checklist rows aren't dropped.
+  // Range-guarded so plain counts (e.g. "33") are never mistaken for a date.
+  var serial = (typeof value === "number")
+    ? value
+    : (/^\d{4,6}(\.\d+)?$/.test(trim(value)) ? parseFloat(trim(value)) : NaN);
+  if (!isNaN(serial) && serial >= 20000 && serial <= 80000) {
+    return toISODate(new Date(1899, 11, 30 + Math.round(serial)));
   }
   var s = trim(value);
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
