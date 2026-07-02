@@ -11,6 +11,16 @@ import { applyRemoteConfig } from "./configSync";
 
 export const ALL_WEEKS = { key: "all", label: "All weeks", from: "", to: "" };
 
+// After a write (add / complete / revise / doer change) the very next load must
+// bypass the Apps Script payload cache (?nocache=1). Otherwise a background
+// keepWarm trigger can re-populate that cache with STALE rows just after the
+// write cleared it, so the freshly added task wouldn't appear until the cache
+// (6h TTL) expired. This flag forces exactly one fresh, cache-skipping rebuild.
+let forceFreshNextLoad = false;
+export function markDataStale() {
+  forceFreshNextLoad = true;
+}
+
 // Last successful LIVE payload, cached so the dashboard can render instantly on
 // the next visit while fresh data loads in the background (stale-while-revalidate).
 const DATA_CACHE_KEY = "tm-mis-data-cache-v1";
@@ -60,7 +70,11 @@ export async function loadData() {
   try {
     // Generous budget: a cold Apps Script start over a large sheet can take
     // 30-50s. This only guards against a true hang, not normal slowness.
-    const res = await fetchWithTimeout(`${APPS_SCRIPT_URL}?week=all&_t=${Date.now()}`, { method: "GET", redirect: "follow" }, 70000);
+    // Right after a write, skip the server-side payload cache so the new/changed
+    // row is guaranteed to appear (see markDataStale above).
+    const nocache = forceFreshNextLoad ? "&nocache=1" : "";
+    forceFreshNextLoad = false;
+    const res = await fetchWithTimeout(`${APPS_SCRIPT_URL}?week=all${nocache}&_t=${Date.now()}`, { method: "GET", redirect: "follow" }, 70000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const payload = await res.json();
     if (payload && payload.error) {
@@ -210,19 +224,25 @@ async function postToScript(url, payloadObj, failMsg) {
 
 // Add a task. payload: { system, task, doer, priority?, frequency?, department?, date?, sheetId? }
 export async function addTask(payload) {
-  return postToScript(APPS_SCRIPT_URL, { token: WRITE_TOKEN, ...payload }, "Could not add the task.");
+  const res = await postToScript(APPS_SCRIPT_URL, { token: WRITE_TOKEN, ...payload }, "Could not add the task.");
+  markDataStale();
+  return res;
 }
 
 // Add a new doer to the Doers sheet in Google Sheets.
 // payload: { name, department, mobile, email, username, password }
 // username and password are saved so admin can reference them from the sheet.
 export async function addDoer(payload) {
-  return postToScript(APPS_SCRIPT_URL, { token: WRITE_TOKEN, action: "addDoer", ...payload }, "Could not add the doer.");
+  const res = await postToScript(APPS_SCRIPT_URL, { token: WRITE_TOKEN, action: "addDoer", ...payload }, "Could not add the doer.");
+  markDataStale();
+  return res;
 }
 
 // Remove a doer from the Doers sheet.  payload: { name }
 export async function removeDoer(payload) {
-  return postToScript(APPS_SCRIPT_URL, { token: WRITE_TOKEN, action: "removeDoer", ...payload }, "Could not remove the doer.");
+  const res = await postToScript(APPS_SCRIPT_URL, { token: WRITE_TOKEN, action: "removeDoer", ...payload }, "Could not remove the doer.");
+  markDataStale();
+  return res;
 }
 
 // Mark a task complete. Sends Task ID plus a doer/task/date fallback so the
@@ -239,7 +259,7 @@ export async function completeTask(task) {
   // to the revised date after a revise, so it would no longer match the sheet.
   // task.created always holds the ORIGINAL date and never changes on revise.
   const matchDate = task.created || task.due || "";
-  return postToScript(scriptUrl, {
+  const res = await postToScript(scriptUrl, {
     token: WRITE_TOKEN,
     action: "complete",
     system: task.source === "Checklist" ? "checklist" : "tasklist",
@@ -249,6 +269,8 @@ export async function completeTask(task) {
     task: task.task,
     date: matchDate,
   }, "Could not mark the task done.");
+  markDataStale();
+  return res;
 }
 
 // Reschedule a pending task to a new date (newDateISO = "YYYY-MM-DD").
@@ -266,7 +288,7 @@ export async function reviseTask(task, newDateISO) {
   // First Date). task.created is set from r.firstDate in analytics.js and
   // never changes through the task lifecycle in the frontend.
   const matchDate = task.created || task.due || "";
-  return postToScript(scriptUrl, {
+  const res = await postToScript(scriptUrl, {
     token: WRITE_TOKEN,
     action: "revise",
     system: task.source === "Checklist" ? "checklist" : "tasklist",
@@ -277,6 +299,8 @@ export async function reviseTask(task, newDateISO) {
     date: matchDate,
     newDate: newDateISO,
   }, "Could not revise the task.");
+  markDataStale();
+  return res;
 }
 
 function normalize(payload) {
