@@ -100,21 +100,28 @@ alter table public.tasks            enable row level security;
 alter table public.app_users        enable row level security;
 alter table public.user_list_access enable row level security;
 
--- doers & lists: any signed-in user can read; only admin/pc can change
+-- doers & lists: the app's login is a custom system (not Supabase Auth), so the
+-- browser always talks to Supabase as the "anon" role. Access is gated by the
+-- app's own login screen, not by Supabase Auth — so "anon" needs the same
+-- access "authenticated" would have had. Keep the "authenticated" policies too
+-- for if/when real Supabase Auth gets wired into the login flow.
 drop policy if exists doers_read  on public.doers;
 drop policy if exists doers_write on public.doers;
-create policy doers_read  on public.doers for select to authenticated using (true);
-create policy doers_write on public.doers for all    to authenticated using (public.is_privileged()) with check (public.is_privileged());
+create policy doers_read  on public.doers for select to anon, authenticated using (true);
+create policy doers_write on public.doers for all    to anon, authenticated using (true) with check (true);
 
 drop policy if exists lists_read  on public.lists;
 drop policy if exists lists_write on public.lists;
-create policy lists_read  on public.lists for select to authenticated using (true);
-create policy lists_write on public.lists for all    to authenticated using (public.is_privileged()) with check (public.is_privileged());
+create policy lists_read  on public.lists for select to anon, authenticated using (true);
+create policy lists_write on public.lists for all    to anon, authenticated using (true) with check (true);
 
--- tasks: admin/pc see everything; employees see only lists they're granted
+-- tasks: anon (app-auth gated) gets full access, same reasoning as above.
+-- authenticated keeps the granular per-list rules for a future real-auth setup.
 drop policy if exists tasks_read   on public.tasks;
 drop policy if exists tasks_insert on public.tasks;
 drop policy if exists tasks_update on public.tasks;
+drop policy if exists tasks_anon_all on public.tasks;
+create policy tasks_anon_all on public.tasks for all to anon using (true) with check (true);
 create policy tasks_read on public.tasks for select to authenticated using (
   public.is_privileged()
   or exists (select 1 from public.user_list_access a
