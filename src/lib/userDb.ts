@@ -17,7 +17,16 @@
 // auto-created with: username = next tmemp ID, password = TM@{Name}30
 // =============================================================================
 
-export type UserRole = "admin" | "pc" | "employee";
+// "ea" (Executive Assistant) has the same unrestricted access as "pc": sees
+// every list and can add/edit tasks anywhere. It's a separate role only so it
+// gets its own login and shows as EA in the UI.
+export type UserRole = "admin" | "pc" | "ea" | "employee";
+
+// Roles with full, unrestricted access to every list (view + add + edit).
+export const PRIVILEGED_ROLES: UserRole[] = ["admin", "pc", "ea"];
+export function isPrivilegedRole(role: UserRole): boolean {
+  return PRIVILEGED_ROLES.includes(role);
+}
 
 // Per-doer access keyed by USERNAME (stable across devices). Stored server-side
 // and applied to local accounts on load so assignments sync across laptops.
@@ -112,6 +121,7 @@ const DEFAULT_DEFS: Array<{
 }> = [
   { username: "THIRTYMILESTONES", password: "SAHIL@30", role: "admin",    doerName: null, canAdd: true  },
   { username: "PC",               password: "PC@30",    role: "pc",       doerName: null, canAdd: true  },
+  { username: "EA",               password: "EA@30",    role: "ea",       doerName: null, canAdd: true  },
   { username: "TM01",             password: "TM@01",    role: "employee", doerName: "PRIYA", canAdd: false },
   { username: "TM02",             password: "TM@02",    role: "employee", doerName: "SHIKHA", canAdd: false },
   { username: "TM03",             password: "TM@03",    role: "employee", doerName: "DEEPAK", canAdd: false },
@@ -291,7 +301,7 @@ export function removeUserByDoerName(doerName: string): void {
 export function getUserModules(userId: string): string[] {
   const u = readAll().find((x) => x.id === userId);
   if (!u) return [];
-  if (u.role === "admin" || u.role === "pc") return [];
+  if (isPrivilegedRole(u.role)) return [];
   return u.modules ?? [...DEFAULT_EMPLOYEE_MODULES];
 }
 
@@ -310,7 +320,7 @@ export function setUserModules(userId: string, modules: string[]): void {
 export function getUserAddableModules(userId: string): string[] {
   const u = readAll().find((x) => x.id === userId);
   if (!u) return [];
-  if (u.role === "admin" || u.role === "pc") return []; // Admins can add anywhere
+  if (isPrivilegedRole(u.role)) return []; // privileged roles can add anywhere
   return u.addableModules ?? [...DEFAULT_ADDABLE_MODULES];
 }
 

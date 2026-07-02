@@ -21,7 +21,7 @@
 import { APPS_SCRIPT_URL, WRITE_TOKEN } from "./config.js";
 import { getConnections } from "./sheets";
 import { createModule, getModuleBySlug, getAllModules, deleteModule } from "./modules";
-import { getAllUsers, applyAccessByUsername, type AccessMap } from "./userDb";
+import { getAllUsers, applyAccessByUsername, isPrivilegedRole, type AccessMap } from "./userDb";
 
 // localStorage key owned by sheets.ts — written directly here so hydration does
 // NOT trigger a push back to the server (that would be a pointless echo).
@@ -97,7 +97,7 @@ export function buildLocalConfig(): SharedConfig {
   const connections = getConnections();
   const access: AccessMap = {};
   for (const u of getAllUsers()) {
-    if (u.role === "admin" || u.role === "pc") continue; // unrestricted — nothing to store
+    if (isPrivilegedRole(u.role)) continue; // unrestricted — nothing to store
     const entry: { modules?: string[]; addable?: string[] } = {};
     if (Array.isArray(u.modules)) entry.modules = u.modules;
     if (Array.isArray(u.addableModules)) entry.addable = u.addableModules;
