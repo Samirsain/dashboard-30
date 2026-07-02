@@ -19,7 +19,7 @@
 // =============================================================================
 
 import { APPS_SCRIPT_URL, WRITE_TOKEN } from "./config.js";
-import { getConnections } from "./sheets";
+import { getConnections, withDefaultConnections } from "./sheets";
 import { createModule, getModuleBySlug, getAllModules, deleteModule } from "./modules";
 import { getAllUsers, applyAccessByUsername, isPrivilegedRole, type AccessMap } from "./userDb";
 
@@ -36,9 +36,14 @@ export interface SharedConfig {
 export function applyRemoteConfig(config: SharedConfig | null | undefined): void {
   if (!config || typeof config !== "object") return;
 
-  const remoteConns = Array.isArray(config.connections) ? config.connections : [];
+  const rawRemoteConns = Array.isArray(config.connections) ? config.connections : [];
   const remoteAccess = config.access && typeof config.access === "object" ? config.access : {};
-  const remoteEmpty = remoteConns.length === 0 && Object.keys(remoteAccess).length === 0;
+  const remoteEmpty = rawRemoteConns.length === 0 && Object.keys(remoteAccess).length === 0;
+
+  // Merge in the built-in connections (Sahil Sir's sheets) so a backend config
+  // saved before they existed doesn't drop them — and re-push if we added any.
+  const { connections: remoteConns, added: addedDefaults } = withDefaultConnections(rawRemoteConns);
+  if (addedDefaults) scheduleConfigPush();
 
   // First run: the backend has nothing yet. Don't wipe whatever this device
   // already has locally — instead migrate it up so it becomes the shared config.
