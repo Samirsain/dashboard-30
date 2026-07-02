@@ -121,8 +121,8 @@ const DEFAULT_DEFS: Array<{
 }> = [
   { username: "THIRTYMILESTONES", password: "SAHIL@30", role: "admin",    doerName: null, canAdd: true  },
   { username: "PC",               password: "PC@30",    role: "pc",       doerName: null, canAdd: true  },
-  { username: "EA",               password: "EA@30",    role: "ea",       doerName: null, canAdd: true  },
-  { username: "TM01",             password: "TM@01",    role: "employee", doerName: "PRIYA", canAdd: false },
+  // TM01 = Priya = Executive Assistant → full control (all lists, add/edit).
+  { username: "TM01",             password: "TM@01",    role: "ea",       doerName: "PRIYA", canAdd: true  },
   { username: "TM02",             password: "TM@02",    role: "employee", doerName: "SHIKHA", canAdd: false },
   { username: "TM03",             password: "TM@03",    role: "employee", doerName: "DEEPAK", canAdd: false },
   { username: "TM04",             password: "TM@04",    role: "employee", doerName: "SAMIR", canAdd: false },
@@ -141,12 +141,17 @@ export async function initDefaultUsers(): Promise<void> {
   let needsUpdate = false;
   const patched = existing.map((u) => {
     let next = u;
-    if (next.doerName === null) {
-      const def = DEFAULT_DEFS.find((d) => d.username === next.username);
-      if (def && def.doerName) {
-        needsUpdate = true;
-        next = { ...next, doerName: def.doerName };
-      }
+    const def = DEFAULT_DEFS.find((d) => d.username === next.username);
+    // Keep default accounts' role + canAdd in sync with DEFAULT_DEFS. There is
+    // no UI to change a role, so the definition is the source of truth — this is
+    // what upgrades an already-created TM01 (Priya) from employee to the EA role.
+    if (def && (next.role !== def.role || next.canAdd !== def.canAdd)) {
+      needsUpdate = true;
+      next = { ...next, role: def.role, canAdd: def.canAdd };
+    }
+    if (next.doerName === null && def && def.doerName) {
+      needsUpdate = true;
+      next = { ...next, doerName: def.doerName };
     }
     // Back-fill module access for accounts created before module permissions.
     if (next.modules === undefined && next.role === "employee") {
