@@ -18,7 +18,7 @@ import { AddTaskModal } from "@/components/exec/AddTaskModal";
 import { AddDoerModal } from "@/components/exec/AddDoerModal";
 import { SheetManager } from "@/components/exec/SheetManager";
 import { Icon } from "@/components/exec/Icon";
-import { getUserAddableModules } from "@/lib/userDb";
+import { getUserAddableModules, isPrivilegedRole } from "@/lib/userDb";
 
 function onAdminRoute(): boolean {
   if (typeof window === "undefined") return false;
@@ -273,8 +273,8 @@ function ModuleBody({ slug, moduleName, viewData, onChanged, doerName, reloadTok
 function PublicApp({ session, onLogout }: { session: Session; onLogout: () => void }) {
   const { role, doerName, canAdd, userId, internalRole } = session;
   const isAdmin = role === "admin";
-  // admin & pc can add to any list; employees only to lists they're granted.
-  const isUnrestricted = internalRole === "admin" || internalRole === "pc";
+  // admin, pc & ea can add to any list; employees only to lists they're granted.
+  const isUnrestricted = isPrivilegedRole(internalRole);
 
   const [section, setSection] = React.useState<string>(() => defaultModuleSlug(session));
   const [week, setWeek] = React.useState<string>("all");

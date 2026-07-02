@@ -17,7 +17,16 @@
 // auto-created with: username = next tmemp ID, password = TM@{Name}30
 // =============================================================================
 
-export type UserRole = "admin" | "pc" | "employee";
+// "ea" (Executive Assistant) has the same unrestricted access as "pc": sees
+// every list and can add/edit tasks anywhere. It's a separate role only so it
+// gets its own login and shows as EA in the UI.
+export type UserRole = "admin" | "pc" | "ea" | "employee";
+
+// Roles with full, unrestricted access to every list (view + add + edit).
+export const PRIVILEGED_ROLES: UserRole[] = ["admin", "pc", "ea"];
+export function isPrivilegedRole(role: UserRole): boolean {
+  return PRIVILEGED_ROLES.includes(role);
+}
 
 // Per-doer access keyed by USERNAME (stable across devices). Stored server-side
 // and applied to local accounts on load so assignments sync across laptops.
@@ -112,7 +121,8 @@ const DEFAULT_DEFS: Array<{
 }> = [
   { username: "THIRTYMILESTONES", password: "SAHIL@30", role: "admin",    doerName: null, canAdd: true  },
   { username: "PC",               password: "PC@30",    role: "pc",       doerName: null, canAdd: true  },
-  { username: "TM01",             password: "TM@01",    role: "employee", doerName: "PRIYA", canAdd: false },
+  // TM01 = Priya = Executive Assistant → full control (all lists, add/edit).
+  { username: "TM01",             password: "TM@01",    role: "ea",       doerName: "PRIYA", canAdd: true  },
   { username: "TM02",             password: "TM@02",    role: "employee", doerName: "SHIKHA", canAdd: false },
   { username: "TM03",             password: "TM@03",    role: "employee", doerName: "DEEPAK", canAdd: false },
   { username: "TM04",             password: "TM@04",    role: "employee", doerName: "SAMIR", canAdd: false },
@@ -131,12 +141,17 @@ export async function initDefaultUsers(): Promise<void> {
   let needsUpdate = false;
   const patched = existing.map((u) => {
     let next = u;
-    if (next.doerName === null) {
-      const def = DEFAULT_DEFS.find((d) => d.username === next.username);
-      if (def && def.doerName) {
-        needsUpdate = true;
-        next = { ...next, doerName: def.doerName };
-      }
+    const def = DEFAULT_DEFS.find((d) => d.username === next.username);
+    // Keep default accounts' role + canAdd in sync with DEFAULT_DEFS. There is
+    // no UI to change a role, so the definition is the source of truth — this is
+    // what upgrades an already-created TM01 (Priya) from employee to the EA role.
+    if (def && (next.role !== def.role || next.canAdd !== def.canAdd)) {
+      needsUpdate = true;
+      next = { ...next, role: def.role, canAdd: def.canAdd };
+    }
+    if (next.doerName === null && def && def.doerName) {
+      needsUpdate = true;
+      next = { ...next, doerName: def.doerName };
     }
     // Back-fill module access for accounts created before module permissions.
     if (next.modules === undefined && next.role === "employee") {
@@ -291,7 +306,7 @@ export function removeUserByDoerName(doerName: string): void {
 export function getUserModules(userId: string): string[] {
   const u = readAll().find((x) => x.id === userId);
   if (!u) return [];
-  if (u.role === "admin" || u.role === "pc") return [];
+  if (isPrivilegedRole(u.role)) return [];
   return u.modules ?? [...DEFAULT_EMPLOYEE_MODULES];
 }
 
@@ -310,7 +325,7 @@ export function setUserModules(userId: string, modules: string[]): void {
 export function getUserAddableModules(userId: string): string[] {
   const u = readAll().find((x) => x.id === userId);
   if (!u) return [];
-  if (u.role === "admin" || u.role === "pc") return []; // Admins can add anywhere
+  if (isPrivilegedRole(u.role)) return []; // privileged roles can add anywhere
   return u.addableModules ?? [...DEFAULT_ADDABLE_MODULES];
 }
 

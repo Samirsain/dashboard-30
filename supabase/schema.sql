@@ -62,7 +62,7 @@ create unique index if not exists tasks_dedupe_idx
 create table if not exists public.app_users (
   id          uuid primary key references auth.users(id) on delete cascade,
   username    text unique,
-  role        text not null default 'employee' check (role in ('admin','pc','employee')),
+  role        text not null default 'employee' check (role in ('admin','pc','ea','employee')),
   doer_id     bigint references public.doers(id),
   created_at  timestamptz not null default now()
 );
@@ -90,7 +90,7 @@ create or replace function public.is_privileged() returns boolean
 language sql stable as $$
   select exists (
     select 1 from public.app_users u
-    where u.id = auth.uid() and u.role in ('admin','pc')
+    where u.id = auth.uid() and u.role in ('admin','pc','ea')
   );
 $$;
 

@@ -12,11 +12,11 @@
 
 import type { Session } from "./auth";
 import { getActiveModules, type ModuleDef } from "./modules";
-import { getUserModules } from "./userDb";
+import { getUserModules, isPrivilegedRole } from "./userDb";
 
-// Roles that can see every active module.
+// Roles that can see every active module (admin, pc, ea).
 function isUnrestricted(session: Session): boolean {
-  return session.internalRole === "admin" || session.internalRole === "pc";
+  return isPrivilegedRole(session.internalRole);
 }
 
 // The active modules this session is allowed to see, in sidebar order.

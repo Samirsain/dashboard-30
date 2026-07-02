@@ -3,7 +3,7 @@ user id     passs
 THIRTYMILESTONES - SAHIL@30 
 PC   - PC@30
 
-TM01 -- TM@01 -- PRIYA 
+TM01 -- TM@01 -- PRIYA   // EA (Executive Assistant) — full control: all lists, add/edit
 
 TM02 -- TM@02 SHIKHA 
 
