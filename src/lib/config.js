@@ -66,9 +66,11 @@ export const USE_SAMPLE_DATA_FALLBACK = false;
 export const WRITE_TOKEN = "TM30-WRITE";
 
 // Doers who have left the team — hidden everywhere (dashboard + scoring).
-// Canonical UPPERCASE names; matching is case-insensitive. "SAHIL" also covers
-// "SAHIL SIR" via the alias map. Add/remove a name here to update the whole app.
-export const EXCLUDED_DOERS = ["LAXMI", "KIRTI", "SAHIL"];
+// Canonical UPPERCASE names; matching is case-insensitive. Add/remove a name
+// here to update the whole app.
+// NOTE: SAHIL removed from this list so Sahil Sir's task list + checklist data
+// shows on the dashboard (his rows were being filtered out before).
+export const EXCLUDED_DOERS = ["LAXMI", "KIRTI"];
 
 export const BRAND = {
   name: "ThirtyMilestones",

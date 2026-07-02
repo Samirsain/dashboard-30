@@ -30,8 +30,9 @@ var SHEET_IDS = {
 var DOER_ALIAS = { SANDEP: "SANDEEP", "SAHIL SIR": "SAHIL" };
 
 // Ex-staff — dropped from the output entirely (canonical UPPERCASE names).
-// "SAHIL" also covers "SAHIL SIR" via DOER_ALIAS.
-var EXCLUDED_DOERS = { LAXMI: true, KIRTI: true, SAHIL: true };
+// SAHIL removed so Sahil Sir's task list + checklist data is no longer filtered
+// out of the dashboard.
+var EXCLUDED_DOERS = { LAXMI: true, KIRTI: true };
 function isExcludedDoer(name) { return !!EXCLUDED_DOERS[canonical(name)]; }
 
 var WEEK_START = 0; // 0 = Sunday
